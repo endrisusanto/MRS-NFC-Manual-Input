@@ -212,8 +212,16 @@
       if (extCounter) extCounter.textContent = val;
   }
 
-  injectUI();
-  startQuotaPolling();
+  // Tunggu sampai DOM siap sebelum inject UI
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      injectUI();
+      startQuotaPolling();
+    });
+  } else {
+    injectUI();
+    startQuotaPolling();
+  }
 
   // Escucha cambios de almacenamiento para sincronizar en vivo
   chrome.storage.onChanged.addListener((changes, areaName) => {
