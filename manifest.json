@@ -1,0 +1,78 @@
+{
+    "manifest_version": 3,
+    "name": "MRS NFC Manual Input",
+    "version": "1.0",
+    "description": "Tampilkan panel input UID manual pada halaman NFC scanner MeRS ketika NFC tidak tersedia",
+    "permissions": [
+        "activeTab",
+        "storage",
+        "scripting",
+        "tabs"
+    ],
+    "host_permissions": [
+        "http://107.102.8.148/*",
+        "http://*/MERS/*",
+        "*://*/*nfc_scanner*",
+        "*://*/*NFC*Scanner*",
+        "file://*/*NFC*Scanner*",
+        "file://*/*nfc*scanner*"
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "bridge.js"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
+        }
+    ],
+    "action": {
+        "default_popup": "popup.html",
+        "default_icon": {
+            "16": "icons/icon16.png",
+            "48": "icons/icon48.png",
+            "128": "icons/icon128.png"
+        },
+        "default_title": "MRS NFC Manual Input"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "http://107.102.8.148/*",
+                "http://*/MERS/*",
+                "*://*/*nfc_scanner*",
+                "*://*/*NFC*Scanner*",
+                "file://*/*NFC*Scanner*",
+                "file://*/*nfc*scanner*"
+            ],
+            "js": [
+                "content.js"
+            ],
+            "css": [
+                "content.css"
+            ],
+            "run_at": "document_start"
+        },
+        {
+            "matches": [
+                "http://107.102.8.148/*",
+                "http://*/MERS/*",
+                "*://*/*nfc_scanner*",
+                "*://*/*NFC*Scanner*",
+                "file://*/*NFC*Scanner*",
+                "file://*/*nfc*scanner*"
+            ],
+            "js": [
+                "bridge.js"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN"
+        }
+    ],
+    "icons": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+    }
+}

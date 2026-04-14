@@ -1,0 +1,239 @@
+/* 
+   MRS NFC Manual Input - Neobrutalism Theme
+   Author: Antigravity
+*/
+
+:root {
+    --brutal-black: #000000;
+    --brutal-white: #ffffff;
+    --brutal-yellow: #fbbf24;
+    --brutal-green: #10b981;
+    --brutal-bg: #f3f4f6;
+    --brutal-shadow: 4px 4px 0px #000000;
+    --brutal-shadow-sm: 2px 2px 0px #000000;
+    --brutal-border: 3px solid #000000;
+}
+
+/* Floating Action Button */
+#mrs-nfc-fab {
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    width: 65px;
+    height: 65px;
+    background: var(--brutal-yellow);
+    border: var(--brutal-border);
+    border-radius: 50%;
+    color: var(--brutal-black);
+    font-size: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: var(--brutal-shadow);
+    z-index: 99999;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    padding: 0;
+}
+
+#mrs-nfc-fab:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+    background: #f59e0b;
+}
+
+#mrs-nfc-fab:active {
+    transform: translate(2px, 2px);
+    box-shadow: 0px 0px 0px #000;
+}
+
+/* Main Panel */
+#mrs-nfc-panel {
+    position: fixed;
+    bottom: 100px;
+    right: 25px;
+    width: 320px;
+    background: var(--brutal-white);
+    border: var(--brutal-border);
+    box-shadow: 8px 8px 0px #000000;
+    z-index: 99998;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    animation: mrs-zoom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes mrs-zoom {
+    from { transform: scale(0.8) translateY(20px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* Header */
+.mrs-panel-header {
+    background: var(--brutal-green);
+    padding: 15px;
+    border-bottom: var(--brutal-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.mrs-header-title {
+    font-weight: 900;
+    font-size: 16px;
+    color: black;
+    text-transform: uppercase;
+}
+
+.mrs-close-btn {
+    background: var(--brutal-white);
+    border: 2px solid black;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 2px 2px 0px #000;
+}
+
+/* Content Body */
+.mrs-panel-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Stats Box (Quota) */
+.mrs-stats-box {
+    background: #bae6fd; /* Light Blue */
+    border: 2px solid black;
+    padding: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--brutal-shadow-sm);
+}
+
+.mrs-stats-label {
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: uppercase;
+}
+
+.mrs-stats-value {
+    font-weight: 900;
+    font-size: 24px;
+    background: white;
+    padding: 2px 8px;
+    border: 2px solid black;
+}
+
+/* Input Area (New Neobrutalism Input) */
+.mrs-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.mrs-input-label {
+    font-weight: 800;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+.mrs-input-field {
+    width: 100%;
+    padding: 12px;
+    background: var(--brutal-white);
+    border: var(--brutal-border);
+    font-family: monospace;
+    font-size: 18px;
+    font-weight: 900;
+    outline: none;
+    box-shadow: var(--brutal-shadow-sm);
+}
+
+.mrs-input-field:focus {
+    background: #fffbeb;
+}
+
+.mrs-primary-btn {
+    background: var(--brutal-yellow);
+    border: var(--brutal-border);
+    padding: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: var(--brutal-shadow-sm);
+    transition: all 0.1s;
+}
+
+.mrs-primary-btn:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0px #000;
+}
+
+.mrs-primary-btn:active {
+    transform: translate(1px, 1px);
+    box-shadow: 0px 0px 0px #000;
+}
+
+/* History List */
+.mrs-history-section {
+    border-top: 2px solid #ddd;
+    padding-top: 15px;
+}
+
+.mrs-history-title {
+    font-weight: 800;
+    font-size: 11px;
+    color: #666;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+}
+
+.mrs-history-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.mrs-chip {
+    background: white;
+    border: 2px solid black;
+    padding: 4px 10px;
+    font-family: monospace;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 2px 2px 0px #000;
+    transition: all 0.1s;
+}
+
+.mrs-chip:hover {
+    background: var(--brutal-yellow);
+    transform: translate(-1px, -1px);
+}
+
+/* Toast Notification (Brutal style) */
+#mrs-toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100px);
+    background: var(--brutal-black);
+    color: white;
+    padding: 15px 30px;
+    border: 3px solid white;
+    font-weight: 900;
+    z-index: 100001;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 10px 10px 0px rgba(0,0,0,0.5);
+}
+
+#mrs-toast.mrs-show {
+    transform: translateX(-50%) translateY(0px);
+}

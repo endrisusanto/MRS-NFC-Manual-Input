@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MRS NFC Neobrutalism</title>
+    <style>
+        :root {
+            --brutal-black: #000000;
+            --brutal-white: #ffffff;
+            --brutal-yellow: #fbbf24;
+            --brutal-green: #10b981;
+            --brutal-shadow: 4px 4px 0px #000000;
+            --brutal-border: 2px solid #000000;
+        }
+
+        body {
+            width: 350px;
+            font-family: 'Courier New', Courier, monospace;
+            background: #f1f5f9;
+            margin: 0;
+            padding: 15px;
+        }
+
+        .container {
+            background: var(--brutal-white);
+            border: var(--brutal-border);
+            box-shadow: var(--brutal-shadow);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: var(--brutal-green);
+            padding: 15px;
+            border-bottom: var(--brutal-border);
+            font-weight: 900;
+            text-transform: uppercase;
+            font-size: 16px;
+        }
+
+        .content {
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-weight: 900;
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #444;
+        }
+
+        input {
+            padding: 12px;
+            border: var(--brutal-border);
+            font-size: 18px;
+            font-weight: 900;
+            outline: none;
+            box-shadow: 2px 2px 0px #000;
+        }
+
+        button {
+            background: var(--brutal-yellow);
+            border: var(--brutal-border);
+            padding: 12px;
+            font-weight: 900;
+            text-transform: uppercase;
+            cursor: pointer;
+            box-shadow: 3px 3px 0px #000;
+            transition: all 0.1s;
+        }
+
+        button:hover {
+            transform: translate(-1px, -1px);
+            box-shadow: 5px 5px 0px #000;
+        }
+
+        button:active {
+            transform: translate(1px, 1px);
+            box-shadow: 0px 0px 0px #000;
+        }
+
+        .pinned-sec {
+            border-top: 2px dashed #000;
+            padding-top: 10px;
+        }
+
+        .history-sec {
+            border-top: 1px solid #ccc;
+            padding-top: 10px;
+        }
+
+        .chip-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .chip {
+            background: white;
+            border: 2px solid black;
+            padding: 4px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 2px 2px 0px #000;
+        }
+
+        .hint {
+            font-size: 10px;
+            color: #666;
+            line-height: 1.4;
+            background: #eee;
+            padding: 8px;
+            border: 1px solid #000;
+        }
+
+        #feedback {
+            font-weight: 900;
+            font-size: 12px;
+            padding: 8px;
+            border: 2px solid black;
+            display: none;
+            margin-bottom: 5px;
+        }
+        .feedback-ok { background: #86efac; }
+        .feedback-err { background: #fca5a5; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">MRS NFC MANUAL</div>
+        <div class="content">
+            <div id="feedback"></div>
+
+            <div class="input-group">
+                <label>Input UID / Serial</label>
+                <input type="text" id="uid-input" placeholder="1234567890" autocomplete="off">
+                <div style="display:flex; gap:8px;">
+                    <button id="pin-btn" style="flex:0; padding:0 15px; background:#fef3c7" title="Pin ID ini">📌</button>
+                    <button id="send-btn" style="flex:1">🔍 TAP IN MeRS!</button>
+                </div>
+            </div>
+
+            <div class="hint">
+                💡 <b>Tips:</b><br>
+                - Ketik desimal (ex: 39374) <br>
+                - Ketik serial (ex: 2A:DA:1A:65)
+            </div>
+
+            <div class="pinned-sec" id="pinned-sec" style="display:none">
+                <label>📌 Disematkan</label>
+                <div class="chip-list" id="pinned-list"></div>
+            </div>
+
+            <div class="history-sec">
+                <label>Riwayat</label>
+                <div class="chip-list" id="recent-list"></div>
+            </div>
+            
+            <div style="display:flex; gap:10px; margin-top:5px;">
+                <button id="open-scanner" style="flex:1; background:#bae6fd; font-size:10px;">📲 SCANNER</button>
+                <button id="open-menu" style="flex:1; background:#e9d5ff; font-size:10px;">🍽️ MENU</button>
+            </div>
+        </div>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>

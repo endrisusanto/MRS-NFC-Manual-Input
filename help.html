@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MRS NFC Manual Input - Extension Documentation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .hero-pattern {
+            background-color: #ffffff;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23059669' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 antialiased">
+
+    <!-- Navbar -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <span class="text-2xl mr-2">🪪</span>
+                        <span class="font-bold text-xl text-emerald-700">MRS NFC Extension</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="#features" class="text-sm font-medium text-slate-500 hover:text-emerald-600">Fitur</a>
+                    <a href="#install" class="text-sm font-medium text-slate-500 hover:text-emerald-600">Instalasi</a>
+                    <a href="#usage" class="text-sm font-medium text-slate-500 hover:text-emerald-600">Cara Pakai</a>
+                    <a href="./MRS-NFC-Manual-Input/" download
+                        class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm">
+                        <i class="fa-solid fa-download mr-2"></i> Download
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <div class="relative overflow-hidden hero-pattern">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+            <div class="text-center">
+                <span
+                    class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 mb-6 border border-emerald-200">
+                    Versi 1.0 Stable
+                </span>
+                <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight text-slate-900 mb-4">
+                    Solusi Input Manual <span class="text-emerald-600">NFC Scanner</span>
+                </h1>
+                <p class="mt-4 max-w-2xl mx-auto text-xl text-slate-600">
+                    Extension browser Microsoft Edge/Chrome untuk menambahkan fitur input UID manual pada sistem loket
+                    MeRS saat perangkat NFC tidak tersedia.
+                </p>
+                <div class="mt-8 flex justify-center gap-4">
+                    <a href="#install"
+                        class="px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 shadow-lg hover:shadow-emerald-500/30 transition-all transform hover:-translate-y-1">
+                        Mulai Instalasi
+                    </a>
+                    <a href="#usage"
+                        class="px-8 py-3 bg-white text-emerald-700 border border-emerald-200 rounded-xl font-bold hover:bg-emerald-50 transition-all">
+                        Cara Penggunaan
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Grid -->
+    <section id="features" class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold text-slate-900">Fitur Utama</h2>
+                <p class="mt-2 text-slate-600">Didesain khusus untuk kebutuhan operasional di lapangan</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 hover:shadow-lg transition-shadow">
+                    <div
+                        class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 mb-4 text-2xl">
+                        ⌨️
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 mb-2">Manual Input Panel</h3>
+                    <p class="text-slate-600 text-sm">
+                        Tombol melayang (FAB) di pojok kanan bawah membuka panel input manual. Solusi saat reader NFC
+                        bermasalah.
+                    </p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 hover:shadow-lg transition-shadow">
+                    <div
+                        class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 mb-4 text-2xl">
+                        🔗
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 mb-2">Quick Shortcuts</h3>
+                    <p class="text-slate-600 text-sm">
+                        Akses cepat ke halaman <strong>Cek Menu</strong> dan <strong>Ambil Pesanan</strong> langsung
+                        dari dalam panel extension.
+                    </p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 hover:shadow-lg transition-shadow">
+                    <div
+                        class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600 mb-4 text-2xl">
+                        🕐
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 mb-2">Smart History</h3>
+                    <p class="text-slate-600 text-sm">
+                        Menyimpan 5 UID terakhir yang digunakan secara lokal. Memudahkan input ulang tanpa mengetik.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation Steps -->
+    <section id="install" class="py-16 bg-slate-50 border-t border-slate-200">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100">
+                <div class="p-8 sm:p-12">
+                    <div class="flex items-center justify-between mb-8">
+                        <div>
+                            <h2 class="text-3xl font-bold text-slate-900">Panduan Instalasi</h2>
+                            <p class="text-slate-500 mt-2">Microsoft Edge / Google Chrome</p>
+                        </div>
+                        <div class="hidden sm:flex space-x-2">
+                            <span class="w-3 h-3 rounded-full bg-red-400"></span>
+                            <span class="w-3 h-3 rounded-full bg-yellow-400"></span>
+                            <span class="w-3 h-3 rounded-full bg-green-400"></span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-8">
+                        <!-- Step 1 -->
+                        <div class="flex gap-4">
+                            <div
+                                class="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold">
+                                1</div>
+                            <div>
+                                <h4 class="text-lg font-bold text-slate-900">Buka Menu Extensions</h4>
+                                <p class="text-slate-600 mt-1">
+                                    Ketik <code
+                                        class="bg-slate-100 px-2 py-1 rounded text-red-600 font-mono text-sm">edge://extensions</code>
+                                    di address bar browser Anda.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div class="flex gap-4">
+                            <div
+                                class="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold">
+                                2</div>
+                            <div>
+                                <h4 class="text-lg font-bold text-slate-900">Aktifkan Developer Mode</h4>
+                                <p class="text-slate-600 mt-1">
+                                    Cari toggle <strong>Developer mode</strong> (biasanya di pojok kiri bawah atau kanan
+                                    atas) dan aktifkan.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div class="flex gap-4">
+                            <div
+                                class="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold">
+                                3</div>
+                            <div>
+                                <h4 class="text-lg font-bold text-slate-900">Load Unpacked</h4>
+                                <p class="text-slate-600 mt-1">
+                                    Klik tombol <strong>Load unpacked</strong>, lalu pilih folder <code
+                                        class="bg-slate-100 px-2 py-1 rounded font-mono text-sm">MRS-NFC-Manual-Input</code>
+                                    yang sudah Anda download.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Step 4 -->
+                        <div class="flex gap-4">
+                            <div
+                                class="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold">
+                                4</div>
+                            <div>
+                                <h4 class="text-lg font-bold text-slate-900">Selesai! 🎉</h4>
+                                <p class="text-slate-600 mt-1">
+                                    Extension akan aktif otomatis di halaman MeRS. Refresh halaman web untuk mulai
+                                    menggunakan.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Usage Guide -->
+    <section id="usage" class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-slate-900 text-center mb-12">Cara Penggunaan</h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                <!-- Usage 1: Cek Menu -->
+                <div class="space-y-4">
+                    <div
+                        class="aspect-video bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-center relative overflow-hidden group">
+                        <div
+                            class="absolute inset-0 bg-emerald-900 opacity-0 group-hover:opacity-10 transition-opacity">
+                        </div>
+                        <span class="text-6xl">🍽️</span>
+                        <div
+                            class="absolute bottom-4 left-4 bg-white px-3 py-1 rounded-lg text-xs font-bold text-emerald-700 shadow-sm">
+                            cek_menu.html
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900">Halaman Cek Menu</h3>
+                    <p class="text-slate-600">
+                        Digunakan untuk mengecek jatah makan karyawan.
+                    </p>
+                    <ul class="space-y-2 text-sm text-slate-700">
+                        <li class="flex items-start">
+                            <i class="fa-solid fa-check text-emerald-500 mt-1 mr-2"></i>
+                            Buka halaman via shortcut extension.
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fa-solid fa-check text-emerald-500 mt-1 mr-2"></i>
+                            Klik tombol <strong>⌨ (Keyboard)</strong> di pojok kanan bawah.
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fa-solid fa-check text-emerald-500 mt-1 mr-2"></i>
+                            Masukkan UID kartu dan tekan Enter/Cek.
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Usage 2: Ambil Pesanan -->
+                <div class="space-y-4">
+                    <div
+                        class="aspect-video bg-blue-50 rounded-xl border border-blue-100 flex items-center justify-center relative overflow-hidden group">
+                        <div class="absolute inset-0 bg-blue-900 opacity-0 group-hover:opacity-10 transition-opacity">
+                        </div>
+                        <span class="text-6xl">📲</span>
+                        <div
+                            class="absolute bottom-4 left-4 bg-white px-3 py-1 rounded-lg text-xs font-bold text-blue-700 shadow-sm">
+                            nfc_scanner.html
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900">Halaman Ambil Pesanan</h3>
+                    <p class="text-slate-600">
+                        Digunakan di loket pengambilan makanan.
+                    </p>
+                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-2">
+                        <p class="text-amber-800 text-sm font-semibold">
+                            <i class="fa-solid fa-triangle-exclamation mr-1"></i> Penting:
+                        </p>
+                        <p class="text-amber-700 text-xs mt-1">
+                            Anda <strong>HARUS MEMILIH LOKET</strong> terlebih dahulu sebelum melakukan input manual.
+                            Jika tidak, sistem akan menolak input.
+                        </p>
+                    </div>
+                    <ul class="space-y-2 text-sm text-slate-700">
+                        <li class="flex items-start">
+                            <i class="fa-solid fa-check text-blue-500 mt-1 mr-2"></i>
+                            Pilih Loket (1-6) di layar utama.
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fa-solid fa-check text-blue-500 mt-1 mr-2"></i>
+                            Setelah masuk mode scan, klik tombol manual input.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center">
+            <div class="mb-4 md:mb-0">
+                <span class="text-lg font-bold text-white">MRS NFC Extension</span>
+                <span class="ml-2 text-sm bg-slate-800 px-2 py-1 rounded">v1.0</span>
+            </div>
+            <div class="text-sm">
+                &copy; 2026 Endri Susanto - MeRS System
+            </div>
+        </div>
+    </footer>
+
+</body>
+
+</html>
