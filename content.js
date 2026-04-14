@@ -135,8 +135,9 @@
         if (pinned.length > 0) {
             pinnedSec.style.display = 'block';
             pinnedList.innerHTML = pinned.map(item => `
-              <div class="mrs-chip" style="background:#fffbeb; border-color:#f59e0b" data-uid="${item.id}" title="${item.id}">
-                <b>${item.alias}</b>
+              <div class="mrs-chip" style="background:#fffbeb; border-color:#f59e0b; display:flex; align-items:center; gap:8px;" data-uid="${item.id}" title="${item.id}">
+                <span style="flex:1"><b>${item.alias}</b></span>
+                <span class="mrs-delete-pin" data-uid="${item.id}" style="font-weight:bold; color:#ef4444; padding:0 4px; border-left:1px solid #fed7aa; font-size:14px; cursor:pointer">×</span>
               </div>
             `).join('');
         } else {
@@ -164,9 +165,23 @@
       // Menghapus listener lama
       const newChip = chip.cloneNode(true);
       chip.parentNode.replaceChild(newChip, chip);
-      newChip.addEventListener('click', () => {
+      newChip.addEventListener('click', (e) => {
+        if (e.target.classList.contains('mrs-delete-pin')) {
+            removePinned(e.target.dataset.uid);
+            return;
+        }
         processUID(newChip.dataset.uid);
       });
+    });
+  }
+
+  function removePinned(uid) {
+    getStorageData(STORAGE_KEY_PINNED, (pinned) => {
+        const newData = pinned.filter(p => p.id !== uid);
+        setStorageData(STORAGE_KEY_PINNED, newData, () => {
+            renderLists();
+            showToast("Pin dihapus");
+        });
     });
   }
 

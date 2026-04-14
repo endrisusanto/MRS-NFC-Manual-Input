@@ -26,7 +26,12 @@ document.addEventListener('DOMContentLoaded', () => {
         getData(STORAGE_KEY_PINNED, (pinned) => {
             if (pinned.length > 0) {
                 pSec.style.display = 'block';
-                pList.innerHTML = pinned.map(p => `<div class="chip" data-uid="${p.id}" style="border-color:#f59e0b"><b>${p.alias}</b></div>`).join('');
+                pList.innerHTML = pinned.map(p => `
+                    <div class="chip" data-uid="${p.id}" style="border-color:#f59e0b; display:flex; align-items:center; gap:8px;">
+                        <span style="flex:1"><b>${p.alias}</b></span>
+                        <span class="delete-pin" data-uid="${p.id}" style="font-weight:bold; color:#ef4444; padding:0 4px; border-left:1px solid #ccc; font-size:14px; line-height:1">×</span>
+                    </div>
+                `).join('');
             } else {
                 pSec.style.display = 'none';
             }
@@ -44,7 +49,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.chip').forEach(c => {
             const newC = c.cloneNode(true);
             c.parentNode.replaceChild(newC, c);
-            newC.addEventListener('click', () => {
+            
+            newC.addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-pin')) {
+                    removePinned(e.target.dataset.uid);
+                    return;
+                }
                 input.value = newC.dataset.uid;
                 sendUID();
             });
@@ -90,9 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
         getData(STORAGE_KEY_PINNED, (pinned) => {
             const existing = pinned.find(p => p.id === uid);
             if (existing) {
-                pinned = pinned.filter(p => p.id !== uid);
-                setData(STORAGE_KEY_PINNED, pinned, render);
-                showFeedback('Pin dihapus');
+                removePinned(uid);
             } else {
                 const alias = window.prompt(`Nama Alias untuk ${uid}:`, "Karyawan");
                 if (alias === null) return;
@@ -100,6 +108,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 setData(STORAGE_KEY_PINNED, pinned, render);
                 showFeedback('Berhasil di-Pin!');
             }
+        });
+    }
+
+    function removePinned(uid) {
+        getData(STORAGE_KEY_PINNED, (pinned) => {
+            const newData = pinned.filter(p => p.id !== uid);
+            setData(STORAGE_KEY_PINNED, newData, () => {
+                render();
+                showFeedback('Pin dihapus');
+            });
         });
     }
 
