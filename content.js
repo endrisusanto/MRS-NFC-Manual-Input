@@ -40,6 +40,64 @@
     });
   }
 
+  // --- BENTO MENU PANEL ---
+  let lastScheduleData = null;
+
+  function injectBentoPanel() {
+    if (document.getElementById('mrs-bento-panel')) return;
+    const bento = document.createElement('div');
+    bento.id = 'mrs-bento-panel';
+    bento.style.display = 'none';
+    bento.innerHTML = `
+      <div class="mrs-bento-header">
+        <span class="mrs-bento-title" id="mrs-bento-menu-name">Menu Hari Ini</span>
+        <span class="mrs-bento-badge" id="mrs-bento-quota">---</span>
+      </div>
+      <div class="mrs-bento-grid" id="mrs-bento-grid"></div>
+    `;
+    document.body.appendChild(bento);
+  }
+
+  function renderBento(schedule) {
+    const bento = document.getElementById('mrs-bento-panel');
+    if (!bento) return;
+
+    const BASE_IMG = 'http://107.102.8.148/MERS/assets/images/menu/';
+    const items = [
+      { label: 'Karbo',      name: schedule.carbo_name,      pic: schedule.carbo_pic,      cat: schedule.carbo_cat,      color: '#fef9c3', accent: '#ca8a04' },
+      { label: 'Utama',      name: schedule.main_name,       pic: schedule.menu_detail_pic, cat: schedule.main_cat,       color: '#dcfce7', accent: '#16a34a' },
+      { label: 'Sayur',      name: schedule.soup_name,       pic: schedule.soup_pic,        cat: schedule.soup_cat,       color: '#dbeafe', accent: '#2563eb' },
+      { label: 'Pendamping', name: schedule.option1_name,    pic: schedule.option1_pic,     cat: schedule.option1_cat,    color: '#fce7f3', accent: '#db2777' },
+      { label: 'Sambal',     name: schedule.option3_name,    pic: schedule.option3_pic,     cat: schedule.option3_cat,    color: '#ffedd5', accent: '#ea580c' },
+      { label: 'Buah',       name: schedule.fruit_name,      pic: schedule.fruit_pic,       cat: schedule.fruit_cat,      color: '#ede9fe', accent: '#7c3aed' },
+      { label: 'Minuman',    name: schedule.additional_name, pic: schedule.additional_pic,  cat: schedule.additional_cat, color: '#e0f2fe', accent: '#0284c7' },
+    ].filter(item => item.name && item.name !== '-' && item.name.trim() !== '');
+
+    document.getElementById('mrs-bento-menu-name').textContent = schedule.menu_name || 'Menu Hari Ini';
+    document.getElementById('mrs-bento-quota').textContent = `🍽 ${schedule.remaining_portions} porsi`;
+
+    const grid = document.getElementById('mrs-bento-grid');
+    grid.innerHTML = items.map(item => `
+      <div class="mrs-bento-card" style="background:${item.color}; border-color:${item.accent}">
+        <div class="mrs-bento-img-wrap">
+          <img src="${BASE_IMG}${item.pic}" alt="${item.name}"
+               onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
+               class="mrs-bento-img">
+          <div class="mrs-bento-img-fallback" style="display:none; color:${item.accent}">🍴</div>
+        </div>
+        <div class="mrs-bento-label" style="color:${item.accent}">${item.label}</div>
+        <div class="mrs-bento-name">${item.name}</div>
+      </div>
+    `).join('');
+
+    bento.style.display = 'flex';
+  }
+
+  function hideBento() {
+    const bento = document.getElementById('mrs-bento-panel');
+    if (bento) bento.style.display = 'none';
+  }
+
   // --- UI CONSTRUCTION ---
   function injectUI() {
     if (document.getElementById('mrs-nfc-fab')) return;
@@ -47,6 +105,8 @@
     const toast = document.createElement('div');
     toast.id = 'mrs-toast';
     document.body.appendChild(toast);
+
+    injectBentoPanel();
 
     const fab = document.createElement('button');
     fab.id = 'mrs-nfc-fab';
@@ -85,6 +145,11 @@
           <div class="mrs-history-title">Riwayat Terakhir</div>
           <div class="mrs-history-list" id="mrs-history-list"></div>
         </div>
+
+        <div class="mrs-shortcut-group">
+          <button id="mrs-open-scanner" class="mrs-shortcut-btn mrs-shortcut-scanner">📲 Scanner</button>
+          <button id="mrs-open-menu" class="mrs-shortcut-btn mrs-shortcut-menu">🍽️ Cek Menu</button>
+        </div>
       </div>
     `;
     document.body.appendChild(panel);
@@ -105,6 +170,12 @@
             if (val) processUID(val);
         }
     });
+    document.getElementById('mrs-open-scanner').addEventListener('click', () => {
+        window.open('http://107.102.8.148/MERS/nfc_scanner.html', '_blank');
+    });
+    document.getElementById('mrs-open-menu').addEventListener('click', () => {
+        window.open('http://107.102.8.148/MERS/cek_menu.html', '_blank');
+    });
 
     renderLists();
   }
@@ -115,7 +186,11 @@
     panel.style.display = isVisible ? 'none' : 'flex';
     if (!isVisible) {
         document.getElementById('mrs-manual-uid').focus();
-        renderLists(); // Refresh when opening
+        renderLists();
+        // Show bento if data is ready
+        if (lastScheduleData) renderBento(lastScheduleData);
+    } else {
+        hideBento();
     }
   }
 
@@ -206,8 +281,11 @@
           fetch(`${apiUrl}cekorder.php?loket=${loketId}`, {cache: 'no-store'})
               .then(res => res.json())
               .then(data => {
-                  if (data.success && data.data && data.data.remaining_count !== undefined) {
-                      updateUIQuota(data.data.remaining_count);
+                  if (data.success && data.data && Array.isArray(data.data.schedules) && data.data.schedules.length > 0) {
+                      // Sum remaining_portions across all schedules for this loket
+                      const total = data.data.schedules.reduce((sum, s) => sum + parseInt(s.remaining_portions || 0, 10), 0);
+                      // Pass first schedule for bento preview
+                      updateUIQuota(total, data.data.schedules[0]);
                   } else {
                       return fetch(`${apiUrl}display/index/${loketId}`, {cache: 'no-store'}).then(res => res.text());
                   }
@@ -222,9 +300,68 @@
       }, 5000);
   }
 
-  function updateUIQuota(val) {
+  function updateUIQuota(val, schedule) {
+      // 1. Update panel quota badge
       const extCounter = document.getElementById('mrs-live-quota');
       if (extCounter) extCounter.textContent = val;
+
+      // 2. Update the page's odometer counter (NFC Scanner page)
+      const odometerEl = document.getElementById('menu-counter-value');
+      if (odometerEl) {
+          const numVal = parseInt(val, 10);
+
+          // Strategy A: Odometer library native API (best, with animation)
+          if (typeof window.Odometer !== 'undefined') {
+              try {
+                  if (!odometerEl._mrsOdInstance) {
+                      odometerEl._mrsOdInstance = new window.Odometer({
+                          el: odometerEl,
+                          value: numVal,
+                          theme: 'car',
+                          duration: 800,
+                      });
+                  }
+                  odometerEl._mrsOdInstance.update(numVal);
+              } catch(e) {
+                  rebuildOdometerDigits(odometerEl, String(val));
+              }
+          } else {
+              // Strategy B: Rebuild inner HTML — 1 digit span per character
+              rebuildOdometerDigits(odometerEl, String(val));
+          }
+      }
+
+      // 3. Render bento panel if schedule provided and panel is open
+      if (schedule) {
+          lastScheduleData = schedule;
+          const panel = document.getElementById('mrs-nfc-panel');
+          if (panel && panel.style.display === 'flex') {
+              renderBento(schedule);
+          }
+      }
+  }
+
+  // Rebuild odometer HTML structure: one .odometer-digit span per digit
+  function rebuildOdometerDigits(el, strVal) {
+      const digits = strVal.split('');
+      const inner = document.querySelector('#menu-counter-value .odometer-inside');
+      if (!inner) {
+          // Full fallback: just overwrite element text
+          el.textContent = strVal;
+          return;
+      }
+      inner.innerHTML = digits.map(d => `
+        <span class="odometer-digit">
+          <span class="odometer-digit-spacer">8</span>
+          <span class="odometer-digit-inner">
+            <span class="odometer-ribbon">
+              <span class="odometer-ribbon-inner">
+                <span class="odometer-value">${d}</span>
+              </span>
+            </span>
+          </span>
+        </span>
+      `).join('');
   }
 
   // Tunggu sampai DOM siap sebelum inject UI
