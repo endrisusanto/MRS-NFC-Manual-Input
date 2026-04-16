@@ -98,6 +98,107 @@
     if (bento) bento.style.display = 'none';
   }
 
+  // --- PE UNTAKEN PANEL ---
+  let untakenPolling = null;
+
+  function injectUntakenPanel() {
+    if (document.getElementById('mrs-untaken-panel')) return;
+    const panel = document.createElement('div');
+    panel.id = 'mrs-untaken-panel';
+    panel.style.display = 'none';
+    panel.innerHTML = `
+      <div class="mrs-untaken-header">
+        <span class="mrs-untaken-title">⚠️ PE Untaken Orders</span>
+        <span class="mrs-untaken-badge" id="mrs-pe-count">0</span>
+      </div>
+      <div class="mrs-untaken-body">
+         <table class="mrs-untaken-table">
+           <thead>
+             <tr>
+               <th>Nama</th>
+               <th>Jadwal</th>
+             </tr>
+           </thead>
+           <tbody id="mrs-untaken-tbody">
+             <tr><td colspan="2" style="text-align:center; padding:20px;">Memuat data...</td></tr>
+           </tbody>
+         </table>
+      </div>
+      <div class="mrs-untaken-footer">
+        📅 ${new Date().toLocaleDateString('id-ID')} | <span id="mrs-pe-update-time">--:--</span>
+      </div>
+    `;
+    document.body.appendChild(panel);
+  }
+
+  function fetchUntakenOrders() {
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const url = `http://107.102.8.148/MERS/reports/generate/${dateStr}/${dateStr}/all/untaken-order`;
+
+    fetch(url, { cache: 'no-store' })
+      .then(res => res.text())
+      .then(html => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const rows = Array.from(doc.querySelectorAll('#dataTables tbody tr, table tbody tr'));
+
+        const peData = rows.filter(tr => {
+          const cells = tr.querySelectorAll('td');
+          if (cells.length < 6) return false;
+          return cells[5].textContent.trim().toUpperCase() === 'PE';
+        }).map(tr => {
+          const cells = tr.querySelectorAll('td');
+          return {
+            nama: cells[3]?.textContent.trim(),
+            jadwal: cells[1]?.textContent.trim().replace('Makan ', '')
+          };
+        });
+
+        renderUntaken(peData);
+      })
+      .catch(err => {
+        console.error('Fetch untaken error:', err);
+        const tbody = document.getElementById('mrs-untaken-tbody');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="2" style="color:red; text-align:center;">Gagal muat data</td></tr>';
+      });
+  }
+
+  function renderUntaken(data) {
+    const tbody = document.getElementById('mrs-untaken-tbody');
+    const badge = document.getElementById('mrs-pe-count');
+    const timeEl = document.getElementById('mrs-pe-update-time');
+    if (!tbody || !badge) return;
+
+    badge.textContent = data.length;
+    timeEl.textContent = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+
+    if (data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; padding:15px; color:#16a34a;">✅ Semua sudah ambil</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = data.map(item => `
+      <tr>
+        <td class="mrs-td-name">${item.nama}</td>
+        <td class="mrs-td-jadwal">${item.jadwal}</td>
+      </tr>
+    `).join('');
+  }
+
+  function startUntakenPolling() {
+    fetchUntakenOrders();
+    if (untakenPolling) clearInterval(untakenPolling);
+    untakenPolling = setInterval(fetchUntakenOrders, 60000);
+  }
+
+  function stopUntakenPolling() {
+    if (untakenPolling) {
+       clearInterval(untakenPolling);
+       untakenPolling = null;
+    }
+  }
+
   // --- UI CONSTRUCTION ---
   function injectUI() {
     if (document.getElementById('mrs-nfc-fab')) return;
@@ -107,6 +208,7 @@
     document.body.appendChild(toast);
 
     injectBentoPanel();
+    injectUntakenPanel();
 
     const fab = document.createElement('button');
     fab.id = 'mrs-nfc-fab';
@@ -187,10 +289,14 @@
     if (!isVisible) {
         document.getElementById('mrs-manual-uid').focus();
         renderLists();
-        // Show bento if data is ready
+        // Show panels if data is ready
         if (lastScheduleData) renderBento(lastScheduleData);
+        document.getElementById('mrs-untaken-panel').style.display = 'flex';
+        startUntakenPolling();
     } else {
         hideBento();
+        document.getElementById('mrs-untaken-panel').style.display = 'none';
+        stopUntakenPolling();
     }
   }
 

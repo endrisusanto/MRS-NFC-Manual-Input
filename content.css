@@ -401,3 +401,101 @@
     line-height: 1.3;
     font-family: 'Courier New', Courier, monospace;
 }
+
+/* =============================================
+   PE UNTAKEN ORDER PANEL
+   ============================================= */
+#mrs-untaken-panel {
+    position: fixed;
+    bottom: 100px;
+    right: 670px; /* To the left of bento panel (355 + 300 + 15) */
+    width: 300px;
+    background: #0f172a;
+    border: 3px solid #000;
+    box-shadow: 8px 8px 0px #000000;
+    z-index: 99996;
+    flex-direction: column;
+    overflow: hidden;
+    animation: mrs-zoom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    max-height: 80vh;
+}
+
+.mrs-untaken-header {
+    background: #f59e0b;
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 3px solid #000;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.mrs-untaken-title {
+    font-weight: 900;
+    font-size: 11px;
+    color: #000;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.mrs-untaken-badge {
+    background: #000;
+    color: #f59e0b;
+    font-weight: 900;
+    font-size: 12px;
+    padding: 2px 8px;
+    border: 2px solid #000;
+}
+
+.mrs-untaken-body {
+    overflow-y: auto;
+    flex: 1;
+    background: #0f172a;
+}
+
+.mrs-untaken-table {
+    width: 100%;
+    border-collapse: collapse;
+    color: #fff;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 11px;
+}
+
+.mrs-untaken-table th {
+    background: #1e293b;
+    padding: 8px;
+    text-align: left;
+    border-bottom: 2px solid #000;
+    position: sticky;
+    top: 0;
+    color: #94a3b8;
+    text-transform: uppercase;
+    font-size: 10px;
+}
+
+.mrs-untaken-table td {
+    padding: 8px;
+    border-bottom: 1px solid #1e3a5f;
+}
+
+.mrs-td-name {
+    font-weight: 700;
+    color: #fbbf24;
+}
+
+.mrs-td-jadwal {
+    color: #a3e635;
+    font-size: 10px;
+}
+
+.mrs-untaken-footer {
+    background: #1e293b;
+    padding: 4px 10px;
+    font-size: 9px;
+    color: #64748b;
+    border-top: 2px solid #000;
+    display: flex;
+    justify-content: space-between;
+}
