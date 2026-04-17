@@ -100,6 +100,7 @@
 
   // --- PE UNTAKEN PANEL ---
   let untakenPolling = null;
+  let lastPeData = [];
 
   function injectUntakenPanel() {
     if (document.getElementById('mrs-untaken-panel')) return;
@@ -108,7 +109,10 @@
     panel.style.display = 'none';
     panel.innerHTML = `
       <div class="mrs-untaken-header">
-        <span class="mrs-untaken-title">⚠️ PE Untaken Orders</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span class="mrs-untaken-title">⚠️ PE Untaken</span>
+            <button id="mrs-copy-untaken" class="mrs-copy-btn" title="Salin ke Clipboard">📋 Copy</button>
+        </div>
         <span class="mrs-untaken-badge" id="mrs-pe-count">0</span>
       </div>
       <div class="mrs-untaken-body">
@@ -117,6 +121,8 @@
              <tr>
                <th>Nama</th>
                <th>Jadwal</th>
+               <th>Menu</th>
+               <th>Loket</th>
              </tr>
            </thead>
            <tbody id="mrs-untaken-tbody">
@@ -131,6 +137,42 @@
     document.body.appendChild(panel);
   }
 
+  function stopUntakenPolling() {
+    if (untakenPolling) {
+       clearInterval(untakenPolling);
+       untakenPolling = null;
+    }
+  }
+
+  // --- AUTHENTICATION ---
+  const MERS_AUTH = {
+    username: '16756586',
+    password: '27051994',
+    loginUrl: 'http://107.102.8.148/MERS/home/auth_login' // Standard CI/PHP MERS pattern
+  };
+
+  async function performMersLogin() {
+    console.log('[MERS Auth] Attempting automatic login...');
+    const formData = new URLSearchParams();
+    formData.append('username', MERS_AUTH.username);
+    formData.append('password', MERS_AUTH.password);
+
+    try {
+      const res = await fetch(MERS_AUTH.loginUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData,
+        redirect: 'follow'
+      });
+      const text = await res.text();
+      console.log('[MERS Auth] Login triggered. Response length:', text.length);
+      return true;
+    } catch (err) {
+      console.error('[MERS Auth] Login failed:', err);
+      return false;
+    }
+  }
+
   function fetchUntakenOrders() {
     const now = new Date();
     const dateStr = now.toISOString().split('T')[0];
@@ -138,9 +180,21 @@
 
     fetch(url, { cache: 'no-store' })
       .then(res => res.text())
-      .then(html => {
+      .then(async html => {
+        // Detect if we are on a login page
+        if (html.includes('id="username"') || html.includes('name="username"') || html.includes('placeholder="Username"')) {
+          console.warn('[MERS Untaken] Login detected as required. Logging in...');
+          const success = await performMersLogin();
+          if (success) {
+            // Retry once after login
+            setTimeout(fetchUntakenOrders, 1000);
+          }
+          return;
+        }
+
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
+
         const rows = Array.from(doc.querySelectorAll('#dataTables tbody tr, table tbody tr'));
 
         const peData = rows.filter(tr => {
@@ -151,7 +205,9 @@
           const cells = tr.querySelectorAll('td');
           return {
             nama: cells[3]?.textContent.trim(),
-            jadwal: cells[1]?.textContent.trim().replace('Makan ', '')
+            jadwal: cells[1]?.textContent.trim().replace('Makan ', ''),
+            menu: cells[6]?.textContent.trim(),
+            loket: cells[2]?.textContent.trim()
           };
         });
 
@@ -165,6 +221,7 @@
   }
 
   function renderUntaken(data) {
+    lastPeData = data;
     const tbody = document.getElementById('mrs-untaken-tbody');
     const badge = document.getElementById('mrs-pe-count');
     const timeEl = document.getElementById('mrs-pe-update-time');
@@ -182,8 +239,47 @@
       <tr>
         <td class="mrs-td-name">${item.nama}</td>
         <td class="mrs-td-jadwal">${item.jadwal}</td>
+        <td class="mrs-td-menu" title="${item.menu}">${item.menu}</td>
+        <td class="mrs-td-loket">${item.loket}</td>
       </tr>
     `).join('');
+  }
+
+  function copyUntakenToClipboard() {
+    if (!lastPeData || lastPeData.length === 0) {
+        showToast('Tidak ada data untuk disalin');
+        return;
+    }
+
+    const header = "Nama\tJadwal\tMenu\tLoket\n";
+    const rows = lastPeData.map(item =>
+        `${item.nama}\t${item.jadwal}\t${item.menu}\t${item.loket}`
+    ).join('\n');
+
+    const fullText = header + rows;
+
+    // Fallback copy for non-HTTPS (navigator.clipboard often undefined)
+    try {
+        const textArea = document.createElement("textarea");
+        textArea.value = fullText;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        textArea.style.top = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        if (successful) {
+            showToast('📋 Data PE disalin ke clipboard');
+        } else {
+            throw new Error('copy command failed');
+        }
+    } catch (err) {
+        console.error('Copy error:', err);
+        showToast('❌ Gagal menyalin data');
+    }
   }
 
   function startUntakenPolling() {
@@ -215,6 +311,13 @@
     fab.innerHTML = '📟';
     fab.addEventListener('click', togglePanel);
     document.body.appendChild(fab);
+
+    // Event listener for copy button (delegate via document or wait for injection)
+    document.addEventListener('click', (e) => {
+        if (e.target && e.target.id === 'mrs-copy-untaken') {
+            copyUntakenToClipboard();
+        }
+    });
 
     const panel = document.createElement('div');
     panel.id = 'mrs-nfc-panel';
