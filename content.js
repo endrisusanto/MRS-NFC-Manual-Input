@@ -101,6 +101,7 @@
   // --- PE UNTAKEN PANEL ---
   let untakenPolling = null;
   let lastPeData = [];
+  let currentUntakenDate = new Date().toISOString().split('T')[0];
 
   function injectUntakenPanel() {
     if (document.getElementById('mrs-untaken-panel')) return;
@@ -109,8 +110,9 @@
     panel.style.display = 'none';
     panel.innerHTML = `
       <div class="mrs-untaken-header">
-        <div style="display:flex; align-items:center; gap:8px;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
             <span class="mrs-untaken-title">⚠️ PE Untaken</span>
+            <input type="date" id="mrs-untaken-date" class="mrs-date-input" value="${currentUntakenDate}">
             <button id="mrs-copy-untaken" class="mrs-copy-btn" title="Salin ke Clipboard">📋 Copy</button>
         </div>
         <span class="mrs-untaken-badge" id="mrs-pe-count">0</span>
@@ -131,7 +133,7 @@
          </table>
       </div>
       <div class="mrs-untaken-footer">
-        📅 ${new Date().toLocaleDateString('id-ID')} | <span id="mrs-pe-update-time">--:--</span>
+        📅 <span id="mrs-pe-date-display">${new Date().toLocaleDateString('id-ID')}</span> | <span id="mrs-pe-update-time">--:--</span>
       </div>
     `;
     document.body.appendChild(panel);
@@ -146,15 +148,15 @@
 
   // --- AUTHENTICATION ---
   const MERS_AUTH = {
-    username: '16756586',
+    identity: '16756586',
     password: '27051994',
-    loginUrl: 'http://107.102.8.148/MERS/home/auth_login' // Standard CI/PHP MERS pattern
+    loginUrl: 'http://107.102.8.148/MERS/auth/login'
   };
 
   async function performMersLogin() {
     console.log('[MERS Auth] Attempting automatic login...');
     const formData = new URLSearchParams();
-    formData.append('username', MERS_AUTH.username);
+    formData.append('identity', MERS_AUTH.identity);
     formData.append('password', MERS_AUTH.password);
 
     try {
@@ -162,11 +164,10 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: formData,
-        redirect: 'follow'
+        redirect: 'manual' // Don't follow redirect, just check if we got a cookie
       });
-      const text = await res.text();
-      console.log('[MERS Auth] Login triggered. Response length:', text.length);
-      return true;
+      console.log('[MERS Auth] Login request sent. Status:', res.status);
+      return true; // We assume success if no error, the next fetch will confirm
     } catch (err) {
       console.error('[MERS Auth] Login failed:', err);
       return false;
@@ -174,15 +175,14 @@
   }
 
   function fetchUntakenOrders() {
-    const now = new Date();
-    const dateStr = now.toISOString().split('T')[0];
+    const dateStr = currentUntakenDate;
     const url = `http://107.102.8.148/MERS/reports/generate/${dateStr}/${dateStr}/all/untaken-order`;
 
     fetch(url, { cache: 'no-store' })
       .then(res => res.text())
       .then(async html => {
         // Detect if we are on a login page
-        if (html.includes('id="username"') || html.includes('name="username"') || html.includes('placeholder="Username"')) {
+        if (html.includes('id="identity"') || html.includes('name="identity"') || html.includes('id="username"') || html.includes('name="username"') || html.includes('placeholder="Username"')) {
           console.warn('[MERS Untaken] Login detected as required. Logging in...');
           const success = await performMersLogin();
           if (success) {
@@ -229,6 +229,12 @@
 
     badge.textContent = data.length;
     timeEl.textContent = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+    
+    const dateDisplay = document.getElementById('mrs-pe-date-display');
+    if (dateDisplay) {
+        const d = new Date(currentUntakenDate);
+        dateDisplay.textContent = d.toLocaleDateString('id-ID');
+    }
 
     if (data.length === 0) {
       tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; padding:15px; color:#16a34a;">✅ Semua sudah ambil</td></tr>';
@@ -319,6 +325,21 @@
         }
     });
 
+    document.addEventListener('change', (e) => {
+        if (e.target && e.target.id === 'mrs-untaken-date') {
+            currentUntakenDate = e.target.value;
+            fetchUntakenOrders();
+            // Optional: reset polling if date is not today, or keep it?
+            // Usually, polling only makes sense for today.
+            const today = new Date().toISOString().split('T')[0];
+            if (currentUntakenDate !== today) {
+                stopUntakenPolling();
+            } else {
+                startUntakenPolling();
+            }
+        }
+    });
+
     const panel = document.createElement('div');
     panel.id = 'mrs-nfc-panel';
     panel.innerHTML = `
@@ -395,7 +416,12 @@
         // Show panels if data is ready
         if (lastScheduleData) renderBento(lastScheduleData);
         document.getElementById('mrs-untaken-panel').style.display = 'flex';
-        startUntakenPolling();
+        const today = new Date().toISOString().split('T')[0];
+        if (currentUntakenDate === today) {
+            startUntakenPolling();
+        } else {
+            fetchUntakenOrders();
+        }
     } else {
         hideBento();
         document.getElementById('mrs-untaken-panel').style.display = 'none';
