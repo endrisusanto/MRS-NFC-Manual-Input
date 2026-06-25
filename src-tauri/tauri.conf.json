@@ -1,12 +1,13 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "MeRS NFC Desktop",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "identifier": "id.endri.mers-nfc-desktop",
   "build": {
     "frontendDist": "../src"
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [],
     "security": {
       "csp": null

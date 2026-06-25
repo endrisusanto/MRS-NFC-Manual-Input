@@ -22,12 +22,16 @@
       .tap { display: none; }
       body[data-step="tap"] .home { display: none; }
       body[data-step="tap"] .tap { display: block; }
+      .result { display: none; }
+      body[data-step="result"] .home, body[data-step="result"] .tap { display: none; }
+      body[data-step="result"] .result { display: block; }
       .selected { margin: 0 0 18px; padding: 16px; border-radius: 14px; background: rgba(0,0,0,.32); border: 1px solid rgba(255,255,255,.14); text-align: center; }
       .selected b { display: block; margin-top: 4px; font: 850 30px ui-monospace, Consolas, monospace; }
       .lokets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
       .loket { height: 82px; font-size: 22px; font-weight: 850; }
       .back { margin-top: 18px; height: 42px; padding: 0 16px; border-radius: 10px; background: transparent; }
       .hint { min-height: 22px; margin-top: 18px; color: #d4d4d4; text-align: center; }
+      pre { max-height: 420px; overflow: auto; margin: 18px 0 0; padding: 18px; border-radius: 14px; background: rgba(0,0,0,.38); border: 1px solid rgba(255,255,255,.14); white-space: pre-wrap; font: 14px ui-monospace, Consolas, monospace; }
     </style>
   </head>
   <body data-step="home">
@@ -54,11 +58,16 @@
         </div>
         <button class="back" id="back">Kembali</button>
       </section>
+      <section class="result">
+        <h1 id="result-title">Detail</h1>
+        <div class="selected">ID<b id="result-id"></b></div>
+        <pre id="result-body"></pre>
+        <button class="back" id="home">Beranda</button>
+      </section>
       <div class="hint" id="hint"></div>
     </main>
     <script>
-      const scannerUrl = 'http://107.102.8.148/MERS/nfc_scanner.html';
-      const cekUrl = 'http://107.102.8.148/MERS/cek_menu.html';
+      const invoke = window.__TAURI__.core.invoke;
       const input = document.getElementById('uid');
       const hint = document.getElementById('hint');
 
@@ -70,12 +79,31 @@
         return '';
       }
 
+      function showHome() {
+        hint.textContent = '';
+        document.body.dataset.step = 'home';
+        input.focus();
+      }
+
+      async function runAction(command, payload, title) {
+        hint.textContent = 'Memproses...';
+        try {
+          const data = await invoke(command, payload);
+          document.getElementById('result-title').textContent = title;
+          document.getElementById('result-id').textContent = payload.uid;
+          document.getElementById('result-body').textContent = JSON.stringify(data, null, 2);
+          document.body.dataset.step = 'result';
+          hint.textContent = '';
+        } catch (error) {
+          hint.textContent = String(error);
+        }
+      }
+
       input.addEventListener('input', uidValue);
       document.getElementById('cek').addEventListener('click', () => {
         const uid = uidValue();
         if (!uid) return;
-        window.name = JSON.stringify({ mode: 'cek', uid });
-        location.href = cekUrl;
+        runAction('cek_pesanan', { uid }, 'Cek Menu Pesanan');
       });
       document.getElementById('tap').addEventListener('click', () => {
         const uid = uidValue();
@@ -85,15 +113,13 @@
         document.body.dataset.step = 'tap';
       });
       document.getElementById('back').addEventListener('click', () => {
-        hint.textContent = '';
-        document.body.dataset.step = 'home';
-        input.focus();
+        showHome();
       });
+      document.getElementById('home').addEventListener('click', showHome);
       document.querySelectorAll('[data-loket]').forEach(button => button.addEventListener('click', () => {
         const uid = uidValue();
         if (!uid) return;
-        window.name = JSON.stringify({ mode: 'tap', uid, loket: button.dataset.loket });
-        location.href = scannerUrl;
+        runAction('tap_in', { uid, loket: button.dataset.loket }, `Tap In Scanner - Loket ${button.dataset.loket}`);
       }));
     </script>
   </body>
