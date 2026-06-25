@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#050505">
+    <title>MeRS Remote</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; background: #050505; color: #f5f5f5; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      body { min-height: 100svh; padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); display: grid; place-items: stretch; }
+      main { min-height: calc(100svh - 20px); display: grid; grid-template-rows: auto auto 1fr auto; gap: 10px; padding: 12px; border: 1px solid rgba(255,255,255,.16); border-radius: 18px; background: rgba(255,255,255,.07); backdrop-filter: blur(18px); }
+      h1 { margin: 0; font-size: 24px; line-height: 1; }
+      .top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+      .pill { padding: 7px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,.18); background: rgba(0,0,0,.32); color: #cfcfcf; font-size: 12px; font-weight: 800; }
+      .pill.ok { color: #dcfce7; border-color: rgba(34,197,94,.55); background: rgba(22,101,52,.45); }
+      .pill.bad { color: #fee2e2; border-color: rgba(239,68,68,.55); background: rgba(127,29,29,.45); }
+      .card { padding: 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,.14); background: rgba(0,0,0,.30); }
+      label { display: block; margin-bottom: 6px; color: #bdbdbd; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+      input, select { width: 100%; height: 46px; border-radius: 12px; border: 1px solid rgba(255,255,255,.24); background: rgba(0,0,0,.42); color: #fff; padding: 0 12px; outline: none; font: 800 20px ui-monospace, Consolas, monospace; }
+      input:focus, select:focus { border-color: rgba(255,255,255,.72); }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      button { min-height: 48px; border-radius: 12px; border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.10); color: #fff; font-weight: 900; cursor: pointer; }
+      button:active { transform: translateY(1px); }
+      button.primary { background: #f5f5f5; color: #050505; border-color: #f5f5f5; }
+      button.active { border-color: rgba(255,255,255,.72); background: rgba(255,255,255,.20); }
+      .lokets { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+      .lokets button { min-height: 40px; padding: 0; }
+      .result { min-height: 0; overflow: hidden; display: grid; grid-template-rows: auto 1fr; gap: 10px; }
+      .status { padding: 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,.14); background: rgba(0,0,0,.32); font-weight: 900; text-align: center; }
+      .status.ok { color: #dcfce7; border-color: rgba(34,197,94,.70); background: rgba(22,101,52,.70); }
+      .status.warn { color: #fef3c7; border-color: rgba(245,158,11,.80); background: rgba(146,64,14,.78); }
+      .status.bad { color: #fee2e2; border-color: rgba(239,68,68,.82); background: rgba(127,29,29,.78); }
+      pre { min-height: 0; overflow: auto; margin: 0; padding: 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,.14); background: rgba(0,0,0,.36); white-space: pre-wrap; font: 12px ui-monospace, Consolas, monospace; }
+      .foot { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+      .muted { color: #a3a3a3; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      dialog { width: min(420px, calc(100vw - 24px)); border: 1px solid rgba(255,255,255,.18); border-radius: 16px; color: #fff; background: #121212; }
+      dialog::backdrop { background: rgba(0,0,0,.72); }
+      @media (max-width: 520px) {
+        body { padding: 6px; }
+        main { min-height: calc(100svh - 12px); padding: 10px; }
+        .grid, .actions { grid-template-columns: 1fr; }
+        .lokets { grid-template-columns: repeat(3, 1fr); }
+      }
+      @media (orientation: landscape) and (max-height: 520px) {
+        main { grid-template-columns: 330px 1fr; grid-template-rows: auto 1fr auto; }
+        .top, .foot { grid-column: 1 / -1; }
+        .card { align-self: start; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="top">
+        <h1>MeRS Remote</h1>
+        <span id="conn" class="pill bad">offline</span>
+      </div>
+
+      <section class="card">
+        <label for="uid">ID kartu / GEN</label>
+        <input id="uid" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="1696235068">
+        <div class="grid" style="margin-top:10px">
+          <select id="action">
+            <option value="cek_pesanan">Cek Pesanan</option>
+            <option value="tap_in">Tap In Scanner</option>
+          </select>
+          <button id="scan">Scan NFC</button>
+        </div>
+        <div class="lokets" id="lokets" style="margin-top:10px; display:none">
+          <button data-loket="1">1</button><button data-loket="2">2</button><button data-loket="3">3</button>
+          <button data-loket="4">4</button><button data-loket="5">5</button><button data-loket="6">6</button>
+        </div>
+        <div class="actions" style="margin-top:10px">
+          <button id="send" class="primary">Kirim</button>
+          <button id="clear">Clear</button>
+          <button id="settings">Server</button>
+        </div>
+      </section>
+
+      <section class="result">
+        <div id="status" class="status">Siap.</div>
+        <pre id="output">Belum ada response.</pre>
+      </section>
+
+      <div class="foot">
+        <div id="note" class="muted">Web NFC butuh Android Chrome + HTTPS.</div>
+        <button id="install" hidden>Install</button>
+      </div>
+    </main>
+
+    <dialog id="config">
+      <form method="dialog">
+        <label for="ws">WebSocket Gateway</label>
+        <input id="ws" placeholder="wss://mers.endrisusanto.my.id/ws">
+        <label for="device" style="margin-top:10px">Device / Room</label>
+        <input id="device" placeholder="loket-pc-1">
+        <div class="actions" style="margin-top:14px">
+          <button value="cancel">Batal</button>
+          <button id="save" value="default" class="primary">Simpan</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script>
+      const $ = id => document.getElementById(id);
+      const state = {
+        ws: null,
+        loket: '1',
+        config: {
+          url: localStorage.mersWsUrl || `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`,
+          device: localStorage.mersDevice || 'loket-pc-1',
+        },
+      };
+
+      function setStatus(text, kind = '') {
+        $('status').textContent = text;
+        $('status').className = `status ${kind}`;
+      }
+
+      function setConn(ok) {
+        $('conn').textContent = ok ? 'online' : 'offline';
+        $('conn').className = `pill ${ok ? 'ok' : 'bad'}`;
+      }
+
+      function connect() {
+        try { state.ws?.close(); } catch {}
+        try {
+          state.ws = new WebSocket(state.config.url);
+          state.ws.onopen = () => {
+            setConn(true);
+            state.ws.send(JSON.stringify({ type: 'join', role: 'mobile', device: state.config.device }));
+          };
+          state.ws.onclose = () => {
+            setConn(false);
+            setTimeout(connect, 2500);
+          };
+          state.ws.onerror = () => setConn(false);
+          state.ws.onmessage = event => {
+            const data = JSON.parse(event.data);
+            const text = `${data.status || ''} ${data.message || ''}`.toLowerCase();
+            const kind = text.includes('tidak pesan') || text.includes('unplan') ? 'warn' : data.success ? 'ok' : 'bad';
+            setStatus(data.message || data.status || 'Response diterima.', kind);
+            $('output').textContent = JSON.stringify(data, null, 2);
+          };
+        } catch (error) {
+          setConn(false);
+          setStatus(String(error), 'bad');
+        }
+      }
+
+      function uid() {
+        $('uid').value = $('uid').value.replace(/\D/g, '').slice(0, 10);
+        if (/^\d{8,10}$/.test($('uid').value)) return $('uid').value;
+        setStatus('ID harus 8-10 digit angka.', 'bad');
+        return '';
+      }
+
+      function hexToDecimal(hex) {
+        return BigInt(`0x${hex}`).toString();
+      }
+
+      function send() {
+        const value = uid();
+        if (!value) return;
+        const message = { type: 'command', device: state.config.device, action: $('action').value, uid: value, loket: state.loket };
+        if (state.ws?.readyState === WebSocket.OPEN) {
+          state.ws.send(JSON.stringify(message));
+          setStatus('Terkirim.', 'ok');
+        } else {
+          setStatus('WebSocket belum online.', 'bad');
+        }
+        $('output').textContent = JSON.stringify(message, null, 2);
+      }
+
+      async function scanNfc() {
+        if (!('NDEFReader' in window)) {
+          setStatus('Web NFC tidak didukung browser ini.', 'bad');
+          return;
+        }
+        try {
+          const reader = new NDEFReader();
+          await reader.scan();
+          setStatus('Tempelkan kartu NFC.', 'warn');
+          reader.onreading = event => {
+            const serial = (event.serialNumber || '').replace(/:/g, '').toUpperCase();
+            $('uid').value = hexToDecimal(serial);
+            setStatus(`NFC terbaca: ${serial}`, 'ok');
+          };
+        } catch (error) {
+          setStatus(String(error), 'bad');
+        }
+      }
+
+      $('uid').addEventListener('input', uid);
+      $('send').addEventListener('click', send);
+      $('clear').addEventListener('click', () => { $('uid').value = ''; $('output').textContent = 'Belum ada response.'; setStatus('Siap.'); });
+      $('scan').addEventListener('click', scanNfc);
+      $('action').addEventListener('change', () => { $('lokets').style.display = $('action').value === 'tap_in' ? 'grid' : 'none'; });
+      document.querySelectorAll('[data-loket]').forEach(button => button.addEventListener('click', () => {
+        state.loket = button.dataset.loket;
+        document.querySelectorAll('[data-loket]').forEach(item => item.classList.toggle('active', item === button));
+      }));
+      document.querySelector('[data-loket="1"]').classList.add('active');
+
+      $('settings').addEventListener('click', () => {
+        $('ws').value = state.config.url;
+        $('device').value = state.config.device;
+        $('config').showModal();
+      });
+      $('save').addEventListener('click', () => {
+        state.config.url = $('ws').value.trim();
+        state.config.device = $('device').value.trim() || 'loket-pc-1';
+        localStorage.mersWsUrl = state.config.url;
+        localStorage.mersDevice = state.config.device;
+        connect();
+      });
+
+      let installPrompt = null;
+      window.addEventListener('beforeinstallprompt', event => {
+        event.preventDefault();
+        installPrompt = event;
+        $('install').hidden = false;
+      });
+      $('install').addEventListener('click', () => installPrompt?.prompt());
+
+      navigator.serviceWorker?.register('sw.js');
+      connect();
+    </script>
+  </body>
+</html>

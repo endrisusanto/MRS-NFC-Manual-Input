@@ -69,6 +69,28 @@ Command tersebut akan download JSON berisi request dan response API terakhir. Un
 mrsClearApiLog()
 ```
 
+## Web PWA Remote
+
+```bash
+npm run web:dev
+```
+
+Web app ada di `web/`. Fiturnya mobile-first, installable sebagai PWA, input manual 8-10 digit, Web NFC jika browser mendukung, pilihan cek pesanan/tap in, pilihan loket, dan WebSocket gateway. Web NFC butuh Android Chrome pada secure context (`https://` atau localhost).
+
+Default gateway mengikuti host saat ini: `/ws`. Ubah dari tombol **Server** di web app, misalnya `wss://mers.endrisusanto.my.id/ws`.
+
+### Docker Web PWA
+
+```bash
+docker compose up -d --build
+```
+
+Web app akan berjalan di:
+
+```text
+http://localhost:7465
+```
+
 ## 📦 Release
 
 ```bash

@@ -1,11 +1,12 @@
 {
   "name": "mers-nfc-tauri",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "private": true,
   "type": "module",
   "scripts": {
     "tauri": "tauri",
     "dev": "tauri dev",
+    "web:dev": "python3 -m http.server 4173 -d web",
     "dist:win": "tauri build --bundles nsis"
   },
   "devDependencies": {

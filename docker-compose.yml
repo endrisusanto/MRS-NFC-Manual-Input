@@ -1,0 +1,7 @@
+services:
+  mers-pwa:
+    build: .
+    container_name: mers-pwa
+    ports:
+      - "7465:80"
+    restart: unless-stopped
