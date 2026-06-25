@@ -27,7 +27,7 @@
             const url = typeof input === 'string' ? input : input?.url;
             const response = await originalFetch(...args);
 
-            if (url && url.includes('/MERS/')) {
+            if (url && url.includes('/MERS/') && !url.includes('ping=1')) {
                 response.clone().text().then(text => {
                     let body = text;
                     try { body = JSON.parse(text); } catch (e) {}

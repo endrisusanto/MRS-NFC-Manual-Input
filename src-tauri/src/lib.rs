@@ -64,9 +64,24 @@ async fn cek_pesanan(uid: String) -> Result<serde_json::Value, String> {
     Ok(response_body(text))
 }
 
+async fn loket_schedule(cookie: &str, loket: &str) -> Result<serde_json::Value, String> {
+    let text = reqwest::Client::new()
+        .get(format!("{MERS_BASE_URL}/cekorder.php?loket={}", loket.trim()))
+        .header("Cookie", cookie)
+        .send()
+        .await
+        .map_err(|e| format!("Cek loket gagal: {e}"))?
+        .text()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(response_body(text))
+}
+
 #[tauri::command]
 async fn tap_in(uid: String, loket: String) -> Result<serde_json::Value, String> {
     let cookie = login_cookie().await?;
+    let schedule = loket_schedule(&cookie, &loket).await?;
     let payload = format!("{}:{}", scanner_uid(&uid), loket.trim());
     let text = reqwest::Client::new()
         .post(format!("{MERS_BASE_URL}/cekorder.php"))
@@ -79,7 +94,10 @@ async fn tap_in(uid: String, loket: String) -> Result<serde_json::Value, String>
         .await
         .map_err(|e| e.to_string())?;
 
-    Ok(response_body(text))
+    Ok(serde_json::json!({
+        "schedule": schedule,
+        "tap": response_body(text),
+    }))
 }
 
 pub fn run() {

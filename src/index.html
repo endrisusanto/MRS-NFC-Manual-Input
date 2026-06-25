@@ -31,7 +31,23 @@
       .loket { height: 82px; font-size: 22px; font-weight: 850; }
       .back { margin-top: 18px; height: 42px; padding: 0 16px; border-radius: 10px; background: transparent; }
       .hint { min-height: 22px; margin-top: 18px; color: #d4d4d4; text-align: center; }
+      .summary { display: grid; gap: 12px; margin-top: 18px; }
+      .item { padding: 16px; border-radius: 14px; background: rgba(0,0,0,.32); border: 1px solid rgba(255,255,255,.14); }
+      .item h2 { margin: 0 0 8px; font-size: 20px; }
+      .meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; color: #d8d8d8; font-size: 14px; }
+      .meta b { display: block; color: #fff; font-size: 18px; margin-top: 4px; }
+      .status { text-align: center; font-size: 18px; font-weight: 800; }
+      .bento-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+      .bento-head h2 { margin: 0; }
+      .portion { padding: 8px 12px; border-radius: 999px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18); font-weight: 850; white-space: nowrap; }
+      .bento { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+      .bento-card { min-height: 172px; padding: 10px; border-radius: 14px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); }
+      .bento-card img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; background: rgba(0,0,0,.38); display: block; }
+      .bento-label { margin-top: 8px; color: #bdbdbd; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+      .bento-name { margin-top: 3px; font-size: 14px; font-weight: 750; line-height: 1.25; overflow-wrap: anywhere; }
       pre { max-height: 420px; overflow: auto; margin: 18px 0 0; padding: 18px; border-radius: 14px; background: rgba(0,0,0,.38); border: 1px solid rgba(255,255,255,.14); white-space: pre-wrap; font: 14px ui-monospace, Consolas, monospace; }
+      @media (max-width: 860px) { .bento { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+      @media (max-width: 680px) { .cards, .lokets, .meta, .bento { grid-template-columns: 1fr; } }
     </style>
   </head>
   <body data-step="home">
@@ -61,6 +77,7 @@
       <section class="result">
         <h1 id="result-title">Detail</h1>
         <div class="selected">ID<b id="result-id"></b></div>
+        <div id="result-summary" class="summary"></div>
         <pre id="result-body"></pre>
         <button class="back" id="home">Beranda</button>
       </section>
@@ -85,12 +102,102 @@
         input.focus();
       }
 
+      function safe(value) {
+        return value ?? '-';
+      }
+
+      function esc(value) {
+        return String(safe(value)).replace(/[&<>"']/g, char => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;',
+        }[char]));
+      }
+
+      function menuItems(menu) {
+        return [
+          ['Karbo', menu.carbo_name, menu.carbo_pic, menu.menu_carbo],
+          ['Utama', menu.main_name || menu.menu_detail_name || menu.menu_name, menu.menu_detail_pic, menu.menu_main || menu.main_id],
+          ['Sayur', menu.soup_name, menu.soup_pic, menu.menu_soup],
+          ['Pendamping', menu.option1_name || menu.option2_name, menu.option1_pic || menu.option2_pic, menu.menu_option1 || menu.menu_option2],
+          ['Sambal', menu.option3_name, menu.option3_pic, menu.menu_option3],
+          ['Buah', menu.fruit_name, menu.fruit_pic, menu.menu_fruit],
+          ['Minuman', menu.additional_name, menu.additional_pic, menu.menu_additional],
+        ].map(([label, name, pic, id]) => ({ label, name: name || (id ? `#${id}` : '-'), pic }));
+      }
+
+      function renderBento(menu, portions) {
+        const base = 'http://107.102.8.148/MERS/assets/images/menu/';
+        return `
+          <div class="item">
+            <div class="bento-head">
+              <h2>Bento Menu</h2>
+              <div class="portion">Sisa Porsi: ${esc(portions)}</div>
+            </div>
+            <div class="bento">
+              ${menuItems(menu).map(item => `
+                <div class="bento-card">
+                  ${item.pic ? `<img src="${base}${esc(item.pic)}" alt="${esc(item.name)}" onerror="this.style.display='none'">` : ''}
+                  <div class="bento-label">${esc(item.label)}</div>
+                  <div class="bento-name">${esc(item.name)}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      function renderCekPesanan(data) {
+        const orders = data?.data?.orders || [];
+        if (!orders.length) {
+          return `<div class="item status">${esc(data.message)}</div>`;
+        }
+        return orders.map(order => `
+          <div class="item">
+            <h2>${esc(order.schedule_meal_name)} - ${esc(order.menu_name)}</h2>
+            <div class="meta">
+              <span>Nama<b>${esc(order.first_name)}</b></span>
+              <span>Dept<b>${esc(order.dept)}</b></span>
+              <span>Loket<b>${esc(order.loket_name || order.order_loket)}</b></span>
+              <span>Status Ambil<b>${order.order_ambil ? 'Sudah' : 'Belum'}</b></span>
+              <span>Kategori<b>${esc(order.base_menu)}</b></span>
+              <span>Tanggal<b>${esc(order.schedule_date)}</b></span>
+            </div>
+          </div>
+          ${renderBento(order, order.remaining_portions || order.final_order)}
+        `).join('');
+      }
+
+      function renderTapIn(data) {
+        const tap = data?.tap || data;
+        const schedule = data?.schedule?.data?.schedules?.[0] || {};
+        const info = tap?.data || {};
+        return `
+          <div class="item status">${esc(tap.message)}</div>
+          <div class="item">
+            <h2>${esc(info.employee_name)} - Loket ${esc(info.loket)}</h2>
+            <div class="meta">
+              <span>UID Hex<b>${esc(info.uid_hex)}</b></span>
+              <span>Menu<b>${esc(info.menu_info || schedule.menu_name)}</b></span>
+              <span>Sisa Porsi<b>${esc(info.remaining_count || schedule.remaining_portions)}</b></span>
+              <span>Total Order<b>${esc(info.total_order || schedule.total_orders)}</b></span>
+              <span>Sudah Ambil<b>${esc(info.taken_count || schedule.taken_orders)}</b></span>
+              <span>Meal<b>${esc(tap.meal_time || data?.schedule?.data?.meal_time)}</b></span>
+            </div>
+          </div>
+          ${renderBento(schedule, info.remaining_count || schedule.remaining_portions)}
+        `;
+      }
+
       async function runAction(command, payload, title) {
         hint.textContent = 'Memproses...';
         try {
           const data = await invoke(command, payload);
           document.getElementById('result-title').textContent = title;
           document.getElementById('result-id').textContent = payload.uid;
+          document.getElementById('result-summary').innerHTML = command === 'tap_in' ? renderTapIn(data) : renderCekPesanan(data);
           document.getElementById('result-body').textContent = JSON.stringify(data, null, 2);
           document.body.dataset.step = 'result';
           hint.textContent = '';
