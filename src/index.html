@@ -7,8 +7,8 @@
     <style>
       * { box-sizing: border-box; }
       html, body { margin: 0; min-height: 100%; background: #030303; color: #f5f5f5; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-      body { min-height: 100vh; display: grid; place-items: center; background: radial-gradient(circle at top, rgba(255,255,255,.10), transparent 34%), #030303; }
-      .panel { width: min(860px, calc(100vw - 48px)); padding: 34px; background: rgba(255,255,255,.075); border: 1px solid rgba(255,255,255,.18); box-shadow: 0 24px 80px rgba(0,0,0,.55); border-radius: 18px; backdrop-filter: blur(18px); }
+      body { min-height: 100vh; display: grid; place-items: center; padding: 18px; background: radial-gradient(circle at top, rgba(255,255,255,.10), transparent 34%), #030303; overflow: hidden; }
+      .panel { width: min(1180px, 100%); max-height: calc(100vh - 36px); overflow: auto; padding: clamp(18px, 3vw, 34px); background: rgba(255,255,255,.075); border: 1px solid rgba(255,255,255,.18); box-shadow: 0 24px 80px rgba(0,0,0,.55); border-radius: 18px; backdrop-filter: blur(18px); }
       h1 { margin: 0 0 8px; font-size: 28px; font-weight: 850; text-align: center; }
       p { margin: 0 0 28px; color: #bdbdbd; text-align: center; }
       input { display: block; width: min(360px, 100%); height: 58px; margin: 0 auto 26px; text-align: center; border-radius: 12px; border: 1px solid rgba(255,255,255,.28); background: rgba(0,0,0,.42); color: #fff; font: 800 26px ui-monospace, Consolas, monospace; outline: none; }
@@ -32,6 +32,8 @@
       .back { margin-top: 18px; height: 42px; padding: 0 16px; border-radius: 10px; background: transparent; }
       .hint { min-height: 22px; margin-top: 18px; color: #d4d4d4; text-align: center; }
       .summary { display: grid; gap: 12px; margin-top: 18px; }
+      .order-strip { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .order-card { display: grid; gap: 12px; align-content: start; min-width: 0; }
       .item { padding: 16px; border-radius: 14px; background: rgba(0,0,0,.32); border: 1px solid rgba(255,255,255,.14); }
       .item h2 { margin: 0 0 8px; font-size: 20px; }
       .meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; color: #d8d8d8; font-size: 14px; }
@@ -41,13 +43,31 @@
       .bento-head h2 { margin: 0; }
       .portion { padding: 8px 12px; border-radius: 999px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18); font-weight: 850; white-space: nowrap; }
       .bento { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-      .bento-card { min-height: 172px; padding: 10px; border-radius: 14px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); }
+      .bento-card { min-height: 150px; padding: 10px; border-radius: 14px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); }
       .bento-card img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; background: rgba(0,0,0,.38); display: block; }
       .bento-label { margin-top: 8px; color: #bdbdbd; font-size: 12px; font-weight: 800; text-transform: uppercase; }
       .bento-name { margin-top: 3px; font-size: 14px; font-weight: 750; line-height: 1.25; overflow-wrap: anywhere; }
-      pre { max-height: 420px; overflow: auto; margin: 18px 0 0; padding: 18px; border-radius: 14px; background: rgba(0,0,0,.38); border: 1px solid rgba(255,255,255,.14); white-space: pre-wrap; font: 14px ui-monospace, Consolas, monospace; }
+      details { margin-top: 18px; border-radius: 14px; background: rgba(0,0,0,.30); border: 1px solid rgba(255,255,255,.14); overflow: hidden; }
+      summary { padding: 14px 16px; cursor: pointer; font-weight: 850; }
+      pre { max-height: 260px; overflow: auto; margin: 0; padding: 16px; border-top: 1px solid rgba(255,255,255,.12); background: rgba(0,0,0,.32); white-space: pre-wrap; font: 13px ui-monospace, Consolas, monospace; }
+      @media (max-width: 980px) {
+        .order-strip { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 8px; }
+        .order-card { flex: 0 0 min(92%, 620px); scroll-snap-align: center; }
+      }
       @media (max-width: 860px) { .bento { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-      @media (max-width: 680px) { .cards, .lokets, .meta, .bento { grid-template-columns: 1fr; } }
+      @media (max-width: 680px) { body { padding: 10px; } .cards, .lokets, .meta, .bento { grid-template-columns: 1fr; } .panel { max-height: calc(100vh - 20px); } }
+      @media (orientation: landscape) and (max-height: 720px) {
+        .panel { padding: 16px; }
+        h1 { font-size: 22px; }
+        p { margin-bottom: 16px; }
+        input { height: 46px; margin-bottom: 16px; font-size: 22px; }
+        .card { min-height: 118px; padding: 16px; }
+        .selected { padding: 10px; margin-bottom: 12px; }
+        .selected b { font-size: 24px; }
+        .loket { height: 58px; font-size: 18px; }
+        .bento-card { min-height: 122px; }
+        .bento-card img { aspect-ratio: 16 / 9; }
+      }
     </style>
   </head>
   <body data-step="home">
@@ -78,7 +98,10 @@
         <h1 id="result-title">Detail</h1>
         <div class="selected">ID<b id="result-id"></b></div>
         <div id="result-summary" class="summary"></div>
-        <pre id="result-body"></pre>
+        <details id="api-details">
+          <summary>API Response</summary>
+          <pre id="result-body"></pre>
+        </details>
         <button class="back" id="home">Beranda</button>
       </section>
       <div class="hint" id="hint"></div>
@@ -154,20 +177,22 @@
         if (!orders.length) {
           return `<div class="item status">${esc(data.message)}</div>`;
         }
-        return orders.map(order => `
-          <div class="item">
-            <h2>${esc(order.schedule_meal_name)} - ${esc(order.menu_name)}</h2>
-            <div class="meta">
-              <span>Nama<b>${esc(order.first_name)}</b></span>
-              <span>Dept<b>${esc(order.dept)}</b></span>
-              <span>Loket<b>${esc(order.loket_name || order.order_loket)}</b></span>
-              <span>Status Ambil<b>${order.order_ambil ? 'Sudah' : 'Belum'}</b></span>
-              <span>Kategori<b>${esc(order.base_menu)}</b></span>
-              <span>Tanggal<b>${esc(order.schedule_date)}</b></span>
+        return `<div class="order-strip">${orders.map(order => `
+          <div class="order-card">
+            <div class="item">
+              <h2>${esc(order.schedule_meal_name)} - ${esc(order.menu_name)}</h2>
+              <div class="meta">
+                <span>Nama<b>${esc(order.first_name)}</b></span>
+                <span>Dept<b>${esc(order.dept)}</b></span>
+                <span>Loket<b>${esc(order.loket_name || order.order_loket)}</b></span>
+                <span>Status Ambil<b>${order.order_ambil ? 'Sudah' : 'Belum'}</b></span>
+                <span>Kategori<b>${esc(order.base_menu)}</b></span>
+                <span>Tanggal<b>${esc(order.schedule_date)}</b></span>
+              </div>
             </div>
+            ${renderBento(order, order.remaining_portions || order.final_order)}
           </div>
-          ${renderBento(order, order.remaining_portions || order.final_order)}
-        `).join('');
+        `).join('')}</div>`;
       }
 
       function renderTapIn(data) {
@@ -199,6 +224,7 @@
           document.getElementById('result-id').textContent = payload.uid;
           document.getElementById('result-summary').innerHTML = command === 'tap_in' ? renderTapIn(data) : renderCekPesanan(data);
           document.getElementById('result-body').textContent = JSON.stringify(data, null, 2);
+          document.getElementById('api-details').removeAttribute('open');
           document.body.dataset.step = 'result';
           hint.textContent = '';
         } catch (error) {
