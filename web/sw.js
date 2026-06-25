@@ -1,4 +1,4 @@
-const CACHE = 'mers-remote-v1';
+const CACHE = 'mers-remote-v2';
 const ASSETS = ['.', 'index.html', 'manifest.webmanifest', 'icon.svg'];
 
 self.addEventListener('install', event => {

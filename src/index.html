@@ -33,6 +33,7 @@
       .hint { min-height: 20px; margin-top: 10px; color: #d4d4d4; text-align: center; font-weight: 700; }
       .summary { display: grid; gap: 8px; margin-top: 10px; }
       .order-strip { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .order-strip.single { grid-template-columns: 1fr; }
       .order-card { display: grid; gap: 8px; align-content: start; min-width: 0; }
       .item { padding: 10px; border-radius: 12px; background: rgba(0,0,0,.32); border: 1px solid rgba(255,255,255,.14); }
       .item h2 { margin: 0 0 6px; font-size: 17px; }
@@ -188,7 +189,7 @@
         if (!orders.length) {
           return `<div class="item status">${esc(data.message)}</div>`;
         }
-        return `<div class="order-strip">${orders.map(order => `
+        return `<div class="order-strip ${orders.length === 1 ? 'single' : ''}">${orders.map(order => `
           <div class="order-card">
             <div class="item">
               <h2>${esc(order.schedule_meal_name)} - ${esc(order.menu_name)}</h2>
