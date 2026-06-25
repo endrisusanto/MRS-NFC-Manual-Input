@@ -31,6 +31,12 @@
       .loket { height: 64px; font-size: 20px; font-weight: 850; }
       .back { margin-top: 10px; height: 36px; padding: 0 14px; border-radius: 10px; background: transparent; }
       .hint { min-height: 20px; margin-top: 10px; color: #d4d4d4; text-align: center; font-weight: 700; }
+      .badges { display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+      .pill { padding: 6px 9px; border-radius: 999px; border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.08); color: #e5e5e5; font-size: 12px; font-weight: 850; }
+      .pill.ok { color: #dcfce7; border-color: rgba(34,197,94,.70); background: rgba(22,101,52,.70); }
+      .pill.warn { color: #fef3c7; border-color: rgba(245,158,11,.80); background: rgba(146,64,14,.78); }
+      .pill.bad { color: #fee2e2; border-color: rgba(239,68,68,.82); background: rgba(127,29,29,.78); }
+      .server-btn { display: block; width: 120px; height: 34px; margin: 0 auto 12px; border-radius: 10px; font-size: 13px; font-weight: 850; }
       .summary { display: grid; gap: 8px; margin-top: 10px; }
       .order-strip { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
       .order-strip.single { grid-template-columns: 1fr; }
@@ -48,13 +54,19 @@
       .bento-head h2 { margin: 0; font-size: 16px; }
       .portion { padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18); font-size: 13px; font-weight: 850; white-space: nowrap; }
       .bento { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
-      .bento-card { min-height: 86px; padding: 6px; border-radius: 10px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); }
-      .bento-card img { width: 100%; height: 38px; object-fit: cover; border-radius: 8px; background: rgba(0,0,0,.38); display: block; }
-      .bento-label { margin-top: 5px; color: #bdbdbd; font-size: 10px; font-weight: 800; text-transform: uppercase; }
-      .bento-name { margin-top: 2px; font-size: 11px; font-weight: 750; line-height: 1.15; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+      .bento-card { min-height: 72px; padding: 10px; border-radius: 10px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); }
+      .bento-label { color: #bdbdbd; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+      .bento-name { margin-top: 5px; font-size: 13px; font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
       details { margin-top: 8px; border-radius: 12px; background: rgba(0,0,0,.30); border: 1px solid rgba(255,255,255,.14); overflow: hidden; }
       summary { padding: 9px 12px; cursor: pointer; font-weight: 850; }
       pre { max-height: 170px; overflow: auto; margin: 0; padding: 12px; border-top: 1px solid rgba(255,255,255,.12); background: rgba(0,0,0,.32); white-space: pre-wrap; font: 12px ui-monospace, Consolas, monospace; }
+      .modal { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: 16px; background: rgba(0,0,0,.72); }
+      .modal[hidden] { display: none; }
+      .modal form { width: min(460px, 100%); padding: 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,.20); background: #111; }
+      .modal label { display: block; margin-bottom: 8px; color: #d4d4d4; font-size: 12px; font-weight: 850; text-transform: uppercase; }
+      .modal input { width: 100%; max-width: none; margin-bottom: 12px; text-align: left; font-size: 16px; }
+      .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .modal-actions button { height: 42px; border-radius: 10px; }
       @media (max-width: 980px) {
         .order-strip { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 8px; }
         .order-card { flex: 0 0 min(92%, 620px); scroll-snap-align: center; }
@@ -70,17 +82,22 @@
         .selected { padding: 8px; margin-bottom: 8px; }
         .selected b { font-size: 22px; }
         .loket { height: 52px; font-size: 18px; }
-        .bento-card { min-height: 74px; }
-        .bento-card img { height: 30px; }
-        .bento-name { -webkit-line-clamp: 1; }
+        .bento-card { min-height: 58px; padding: 8px; }
+        .bento-name { font-size: 12px; }
       }
     </style>
   </head>
   <body data-step="home">
     <main class="panel">
+      <div class="badges">
+        <span id="app-status" class="pill warn">app...</span>
+        <span id="bridge-status" class="pill warn">bridge...</span>
+        <span id="mers-status" class="pill warn">mers...</span>
+      </div>
       <section class="home">
         <h1>MeRS Desktop</h1>
         <p>Masukkan GEN 8 digit atau ID kartu 10 digit yang akan dieksekusi.</p>
+        <button class="server-btn" id="settings">Server</button>
         <input id="uid" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="1696235068" autofocus>
         <div class="cards">
           <button class="card" id="tap"><strong>Tap In Scanner</strong><span>Masuk ke pilihan loket untuk ID ini.</span></button>
@@ -112,10 +129,42 @@
       </section>
       <div class="hint" id="hint"></div>
     </main>
+    <div id="config" class="modal" hidden>
+      <form>
+        <label for="server-url">URL Server MeRS</label>
+        <input id="server-url" placeholder="http://107.102.8.148/MERS">
+        <div class="modal-actions">
+          <button id="cancel-settings" type="button">Batal</button>
+          <button id="save-settings" type="button">Simpan</button>
+        </div>
+      </form>
+    </div>
     <script>
       const invoke = window.__TAURI__.core.invoke;
       const input = document.getElementById('uid');
       const hint = document.getElementById('hint');
+      const defaultServer = 'http://107.102.8.148/MERS';
+
+      function serverUrl() {
+        return (localStorage.mersDesktopServer || defaultServer).replace(/\/+$/, '');
+      }
+
+      function setBadge(id, text, kind) {
+        const badge = document.getElementById(id);
+        badge.textContent = text;
+        badge.className = `pill ${kind}`;
+      }
+
+      async function checkStatuses() {
+        setBadge('app-status', 'app online', 'ok');
+        setBadge('bridge-status', window.__TAURI__?.core?.invoke ? 'bridge online' : 'bridge offline', window.__TAURI__?.core?.invoke ? 'ok' : 'bad');
+        try {
+          const online = await invoke('ping_server', { server: serverUrl() });
+          setBadge('mers-status', online ? 'mers online' : 'mers offline', online ? 'ok' : 'bad');
+        } catch {
+          setBadge('mers-status', 'mers offline', 'bad');
+        }
+      }
 
       function uidValue() {
         input.value = input.value.replace(/\D/g, '').slice(0, 10);
@@ -145,26 +194,19 @@
         }[char]));
       }
 
-      function placeholderSvg(label) {
-        const text = encodeURIComponent(safe(label));
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 90"><rect width="160" height="90" rx="12" fill="#151515"/><path d="M38 59h84l-20-25-17 20-11-13z" fill="#3f3f3f"/><circle cx="55" cy="33" r="9" fill="#666"/><text x="80" y="78" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="700" fill="#aaa">${text}</text></svg>`;
-        return `data:image/svg+xml,${encodeURIComponent(svg)}`;
-      }
-
       function menuItems(menu) {
         return [
-          ['Karbo', menu.carbo_name, menu.carbo_pic, menu.menu_carbo],
-          ['Utama', menu.main_name || menu.menu_detail_name || menu.menu_name, menu.menu_detail_pic, menu.menu_main || menu.main_id],
-          ['Sayur', menu.soup_name, menu.soup_pic, menu.menu_soup],
-          ['Pendamping', menu.option1_name || menu.option2_name, menu.option1_pic || menu.option2_pic, menu.menu_option1 || menu.menu_option2],
-          ['Sambal', menu.option3_name, menu.option3_pic, menu.menu_option3],
-          ['Buah', menu.fruit_name, menu.fruit_pic, menu.menu_fruit],
-          ['Minuman', menu.additional_name, menu.additional_pic, menu.menu_additional],
-        ].map(([label, name, pic, id]) => ({ label, name: name || (id ? `#${id}` : '-'), pic }));
+          ['Karbo', menu.carbo_name, menu.menu_carbo],
+          ['Utama', menu.main_name || menu.menu_detail_name || menu.menu_name, menu.menu_main || menu.main_id],
+          ['Sayur', menu.soup_name, menu.menu_soup],
+          ['Pendamping', menu.option1_name || menu.option2_name, menu.menu_option1 || menu.menu_option2],
+          ['Sambal', menu.option3_name, menu.menu_option3],
+          ['Buah', menu.fruit_name, menu.menu_fruit],
+          ['Minuman', menu.additional_name, menu.menu_additional],
+        ].map(([label, name, id]) => ({ label, name: name || (id ? `#${id}` : '-') }));
       }
 
       function renderBento(menu, portions) {
-        const base = 'http://107.102.8.148/MERS/assets/images/menu/';
         return `
           <div class="item">
             <div class="bento-head">
@@ -174,7 +216,6 @@
             <div class="bento">
               ${menuItems(menu).map(item => `
                 <div class="bento-card">
-                  <img src="${item.pic ? base + esc(item.pic) : placeholderSvg(item.label)}" alt="${esc(item.name)}" onerror="this.onerror=null;this.src='${placeholderSvg(item.label)}'">
                   <div class="bento-label">${esc(item.label)}</div>
                   <div class="bento-name">${esc(item.name)}</div>
                 </div>
@@ -235,7 +276,7 @@
       async function runAction(command, payload, title) {
         hint.textContent = 'Memproses...';
         try {
-          const data = await invoke(command, payload);
+          const data = await invoke(command, { ...payload, server: serverUrl() });
           document.getElementById('result-title').textContent = title;
           document.getElementById('result-id').textContent = payload.uid;
           document.getElementById('result-summary').innerHTML = command === 'tap_in' ? renderTapIn(data) : renderCekPesanan(data);
@@ -265,11 +306,26 @@
         showHome();
       });
       document.getElementById('home').addEventListener('click', showHome);
+      document.getElementById('settings').addEventListener('click', () => {
+        document.getElementById('server-url').value = serverUrl();
+        document.getElementById('config').hidden = false;
+      });
+      document.getElementById('cancel-settings').addEventListener('click', () => {
+        document.getElementById('config').hidden = true;
+      });
+      document.getElementById('save-settings').addEventListener('click', () => {
+        localStorage.mersDesktopServer = (document.getElementById('server-url').value.trim() || defaultServer).replace(/\/+$/, '');
+        document.getElementById('config').hidden = true;
+        hint.textContent = `Server: ${serverUrl()}`;
+        checkStatuses();
+      });
       document.querySelectorAll('[data-loket]').forEach(button => button.addEventListener('click', () => {
         const uid = uidValue();
         if (!uid) return;
         runAction('tap_in', { uid, loket: button.dataset.loket }, `Tap In Scanner - Loket ${button.dataset.loket}`);
       }));
+      checkStatuses();
+      setInterval(checkStatuses, 15000);
     </script>
   </body>
 </html>

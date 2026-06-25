@@ -1,9 +1,19 @@
 use reqwest::header::SET_COOKIE;
+use std::time::Duration;
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
 const MERS_BASE_URL: &str = "http://107.102.8.148/MERS";
 const LOGIN_IDENTITY: &str = "16756586";
 const LOGIN_PASSWORD: &str = "27051994";
+
+fn server_url(server: &str) -> String {
+    let trimmed = server.trim().trim_end_matches('/');
+    if trimmed.is_empty() {
+        MERS_BASE_URL.to_string()
+    } else {
+        trimmed.to_string()
+    }
+}
 
 fn scanner_uid(uid: &str) -> String {
     let raw = uid.trim();
@@ -19,14 +29,14 @@ fn scanner_uid(uid: &str) -> String {
     raw.to_uppercase()
 }
 
-async fn login_cookie() -> Result<String, String> {
+async fn login_cookie(base_url: &str) -> Result<String, String> {
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
         .build()
         .map_err(|e| e.to_string())?;
 
     let res = client
-        .post(format!("{MERS_BASE_URL}/auth/login"))
+        .post(format!("{base_url}/auth/login"))
         .form(&[("identity", LOGIN_IDENTITY), ("password", LOGIN_PASSWORD)])
         .send()
         .await
@@ -49,10 +59,27 @@ fn response_body(text: String) -> serde_json::Value {
 }
 
 #[tauri::command]
-async fn cek_pesanan(uid: String) -> Result<serde_json::Value, String> {
-    let cookie = login_cookie().await?;
+async fn ping_server(server: String) -> Result<bool, String> {
+    let base_url = server_url(&server);
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(4))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    Ok(client
+        .head(format!("{base_url}/cekorder.php?ping=1"))
+        .send()
+        .await
+        .map(|res| res.status().is_success())
+        .unwrap_or(false))
+}
+
+#[tauri::command]
+async fn cek_pesanan(uid: String, server: String) -> Result<serde_json::Value, String> {
+    let base_url = server_url(&server);
+    let cookie = login_cookie(&base_url).await?;
     let text = reqwest::Client::new()
-        .get(format!("{MERS_BASE_URL}/cekorder.php?check_order={}", uid.trim()))
+        .get(format!("{base_url}/cekorder.php?check_order={}", uid.trim()))
         .header("Cookie", cookie)
         .send()
         .await
@@ -64,9 +91,9 @@ async fn cek_pesanan(uid: String) -> Result<serde_json::Value, String> {
     Ok(response_body(text))
 }
 
-async fn loket_schedule(cookie: &str, loket: &str) -> Result<serde_json::Value, String> {
+async fn loket_schedule(base_url: &str, cookie: &str, loket: &str) -> Result<serde_json::Value, String> {
     let text = reqwest::Client::new()
-        .get(format!("{MERS_BASE_URL}/cekorder.php?loket={}", loket.trim()))
+        .get(format!("{base_url}/cekorder.php?loket={}", loket.trim()))
         .header("Cookie", cookie)
         .send()
         .await
@@ -79,12 +106,13 @@ async fn loket_schedule(cookie: &str, loket: &str) -> Result<serde_json::Value, 
 }
 
 #[tauri::command]
-async fn tap_in(uid: String, loket: String) -> Result<serde_json::Value, String> {
-    let cookie = login_cookie().await?;
-    let schedule = loket_schedule(&cookie, &loket).await?;
+async fn tap_in(uid: String, loket: String, server: String) -> Result<serde_json::Value, String> {
+    let base_url = server_url(&server);
+    let cookie = login_cookie(&base_url).await?;
+    let schedule = loket_schedule(&base_url, &cookie, &loket).await?;
     let payload = format!("{}:{}", scanner_uid(&uid), loket.trim());
     let text = reqwest::Client::new()
-        .post(format!("{MERS_BASE_URL}/cekorder.php"))
+        .post(format!("{base_url}/cekorder.php"))
         .header("Cookie", cookie)
         .form(&[("data", payload)])
         .send()
@@ -103,7 +131,7 @@ async fn tap_in(uid: String, loket: String) -> Result<serde_json::Value, String>
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![cek_pesanan, tap_in])
+        .invoke_handler(tauri::generate_handler![ping_server, cek_pesanan, tap_in])
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?.join("webview");
             std::fs::create_dir_all(&data_dir)?;

@@ -16,6 +16,7 @@
       .top { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px; border-radius: 16px; color: #fff; background: linear-gradient(90deg, #10b981, #059669); box-shadow: 0 10px 24px rgba(5,150,105,.24); }
       .badges { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
       .pill { padding: 7px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,.55); background: rgba(255,255,255,.22); color: #fff; font-size: 12px; font-weight: 800; }
+      button.pill { min-height: auto; cursor: pointer; }
       .pill.ok { color: #065f46; border-color: #6ee7b7; background: #d1fae5; }
       .pill.bad { color: #991b1b; border-color: #fecaca; background: #fee2e2; }
       .pill.warn { color: #92400e; border-color: #fde68a; background: #fef3c7; }
@@ -39,8 +40,9 @@
       pre { min-height: 0; overflow: auto; margin: 0; padding: 12px; border-radius: 14px; border: 1px solid #a7f3d0; background: #ecfdf5; color: #064e3b; white-space: pre-wrap; font: 12px ui-monospace, Consolas, monospace; }
       .foot { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
       .muted { color: #64748b; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      dialog { width: min(420px, calc(100vw - 24px)); border: 1px solid #a7f3d0; border-radius: 16px; color: #1f2937; background: #fff; }
-      dialog::backdrop { background: rgba(0,0,0,.72); }
+      .modal { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: 12px; background: rgba(0,0,0,.72); }
+      .modal[hidden] { display: none; }
+      .modal form { width: min(420px, 100%); padding: 16px; border: 1px solid #a7f3d0; border-radius: 16px; color: #1f2937; background: #fff; }
       @media (max-width: 520px) {
         body { padding: 6px; }
         main { min-height: calc(100svh - 12px); padding: 10px; }
@@ -59,8 +61,11 @@
       <div class="top">
         <h1>MeRS Remote</h1>
         <div class="badges">
-          <span id="domain" class="pill warn">domain...</span>
+          <span id="web-status" class="pill warn">web...</span>
+          <span id="bridge-status" class="pill warn">bridge...</span>
+          <span id="mers-status" class="pill warn">mers...</span>
           <span id="conn" class="pill bad">ws offline</span>
+          <button id="settings-top" class="pill" type="button">Server</button>
         </div>
       </div>
 
@@ -96,34 +101,46 @@
       </div>
     </main>
 
-    <dialog id="config">
-      <form method="dialog">
-        <label for="weburl">Web URL</label>
-        <input id="weburl" placeholder="https://mers.endrisusanto.my.id">
+    <div id="config" class="modal" hidden>
+      <form>
         <label for="ws">WebSocket Gateway</label>
-        <input id="ws" placeholder="wss://mers.endrisusanto.my.id/ws">
+        <input id="ws" placeholder="https://makan.endrisusanto.my.id/">
         <label for="device" style="margin-top:10px">Device / Room</label>
         <input id="device" placeholder="loket-pc-1">
         <div class="actions" style="margin-top:14px">
-          <button value="cancel">Batal</button>
-          <button id="save" value="default" class="primary">Simpan</button>
+          <button id="cancel-settings" type="button">Batal</button>
+          <button id="save" type="button" class="primary">Simpan</button>
         </div>
       </form>
-    </dialog>
+    </div>
 
     <script>
       const $ = id => document.getElementById(id);
-      function defaultWsUrl() {
-        if (localStorage.mersWsUrl) return localStorage.mersWsUrl;
-        if (location.protocol === 'http:' || location.protocol === 'https:') return `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
-        return 'wss://mers.endrisusanto.my.id/ws';
+      const DEFAULT_URL = 'https://makan.endrisusanto.my.id/';
+      const DEFAULT_WS = 'wss://makan.endrisusanto.my.id/ws';
+      const savedWsUrl = localStorage.mersWsUrl || '';
+      const legacyWsUrl = location.protocol === 'https:' ? `wss://${location.host}/ws` : `ws://${location.host}/ws`;
+      if (savedWsUrl === legacyWsUrl) localStorage.removeItem('mersWsUrl');
+      if (savedWsUrl === 'wss://mers.endrisusanto.my.id/ws') localStorage.mersWsUrl = DEFAULT_WS;
+      function toWsUrl(value) {
+        if (!value) return '';
+        try {
+          const url = new URL(value);
+          if (url.protocol === 'https:') url.protocol = 'wss:';
+          if (url.protocol === 'http:') url.protocol = 'ws:';
+          if (url.pathname === '/') url.pathname = '/ws';
+          return url.toString();
+        } catch {
+          return value;
+        }
       }
       const state = {
         ws: null,
+        reconnectTimer: null,
+        retryMs: 2500,
         loket: '1',
         config: {
-          webUrl: localStorage.mersWebUrl || 'https://mers.endrisusanto.my.id',
-          url: defaultWsUrl(),
+          url: localStorage.mersWsUrl || DEFAULT_WS,
           device: localStorage.mersDevice || 'loket-pc-1',
         },
       };
@@ -138,47 +155,60 @@
         $('conn').className = `pill ${state === 'online' ? 'ok' : state === 'connecting' ? 'warn' : 'bad'}`;
       }
 
-      function setDomain(ok, text) {
-        $('domain').textContent = text;
-        $('domain').className = `pill ${ok ? 'ok' : 'bad'}`;
+      function setBadge(id, text, kind) {
+        $(id).textContent = text;
+        $(id).className = `pill ${kind}`;
       }
 
-      function checkDomain() {
-        let base;
-        try {
-          base = new URL(state.config.webUrl).origin;
-        } catch {
-          setDomain(false, 'domain invalid');
+      async function checkStatuses() {
+        setBadge('web-status', 'web online', 'ok');
+        setBadge('bridge-status', window.AndroidNfc ? 'bridge android' : window.__TAURI__ ? 'bridge tauri' : 'bridge web', window.AndroidNfc || window.__TAURI__ ? 'ok' : 'warn');
+        if (location.protocol === 'https:') {
+          setBadge('mers-status', 'mers blocked', 'warn');
           return;
         }
-        const image = new Image();
-        const timeout = setTimeout(() => {
-          image.onload = image.onerror = null;
-          setDomain(false, 'domain timeout');
-        }, 5000);
-        image.onload = () => {
-          clearTimeout(timeout);
-          setDomain(true, 'domain ok');
-        };
-        image.onerror = () => {
-          clearTimeout(timeout);
-          setDomain(false, 'domain gagal');
-        };
-        image.src = `${base}/icon.svg?ping=${Date.now()}`;
+        let timer;
+        try {
+          const controller = new AbortController();
+          timer = setTimeout(() => controller.abort(), 3500);
+          await fetch('http://107.102.8.148/MERS/cekorder.php?ping=1', { method: 'HEAD', mode: 'no-cors', cache: 'no-store', signal: controller.signal });
+          setBadge('mers-status', 'mers online', 'ok');
+        } catch {
+          setBadge('mers-status', 'mers offline', 'bad');
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+
+      function disconnect() {
+        clearTimeout(state.reconnectTimer);
+        state.reconnectTimer = null;
+        const ws = state.ws;
+        state.ws = null;
+        if (ws) ws.onclose = null;
+        if (ws && ws.readyState < WebSocket.CLOSING) ws.close();
       }
 
       function connect() {
-        try { state.ws?.close(); } catch {}
+        disconnect();
+        if (!state.config.url) {
+          setConn('offline');
+          setStatus('WebSocket belum diatur. Buka Server untuk mengaktifkan.', 'warn');
+          return;
+        }
         setConn('connecting');
         try {
           state.ws = new WebSocket(state.config.url);
           state.ws.onopen = () => {
+            state.retryMs = 2500;
             setConn('online');
             state.ws.send(JSON.stringify({ type: 'join', role: 'mobile', device: state.config.device }));
           };
           state.ws.onclose = () => {
             setConn('offline');
-            setTimeout(connect, 2500);
+            clearTimeout(state.reconnectTimer);
+            state.reconnectTimer = setTimeout(connect, state.retryMs);
+            state.retryMs = Math.min(state.retryMs * 2, 30000);
           };
           state.ws.onerror = () => setConn('offline');
           state.ws.onmessage = event => {
@@ -212,13 +242,20 @@
         if (state.ws?.readyState === WebSocket.OPEN) {
           state.ws.send(JSON.stringify(message));
           setStatus('Terkirim.', 'ok');
-        } else {
+        } else if (state.config.url) {
           setStatus('WebSocket belum online.', 'bad');
+        } else {
+          setStatus('Atur WebSocket dulu dari menu Server.', 'warn');
         }
         $('output').textContent = JSON.stringify(message, null, 2);
       }
 
       async function scanNfc() {
+        if (window.AndroidNfc) {
+          window.AndroidNfc.requestScan();
+          setStatus('Tempelkan kartu NFC.', 'warn');
+          return;
+        }
         if (!('NDEFReader' in window)) {
           setStatus('Web NFC tidak didukung browser ini.', 'bad');
           return;
@@ -248,21 +285,29 @@
       }));
       document.querySelector('[data-loket="1"]').classList.add('active');
 
-      $('settings').addEventListener('click', () => {
-        $('weburl').value = state.config.webUrl;
-        $('ws').value = state.config.url;
+      function openSettings() {
+        $('ws').value = localStorage.mersWsUrl ? state.config.url : DEFAULT_URL;
+        $('ws').placeholder = DEFAULT_URL;
         $('device').value = state.config.device;
-        $('config').showModal();
-      });
+        $('config').hidden = false;
+      }
+      $('settings').addEventListener('click', openSettings);
+      $('settings-top').addEventListener('click', openSettings);
+      $('cancel-settings').addEventListener('click', () => { $('config').hidden = true; });
       $('save').addEventListener('click', () => {
-        state.config.webUrl = $('weburl').value.trim() || 'https://mers.endrisusanto.my.id';
-        state.config.url = $('ws').value.trim();
+        state.config.url = toWsUrl($('ws').value.trim());
         state.config.device = $('device').value.trim() || 'loket-pc-1';
-        localStorage.mersWebUrl = state.config.webUrl;
-        localStorage.mersWsUrl = state.config.url;
         localStorage.mersDevice = state.config.device;
-        checkDomain();
-        connect();
+        $('config').hidden = true;
+        if (state.config.url) {
+          localStorage.mersWsUrl = state.config.url;
+          connect();
+        } else {
+          localStorage.removeItem('mersWsUrl');
+          disconnect();
+          setConn('offline');
+          setStatus('WebSocket dimatikan.', 'warn');
+        }
       });
 
       let installPrompt = null;
@@ -274,9 +319,10 @@
       $('install').addEventListener('click', () => installPrompt?.prompt());
 
       if (location.protocol === 'http:' || location.protocol === 'https:') navigator.serviceWorker?.register('sw.js').catch(() => {});
-      checkDomain();
-      setInterval(checkDomain, 30000);
-      connect();
+      checkStatuses();
+      setInterval(checkStatuses, 15000);
+      if (state.config.url) connect();
+      else setStatus('WebSocket belum diatur. Buka Server untuk mengaktifkan.', 'warn');
     </script>
   </body>
 </html>

@@ -77,7 +77,7 @@ npm run web:dev
 
 Web app ada di `web/`. Fiturnya mobile-first, installable sebagai PWA, input manual 8-10 digit, Web NFC jika browser mendukung, pilihan cek pesanan/tap in, pilihan loket, dan WebSocket gateway. Web NFC butuh Android Chrome pada secure context (`https://` atau localhost).
 
-Default gateway mengikuti host saat ini: `/ws`. Ubah dari tombol **Server** di web app, misalnya `wss://mers.endrisusanto.my.id/ws`.
+Preset awal server memakai `https://makan.endrisusanto.my.id/` dan otomatis dipakai sebagai WebSocket `wss://makan.endrisusanto.my.id/ws`. Ubah dari tombol **Server** jika gateway berbeda.
 
 ### Docker Web PWA
 
@@ -103,7 +103,7 @@ APK debug dibuat di:
 android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Aplikasi Android native Kotlin ini membungkus `https://mers.endrisusanto.my.id` dalam WebView dan membaca NFC native Android. Hasil tap NFC otomatis mengisi input ID di web app; input manual tetap tersedia.
+Aplikasi Android native Kotlin ini membungkus web app lokal dalam WebView dan membaca NFC native Android. Hasil tap NFC otomatis mengisi input ID di web app; input manual tetap tersedia.
 
 ## 📦 Release
 
