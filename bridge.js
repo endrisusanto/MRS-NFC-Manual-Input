@@ -3,6 +3,65 @@
     console.log('%c🚀 [MRS Hook] Bridge Loaded - Brute Force Mode Activated', LOG_STYLE);
 
     let originalProcessNFC = null;
+    const API_LOG_KEY = 'mrs_api_log_v1';
+
+    function pushApiLog(entry) {
+        try {
+            const logs = JSON.parse(localStorage.getItem(API_LOG_KEY) || '[]');
+            logs.unshift(entry);
+            localStorage.setItem(API_LOG_KEY, JSON.stringify(logs.slice(0, 50)));
+        } catch (e) {
+            console.warn('[MRS Hook] Failed to write API log:', e);
+        }
+    }
+
+    function installFetchLogger() {
+        if (window.__mrsFetchLoggerInstalled || typeof window.fetch !== 'function') return;
+        window.__mrsFetchLoggerInstalled = true;
+
+        const originalFetch = window.fetch.bind(window);
+        window.fetch = async (...args) => {
+            const startedAt = new Date().toISOString();
+            const input = args[0];
+            const init = args[1] || {};
+            const url = typeof input === 'string' ? input : input?.url;
+            const response = await originalFetch(...args);
+
+            if (url && url.includes('/MERS/')) {
+                response.clone().text().then(text => {
+                    let body = text;
+                    try { body = JSON.parse(text); } catch (e) {}
+                    pushApiLog({
+                        time: startedAt,
+                        page: window.location.href,
+                        mode: PAGE_MODE,
+                        method: init.method || 'GET',
+                        url,
+                        requestBody: init.body ? String(init.body) : null,
+                        status: response.status,
+                        ok: response.ok,
+                        response: body,
+                    });
+                }).catch(() => {});
+            }
+
+            return response;
+        };
+
+        window.mrsExportApiLog = () => {
+            const data = localStorage.getItem(API_LOG_KEY) || '[]';
+            const blob = new Blob([data], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `mrs-api-log-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+            return JSON.parse(data);
+        };
+
+        window.mrsClearApiLog = () => localStorage.removeItem(API_LOG_KEY);
+        console.log('[MRS Hook] API logger ready. Run mrsExportApiLog() to download logs.');
+    }
 
     // --- 1. DETEKSI HALAMAN ---
     function detectPage() {
@@ -22,6 +81,7 @@
 
     const PAGE_MODE = detectPage();
     console.log(`%c[MRS Hook] TARGET PAGE: ${PAGE_MODE}`, 'background: #0088ff; color: white; padding: 2px 8px; font-weight: bold;');
+    installFetchLogger();
 
     // --- 2. LOGIKA TRANSFORMASI ---
     function transformUid(uid) {

@@ -51,7 +51,23 @@ npm install
 npm run dev
 ```
 
-UI desktop memiliki input ID 8 digit, shortcut **Tap In Scanner**, shortcut **Cek Menu Pesanan**, dan pilihan 6 loket untuk Tap In.
+UI desktop memiliki input GEN 8 digit atau ID kartu 10 digit, shortcut **Tap In Scanner**, shortcut **Cek Menu Pesanan**, dan pilihan 6 loket untuk Tap In.
+
+Desktop app memanggil backend `http://107.102.8.148/MERS` langsung dari PC tempat app dijalankan. Build bisa dibuat dari jaringan mana pun, tetapi fitur cek pesanan dan tap in hanya bisa dites/berjalan di PC yang punya akses intranet ke alamat tersebut.
+
+## Debug Workflow MeRS
+
+Di PC intranet yang menjalankan extension, buka halaman MeRS, jalankan workflow scanner/cek pesanan, lalu buka DevTools Console:
+
+```js
+mrsExportApiLog()
+```
+
+Command tersebut akan download JSON berisi request dan response API terakhir. Untuk mengosongkan log:
+
+```js
+mrsClearApiLog()
+```
 
 ## 📦 Release
 
