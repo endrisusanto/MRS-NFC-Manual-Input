@@ -30,11 +30,12 @@ class MainActivity : Activity() {
         webView.webChromeClient = WebChromeClient()
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
+        webView.settings.allowFileAccess = true
         webView.settings.cacheMode = WebSettings.LOAD_DEFAULT
         webView.settings.userAgentString = "${webView.settings.userAgentString} MeRSRemoteAndroid/1.0"
 
         setContentView(webView, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT, Gravity.CENTER))
-        webView.loadUrl("https://mers.endrisusanto.my.id")
+        webView.loadUrl("file:///android_asset/index.html")
 
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
         pendingIntent = PendingIntent.getActivity(

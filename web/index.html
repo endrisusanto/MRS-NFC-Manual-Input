@@ -113,12 +113,17 @@
 
     <script>
       const $ = id => document.getElementById(id);
+      function defaultWsUrl() {
+        if (localStorage.mersWsUrl) return localStorage.mersWsUrl;
+        if (location.protocol === 'http:' || location.protocol === 'https:') return `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
+        return 'wss://mers.endrisusanto.my.id/ws';
+      }
       const state = {
         ws: null,
         loket: '1',
         config: {
           webUrl: localStorage.mersWebUrl || 'https://mers.endrisusanto.my.id',
-          url: localStorage.mersWsUrl || `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`,
+          url: defaultWsUrl(),
           device: localStorage.mersDevice || 'loket-pc-1',
         },
       };
@@ -128,9 +133,9 @@
         $('status').className = `status ${kind}`;
       }
 
-      function setConn(ok) {
-        $('conn').textContent = ok ? 'ws online' : 'ws offline';
-        $('conn').className = `pill ${ok ? 'ok' : 'bad'}`;
+      function setConn(state) {
+        $('conn').textContent = `ws ${state}`;
+        $('conn').className = `pill ${state === 'online' ? 'ok' : state === 'connecting' ? 'warn' : 'bad'}`;
       }
 
       function setDomain(ok, text) {
@@ -164,17 +169,18 @@
 
       function connect() {
         try { state.ws?.close(); } catch {}
+        setConn('connecting');
         try {
           state.ws = new WebSocket(state.config.url);
           state.ws.onopen = () => {
-            setConn(true);
+            setConn('online');
             state.ws.send(JSON.stringify({ type: 'join', role: 'mobile', device: state.config.device }));
           };
           state.ws.onclose = () => {
-            setConn(false);
+            setConn('offline');
             setTimeout(connect, 2500);
           };
-          state.ws.onerror = () => setConn(false);
+          state.ws.onerror = () => setConn('offline');
           state.ws.onmessage = event => {
             const data = JSON.parse(event.data);
             const text = `${data.status || ''} ${data.message || ''}`.toLowerCase();
@@ -183,7 +189,7 @@
             $('output').textContent = JSON.stringify(data, null, 2);
           };
         } catch (error) {
-          setConn(false);
+          setConn('offline');
           setStatus(String(error), 'bad');
         }
       }
@@ -267,7 +273,7 @@
       });
       $('install').addEventListener('click', () => installPrompt?.prompt());
 
-      navigator.serviceWorker?.register('sw.js');
+      if (location.protocol === 'http:' || location.protocol === 'https:') navigator.serviceWorker?.register('sw.js').catch(() => {});
       checkDomain();
       setInterval(checkDomain, 30000);
       connect();
