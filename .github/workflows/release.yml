@@ -1,0 +1,49 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build NSIS
+        run: npm run dist:win
+
+      - name: Collect artifacts
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item src-tauri/target/release/bundle/nsis/*.exe dist/
+          Compress-Archive -Path manifest.json,bridge.js,content.css,content.js,help.html,popup.html,popup.js,icons -DestinationPath "dist/mers-nfc-tauri-extension-${{ github.ref_name }}.zip" -Force
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mers-nfc-${{ github.ref_name }}
+          path: dist/*
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*

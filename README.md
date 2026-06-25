@@ -42,6 +42,24 @@ Saat Anda berada di halaman `nfc_scanner.html`, sebuah tombol melayang (atau pan
 - **Javascript (ES6+)**: Logika utama extension dan komunikasi antar script.
 - **HTML5 & CSS3**: Struktur panel dan styling Neobrutalism modern.
 - **Chrome Extension API (V3)**: Storage API untuk persistensi data dan Scripting API untuk injeksi.
+- **Tauri/Rust**: Desktop client MeRS dengan UI dark glassmorphism, NSIS installer, dan algoritma bridge yang sama.
+
+## 🖥️ Desktop App
+
+```bash
+npm install
+npm run dev
+```
+
+UI desktop memiliki input ID 8 digit, shortcut **Tap In Scanner**, shortcut **Cek Menu Pesanan**, dan pilihan 6 loket untuk Tap In.
+
+## 📦 Release
+
+```bash
+./release.sh
+```
+
+Script akan bump patch version, commit, tag `vX.Y.Z`, lalu push ke GitHub. GitHub Actions otomatis build NSIS `.exe`, zip extension, upload artifact, dan membuat GitHub Release.
 
 ## 🛡️ Keamanan & Privasi
 
