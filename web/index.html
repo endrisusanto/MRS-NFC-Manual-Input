@@ -121,7 +121,7 @@
       const savedWsUrl = localStorage.mersWsUrl || '';
       const legacyWsUrl = location.protocol === 'https:' ? `wss://${location.host}/ws` : `ws://${location.host}/ws`;
       if (savedWsUrl === legacyWsUrl) localStorage.removeItem('mersWsUrl');
-      if (savedWsUrl === 'wss://mers.endrisusanto.my.id/ws') localStorage.mersWsUrl = DEFAULT_WS;
+      if (savedWsUrl === 'wss://mers.endrisusanto.my.id/ws' || savedWsUrl === DEFAULT_WS) localStorage.removeItem('mersWsUrl');
       function toWsUrl(value) {
         if (!value) return '';
         try {
@@ -140,7 +140,7 @@
         retryMs: 2500,
         loket: '1',
         config: {
-          url: localStorage.mersWsUrl || DEFAULT_WS,
+          url: localStorage.mersWsUrl || '',
           device: localStorage.mersDevice || 'loket-pc-1',
         },
       };
@@ -163,15 +163,12 @@
       async function checkStatuses() {
         setBadge('web-status', 'web online', 'ok');
         setBadge('bridge-status', window.AndroidNfc ? 'bridge android' : window.__TAURI__ ? 'bridge tauri' : 'bridge web', window.AndroidNfc || window.__TAURI__ ? 'ok' : 'warn');
-        if (location.protocol === 'https:') {
-          setBadge('mers-status', 'mers blocked', 'warn');
-          return;
-        }
         let timer;
         try {
           const controller = new AbortController();
           timer = setTimeout(() => controller.abort(), 3500);
-          await fetch('http://107.102.8.148/MERS/cekorder.php?ping=1', { method: 'HEAD', mode: 'no-cors', cache: 'no-store', signal: controller.signal });
+          const res = await fetch('/mers-ping', { method: 'HEAD', cache: 'no-store', signal: controller.signal });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
           setBadge('mers-status', 'mers online', 'ok');
         } catch {
           setBadge('mers-status', 'mers offline', 'bad');
@@ -286,7 +283,7 @@
       document.querySelector('[data-loket="1"]').classList.add('active');
 
       function openSettings() {
-        $('ws').value = localStorage.mersWsUrl ? state.config.url : DEFAULT_URL;
+        $('ws').value = localStorage.mersWsUrl ? state.config.url : '';
         $('ws').placeholder = DEFAULT_URL;
         $('device').value = state.config.device;
         $('config').hidden = false;
