@@ -91,6 +91,20 @@ Web app akan berjalan di:
 http://localhost:7465
 ```
 
+## Android APK
+
+```bash
+npm run android:debug
+```
+
+APK debug dibuat di:
+
+```text
+android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+Aplikasi Android native Kotlin ini membungkus `https://mers.endrisusanto.my.id` dalam WebView dan membaca NFC native Android. Hasil tap NFC otomatis mengisi input ID di web app; input manual tetap tersedia.
+
 ## 📦 Release
 
 ```bash

@@ -1,12 +1,13 @@
 {
   "name": "mers-nfc-tauri",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "private": true,
   "type": "module",
   "scripts": {
     "tauri": "tauri",
     "dev": "tauri dev",
     "web:dev": "python3 -m http.server 4173 -d web",
+    "android:debug": "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 GRADLE_USER_HOME=$PWD/.gradle ./android/gradlew -p android assembleDebug",
     "dist:win": "tauri build --bundles nsis"
   },
   "devDependencies": {

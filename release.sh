@@ -44,4 +44,4 @@ git tag -a "$TAG" -m "Release ${TAG}"
 git push origin HEAD
 git push origin "$TAG"
 
-echo "Pushed ${TAG}. GitHub Actions will build NSIS and publish artifacts."
+echo "Pushed ${TAG}. GitHub Actions will build NSIS, APK, extension zip, and publish artifacts."

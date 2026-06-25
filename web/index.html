@@ -3,43 +3,43 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#050505">
+    <meta name="theme-color" content="#059669">
     <title>MeRS Remote</title>
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="icon.svg" type="image/svg+xml">
     <style>
       * { box-sizing: border-box; }
-      html, body { margin: 0; min-height: 100%; background: #050505; color: #f5f5f5; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-      body { min-height: 100svh; padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); display: grid; place-items: stretch; }
-      main { min-height: calc(100svh - 20px); display: grid; grid-template-rows: auto auto 1fr auto; gap: 10px; padding: 12px; border: 1px solid rgba(255,255,255,.16); border-radius: 18px; background: rgba(255,255,255,.07); backdrop-filter: blur(18px); }
+      html, body { margin: 0; min-height: 100%; background: #ecfdf5; color: #1f2937; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      body { min-height: 100svh; padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); display: grid; place-items: stretch; background: linear-gradient(135deg, #ecfdf5, #dbeafe); }
+      main { min-height: calc(100svh - 20px); display: grid; grid-template-rows: auto auto 1fr auto; gap: 10px; padding: 10px; border: 1px solid #a7f3d0; border-radius: 18px; background: rgba(255,255,255,.86); box-shadow: 0 18px 48px rgba(15,118,110,.18); backdrop-filter: blur(10px); }
       h1 { margin: 0; font-size: 24px; line-height: 1; }
-      .top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+      .top { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px; border-radius: 16px; color: #fff; background: linear-gradient(90deg, #10b981, #059669); box-shadow: 0 10px 24px rgba(5,150,105,.24); }
       .badges { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-      .pill { padding: 7px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,.18); background: rgba(0,0,0,.32); color: #cfcfcf; font-size: 12px; font-weight: 800; }
-      .pill.ok { color: #dcfce7; border-color: rgba(34,197,94,.55); background: rgba(22,101,52,.45); }
-      .pill.bad { color: #fee2e2; border-color: rgba(239,68,68,.55); background: rgba(127,29,29,.45); }
-      .pill.warn { color: #fef3c7; border-color: rgba(245,158,11,.55); background: rgba(146,64,14,.45); }
-      .card { padding: 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,.14); background: rgba(0,0,0,.30); }
-      label { display: block; margin-bottom: 6px; color: #bdbdbd; font-size: 12px; font-weight: 800; text-transform: uppercase; }
-      input, select { width: 100%; height: 46px; border-radius: 12px; border: 1px solid rgba(255,255,255,.24); background: rgba(0,0,0,.42); color: #fff; padding: 0 12px; outline: none; font: 800 20px ui-monospace, Consolas, monospace; }
-      input:focus, select:focus { border-color: rgba(255,255,255,.72); }
+      .pill { padding: 7px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,.55); background: rgba(255,255,255,.22); color: #fff; font-size: 12px; font-weight: 800; }
+      .pill.ok { color: #065f46; border-color: #6ee7b7; background: #d1fae5; }
+      .pill.bad { color: #991b1b; border-color: #fecaca; background: #fee2e2; }
+      .pill.warn { color: #92400e; border-color: #fde68a; background: #fef3c7; }
+      .card { padding: 12px; border-radius: 14px; border: 1px solid #a7f3d0; background: #fff; box-shadow: 0 8px 20px rgba(15,23,42,.07); }
+      label { display: block; margin-bottom: 6px; color: #047857; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+      input, select { width: 100%; height: 46px; border-radius: 12px; border: 1px solid #cbd5e1; background: #f8fafc; color: #0f172a; padding: 0 12px; outline: none; font: 800 20px ui-monospace, Consolas, monospace; }
+      input:focus, select:focus { border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,.18); }
       .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
       .actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-      button { min-height: 48px; border-radius: 12px; border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.10); color: #fff; font-weight: 900; cursor: pointer; }
+      button { min-height: 48px; border-radius: 12px; border: 1px solid #a7f3d0; background: #ecfdf5; color: #065f46; font-weight: 900; cursor: pointer; }
       button:active { transform: translateY(1px); }
-      button.primary { background: #f5f5f5; color: #050505; border-color: #f5f5f5; }
-      button.active { border-color: rgba(255,255,255,.72); background: rgba(255,255,255,.20); }
+      button.primary { background: #059669; color: #fff; border-color: #059669; }
+      button.active { border-color: #059669; background: #10b981; color: #fff; }
       .lokets { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
       .lokets button { min-height: 40px; padding: 0; }
       .result { min-height: 0; overflow: hidden; display: grid; grid-template-rows: auto 1fr; gap: 10px; }
-      .status { padding: 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,.14); background: rgba(0,0,0,.32); font-weight: 900; text-align: center; }
-      .status.ok { color: #dcfce7; border-color: rgba(34,197,94,.70); background: rgba(22,101,52,.70); }
-      .status.warn { color: #fef3c7; border-color: rgba(245,158,11,.80); background: rgba(146,64,14,.78); }
-      .status.bad { color: #fee2e2; border-color: rgba(239,68,68,.82); background: rgba(127,29,29,.78); }
-      pre { min-height: 0; overflow: auto; margin: 0; padding: 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,.14); background: rgba(0,0,0,.36); white-space: pre-wrap; font: 12px ui-monospace, Consolas, monospace; }
+      .status { padding: 12px; border-radius: 14px; border: 1px solid #cbd5e1; background: #f8fafc; font-weight: 900; text-align: center; }
+      .status.ok { color: #065f46; border-color: #6ee7b7; background: #d1fae5; }
+      .status.warn { color: #92400e; border-color: #fcd34d; background: #fef3c7; }
+      .status.bad { color: #991b1b; border-color: #fca5a5; background: #fee2e2; }
+      pre { min-height: 0; overflow: auto; margin: 0; padding: 12px; border-radius: 14px; border: 1px solid #a7f3d0; background: #ecfdf5; color: #064e3b; white-space: pre-wrap; font: 12px ui-monospace, Consolas, monospace; }
       .foot { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
-      .muted { color: #a3a3a3; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      dialog { width: min(420px, calc(100vw - 24px)); border: 1px solid rgba(255,255,255,.18); border-radius: 16px; color: #fff; background: #121212; }
+      .muted { color: #64748b; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      dialog { width: min(420px, calc(100vw - 24px)); border: 1px solid #a7f3d0; border-radius: 16px; color: #1f2937; background: #fff; }
       dialog::backdrop { background: rgba(0,0,0,.72); }
       @media (max-width: 520px) {
         body { padding: 6px; }
