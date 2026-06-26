@@ -420,6 +420,12 @@
       <form>
         <label for="ws">WebSocket Gateway</label>
         <input id="ws" placeholder="https://makan.endrisusanto.my.id/">
+        <div class="presets" style="margin-top: 6px; display: flex; gap: 8px; flex-wrap: wrap;">
+          <button type="button" class="pill" id="preset-auto" style="min-height: auto; padding: 4px 8px; font-size: 11px; margin: 0;">Auto (Host)</button>
+          <button type="button" class="pill" id="preset-prod" style="min-height: auto; padding: 4px 8px; font-size: 11px; margin: 0;">Cloud</button>
+          <button type="button" class="pill" id="preset-local3" style="min-height: auto; padding: 4px 8px; font-size: 11px; margin: 0;">Local 3000</button>
+          <button type="button" class="pill" id="preset-local5" style="min-height: auto; padding: 4px 8px; font-size: 11px; margin: 0;">Local 3005</button>
+        </div>
         <label for="device" style="margin-top:10px">Device / Room</label>
         <input id="device" placeholder="loket-pc-1">
         <div class="actions" style="margin-top:14px">
@@ -449,13 +455,14 @@
           return value;
         }
       }
+      const defaultWsUrl = location.protocol.startsWith('http') ? (location.protocol === 'https:' ? `wss://${location.host}/ws` : `ws://${location.host}/ws`) : DEFAULT_WS;
       const state = {
         ws: null,
         reconnectTimer: null,
         retryMs: 2500,
         loket: '1',
         config: {
-          url: localStorage.mersWsUrl || '',
+          url: localStorage.mersWsUrl || defaultWsUrl,
           device: localStorage.mersDevice || 'loket-pc-1',
         },
       };
@@ -598,7 +605,7 @@
       document.querySelector('[data-loket="1"]').classList.add('active');
 
       function openSettings() {
-        $('ws').value = localStorage.mersWsUrl ? state.config.url : '';
+        $('ws').value = localStorage.mersWsUrl || (location.protocol.startsWith('http') ? location.origin + '/' : DEFAULT_URL);
         $('ws').placeholder = DEFAULT_URL;
         $('device').value = state.config.device;
         $('config').hidden = false;
@@ -629,6 +636,19 @@
         $('install').hidden = false;
       });
       $('install').addEventListener('click', () => installPrompt?.prompt());
+
+      $('preset-auto').addEventListener('click', () => {
+        $('ws').value = location.protocol.startsWith('http') ? location.origin + '/' : DEFAULT_URL;
+      });
+      $('preset-prod').addEventListener('click', () => {
+        $('ws').value = DEFAULT_URL;
+      });
+      $('preset-local3').addEventListener('click', () => {
+        $('ws').value = 'http://localhost:3000/';
+      });
+      $('preset-local5').addEventListener('click', () => {
+        $('ws').value = 'http://localhost:3005/';
+      });
 
       if (location.protocol === 'http:' || location.protocol === 'https:') navigator.serviceWorker?.register('sw.js').catch(() => {});
       checkStatuses();

@@ -96,6 +96,19 @@
         letter-spacing: 0.5px;
       }
       
+      button.pill {
+        cursor: pointer;
+        background: rgba(16, 185, 129, 0.1);
+        border-color: rgba(16, 185, 129, 0.2);
+        color: #34d399;
+      }
+      
+      button.pill:hover {
+        background: rgba(16, 185, 129, 0.2);
+        border-color: rgba(16, 185, 129, 0.4);
+        box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+      }
+      
       .pill.ok {
         color: #34d399;
         border-color: rgba(52, 211, 153, 0.2);
@@ -620,6 +633,11 @@
         
         <label for="gateway-url">URL Gateway WebSocket</label>
         <input id="gateway-url" placeholder="wss://makan.endrisusanto.my.id/ws">
+        <div class="presets" style="margin-top: -6px; margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap;">
+          <button type="button" class="pill" id="preset-prod" style="min-height: auto; padding: 4px 8px; font-size: 11px; margin: 0;">Cloud</button>
+          <button type="button" class="pill" id="preset-local3" style="min-height: auto; padding: 4px 8px; font-size: 11px; margin: 0;">Local 3000</button>
+          <button type="button" class="pill" id="preset-local5" style="min-height: auto; padding: 4px 8px; font-size: 11px; margin: 0;">Local 3005</button>
+        </div>
         
         <label for="device-id">Device / Loket ID</label>
         <input id="device-id" placeholder="loket-pc-1">
@@ -823,6 +841,15 @@
       });
       document.getElementById('cancel-settings').addEventListener('click', () => {
         document.getElementById('config').hidden = true;
+      });
+      document.getElementById('preset-prod').addEventListener('click', () => {
+        document.getElementById('gateway-url').value = 'wss://makan.endrisusanto.my.id/ws';
+      });
+      document.getElementById('preset-local3').addEventListener('click', () => {
+        document.getElementById('gateway-url').value = 'ws://localhost:3000/ws';
+      });
+      document.getElementById('preset-local5').addEventListener('click', () => {
+        document.getElementById('gateway-url').value = 'ws://localhost:3005/ws';
       });
       document.getElementById('save-settings').addEventListener('click', async () => {
         const server_url = document.getElementById('server-url').value.trim() || defaultServer;
