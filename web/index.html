@@ -1308,15 +1308,17 @@
       }
 
       let currentSlide = 0;
-      window.changeSlide = function(direction) {
-        const slides = document.querySelectorAll('.carousel-slide');
+      window.changeSlide = function(direction, btn) {
+        const carousel = btn ? btn.closest('.carousel') : document.querySelector('.carousel');
+        if (!carousel) return;
+        const slides = carousel.querySelectorAll('.carousel-slide');
         if (!slides.length) return;
         
         slides[currentSlide].classList.remove('active');
         currentSlide = (currentSlide + direction + slides.length) % slides.length;
         slides[currentSlide].classList.add('active');
         
-        const indicator = $('carousel-indicator');
+        const indicator = carousel.querySelector('.carousel-indicator');
         if (indicator) {
           indicator.textContent = `${currentSlide + 1} / ${slides.length}`;
         }
@@ -1356,9 +1358,9 @@
                   ${slidesHtml}
                 </div>
                 <div class="carousel-controls">
-                  <button class="carousel-btn prev" type="button" onclick="changeSlide(-1)">◀ Prev</button>
+                  <button class="carousel-btn prev" type="button" onclick="changeSlide(-1, this)">◀ Prev</button>
                   <span class="carousel-indicator" id="carousel-indicator">1 / ${orders.length}</span>
-                  <button class="carousel-btn next" type="button" onclick="changeSlide(1)">Next ▶</button>
+                  <button class="carousel-btn next" type="button" onclick="changeSlide(1, this)">Next ▶</button>
                 </div>
               </div>
             `;
@@ -1450,7 +1452,8 @@
 
         if (isAndroidApp()) {
           $('modal-result-title').textContent = text;
-          $('modal-result-content').innerHTML = detailHtml(data, true);
+          currentSlide = 0;
+          $('modal-result-content').innerHTML = detailHtml(data, false);
           $('result-modal').hidden = false;
           $('result-summary').classList.remove('detail');
           $('result-summary').textContent = 'Belum ada response.';
