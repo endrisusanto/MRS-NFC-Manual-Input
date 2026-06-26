@@ -132,7 +132,7 @@ async fn run_cek_pesanan(uid: &str, server: &str) -> Result<serde_json::Value, S
             "{base_url}/cekorder.php?check_order={}",
             uid.trim()
         ))
-        .header("Cookie", cookie.clone())
+        .header("Cookie", cookie)
         .send()
         .await
         .map_err(|e| format!("Cek pesanan gagal: {e}"))?
@@ -140,39 +140,7 @@ async fn run_cek_pesanan(uid: &str, server: &str) -> Result<serde_json::Value, S
         .await
         .map_err(|e| e.to_string())?;
 
-    let mut data = response_body(text);
-
-    // Merge schedule details for each order in the orders array
-    if let Some(orders) = data.pointer_mut("/data/orders").and_then(|o| o.as_array_mut()) {
-        for order in orders {
-            let loket_raw = order.get("order_loket").or_else(|| order.get("loket_name")).and_then(|l| l.as_str()).unwrap_or("");
-            let loket_num: String = loket_raw.chars().filter(|c| c.is_ascii_digit()).collect();
-            let loket = if loket_num.is_empty() { "1".to_string() } else { loket_num };
-
-            if let Ok(sched_data) = loket_schedule(&base_url, &cookie, &loket).await {
-                if let Some(schedules) = sched_data.pointer("/data/schedules").and_then(|s| s.as_array()) {
-                    if let Some(order_menu) = order.get("menu_name").and_then(|m| m.as_str()) {
-                        if let Some(matched) = schedules.iter().find(|s| s.get("menu_name").and_then(|m| m.as_str()) == Some(order_menu)) {
-                            if let Some(obj) = order.as_object_mut() {
-                                for key in &[
-                                    "carbo_name", "carbo_pic", "main_name", "menu_detail_pic",
-                                    "soup_name", "soup_pic", "option1_name", "option1_pic",
-                                    "option2_name", "option2_pic", "option3_name", "option3_pic",
-                                    "fruit_name", "fruit_pic", "additional_name", "additional_pic"
-                                ] {
-                                    if let Some(val) = matched.get(key) {
-                                        obj.insert(key.to_string(), val.clone());
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    Ok(data)
+    Ok(response_body(text))
 }
 
 async fn loket_schedule(

@@ -419,21 +419,18 @@
         display: grid;
         grid-template-columns: repeat(7, minmax(0, 1fr));
         gap: 8px;
-        margin-top: 12px;
       }
       
       .bento-card {
         min-height: 72px;
         padding: 10px;
-        border: 1px solid var(--line);
-        background: var(--surface);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.04);
       }
       
       .bento-label {
-        color: var(--muted);
+        color: #9ca3af;
         font-size: 10px;
         font-weight: 800;
         text-transform: uppercase;
@@ -446,7 +443,7 @@
         font-weight: 700;
         line-height: 1.3;
         overflow-wrap: anywhere;
-        color: var(--text);
+        color: #fff;
       }
       
       details {
@@ -813,7 +810,7 @@
         <h1>MeRS Desktop</h1>
         <p>Masukkan GEN 8 digit atau ID kartu 10 digit yang akan dieksekusi.</p>
         <button class="server-btn" id="settings">Server</button>
-        <input id="uid" inputmode="numeric" maxlength="10" autocomplete="off" autofocus>
+        <input id="uid" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="1696235068" autofocus>
         <div class="cards">
           <button class="card" id="tap"><strong>Tap In Scanner</strong><span>Masuk ke pilihan loket untuk ID ini.</span></button>
           <button class="card" id="cek"><strong>Cek Menu Pesanan</strong><span>Langsung tampilkan detail pesanan ID ini.</span></button>
@@ -832,21 +829,18 @@
         </div>
         <button class="back" id="back">Kembali</button>
       </section>
-      <div class="hint" id="hint"></div>
-    </main>
-
-    <div id="result-modal" class="modal" hidden>
-      <section class="result" style="width: min(800px, 100%); max-height: 90vh; overflow: auto; padding: 28px; border: 1px solid var(--line); background: var(--surface); color: var(--text);">
-        <h1 id="result-title" style="text-align: center;">Detail</h1>
-        <div class="selected" style="margin-bottom: 12px;">ID<b id="result-id"></b></div>
+      <section class="result">
+        <h1 id="result-title">Detail</h1>
+        <div class="selected">ID<b id="result-id"></b></div>
         <div id="result-summary" class="summary"></div>
         <details id="api-details">
           <summary>API Response</summary>
           <pre id="result-body"></pre>
         </details>
-        <button class="back" id="home" style="margin-top: 14px; width: 100%;">Beranda</button>
+        <button class="back" id="home">Beranda</button>
       </section>
-    </div>
+      <div class="hint" id="hint"></div>
+    </main>
     <div id="config" class="modal" hidden>
       <form>
         <label for="server-url">URL Server MeRS</label>
@@ -931,7 +925,6 @@
 
       function showHome() {
         hint.textContent = '';
-        document.getElementById('result-modal').hidden = true;
         document.body.dataset.step = 'home';
         input.focus();
       }
@@ -981,75 +974,27 @@
         `;
       }
 
-      let currentCarouselIndex = 0;
-
       function renderCekPesanan(data) {
         const orders = data?.data?.orders || [];
         if (!orders.length) {
           return `<div class="item status">${esc(data.message)}</div>`;
         }
-        currentCarouselIndex = 0;
-        
-        const cardsHtml = orders.map((order, idx) => `
-          <div class="order-card-wrapper" id="carousel-card-${idx}" style="${idx === 0 ? 'display: block;' : 'display: none;'}">
-            <div class="order-card">
-              <div class="item">
-                <h2>${esc(order.schedule_meal_name)} - ${esc(order.menu_name)}</h2>
-                <div class="meta">
-                  <span>Nama<b>${esc(order.first_name)}</b></span>
-                  <span>Dept<b>${esc(order.dept)}</b></span>
-                  <span>Loket<b>${esc(order.loket_name || order.order_loket)}</b></span>
-                  <span ${order.order_ambil ? 'style="background: #16a34a; color: #fff; padding: 6px; text-align: center; display: flex; flex-direction: column; justify-content: center;"' : 'style="background: #dc2626; color: #fff; padding: 6px; text-align: center; display: flex; flex-direction: column; justify-content: center;"'}>Status Ambil<b style="color: #fff !important;">${order.order_ambil ? 'Sudah' : 'Belum'}</b></span>
-                  <span>Kategori<b>${esc(order.base_menu)}</b></span>
-                  <span>Tanggal<b>${esc(order.schedule_date)}</b></span>
-                </div>
+        return `<div class="order-strip ${orders.length === 1 ? 'single' : ''}">${orders.map(order => `
+          <div class="order-card">
+            <div class="item">
+              <h2>${esc(order.schedule_meal_name)} - ${esc(order.menu_name)}</h2>
+              <div class="meta">
+                <span>Nama<b>${esc(order.first_name)}</b></span>
+                <span>Dept<b>${esc(order.dept)}</b></span>
+                <span>Loket<b>${esc(order.loket_name || order.order_loket)}</b></span>
+                <span>Status Ambil<b>${order.order_ambil ? 'Sudah' : 'Belum'}</b></span>
+                <span>Kategori<b>${esc(order.base_menu)}</b></span>
+                <span>Tanggal<b>${esc(order.schedule_date)}</b></span>
               </div>
-              ${renderBento(order, order.remaining_portions || order.final_order)}
             </div>
+            ${renderBento(order, order.remaining_portions || order.final_order)}
           </div>
-        `).join('');
-
-        const navigationHtml = orders.length > 1 ? `
-          <div class="carousel-nav" style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; gap: 10px;">
-            <button id="carousel-prev" type="button" class="back" style="margin: 0; flex: 1;">⬅ Prev</button>
-            <span id="carousel-indicator" style="font-weight: bold; font-size: 14px;">1 / ${orders.length}</span>
-            <button id="carousel-next" type="button" class="back" style="margin: 0; flex: 1;">Next ➡</button>
-          </div>
-        ` : '';
-
-        setTimeout(() => {
-          setupCarouselListeners(orders.length);
-        }, 50);
-
-        return `<div class="carousel-container">${cardsHtml}${navigationHtml}</div>`;
-      }
-
-      function setupCarouselListeners(total) {
-        if (total <= 1) return;
-        const prevBtn = document.getElementById('carousel-prev');
-        const nextBtn = document.getElementById('carousel-next');
-        const indicator = document.getElementById('carousel-indicator');
-        if (!prevBtn || !nextBtn || !indicator) return;
-        
-        const updateCarousel = () => {
-          for (let i = 0; i < total; i++) {
-            const card = document.getElementById(`carousel-card-${i}`);
-            if (card) {
-              card.style.display = i === currentCarouselIndex ? 'block' : 'none';
-            }
-          }
-          indicator.textContent = `${currentCarouselIndex + 1} / ${total}`;
-        };
-        
-        prevBtn.onclick = () => {
-          currentCarouselIndex = (currentCarouselIndex - 1 + total) % total;
-          updateCarousel();
-        };
-        
-        nextBtn.onclick = () => {
-          currentCarouselIndex = (currentCarouselIndex + 1) % total;
-          updateCarousel();
-        };
+        `).join('')}</div>`;
       }
 
       function renderTapIn(data) {
@@ -1086,7 +1031,7 @@
           document.getElementById('result-summary').innerHTML = command === 'tap_in' ? renderTapIn(data) : renderCekPesanan(data);
           document.getElementById('result-body').textContent = JSON.stringify(data, null, 2);
           document.getElementById('api-details').removeAttribute('open');
-          document.getElementById('result-modal').hidden = false;
+          document.body.dataset.step = 'result';
           hint.textContent = '';
         } catch (error) {
           hint.textContent = String(error);
