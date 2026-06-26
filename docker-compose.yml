@@ -1,7 +1,9 @@
 services:
   mers-pwa:
-    build: .
+    build:
+      context: ..
+      dockerfile: MRS-NFC-Manual-Input/Dockerfile
     container_name: mers-pwa
     ports:
-      - "7465:80"
+      - "7465:3000"
     restart: unless-stopped
