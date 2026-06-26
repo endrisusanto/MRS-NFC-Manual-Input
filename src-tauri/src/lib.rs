@@ -1,16 +1,17 @@
 use reqwest::header::SET_COOKIE;
 use std::time::Duration;
-use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 use futures_util::{SinkExt, StreamExt};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use serde::Deserialize;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 
 const MERS_BASE_URL: &str = "http://107.102.8.148/MERS";
 const LOGIN_IDENTITY: &str = "16756586";
 const LOGIN_PASSWORD: &str = "27051994";
 
 static RECONNECT_REQUESTED: AtomicBool = AtomicBool::new(false);
+static WS_STATUS: AtomicU8 = AtomicU8::new(0); // 0 = offline, 1 = connecting, 2 = online
 
 #[derive(Deserialize, Debug)]
 struct WsIncomingCommand {
@@ -209,6 +210,15 @@ fn save_agent_config(
     Ok(())
 }
 
+#[tauri::command]
+fn get_ws_status() -> String {
+    match WS_STATUS.load(Ordering::Relaxed) {
+        1 => "connecting".to_string(),
+        2 => "online".to_string(),
+        _ => "offline".to_string(),
+    }
+}
+
 // --- BACKGROUND WEBSOCKET CLIENT ---
 
 fn start_ws_client_loop(app_handle: tauri::AppHandle) {
@@ -242,10 +252,14 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
                 }
             };
 
+            WS_STATUS.store(1, Ordering::Relaxed);
+            let _ = app_handle.emit("ws-status", "connecting");
             println!("[Agent WS] Connecting to cloud WebSocket gateway: {}", gateway_url);
             match connect_async(&gateway_url).await {
                 Ok((ws_stream, _)) => {
                     println!("[Agent WS] Connected successfully!");
+                    WS_STATUS.store(2, Ordering::Relaxed);
+                    let _ = app_handle.emit("ws-status", "online");
                     let (mut write, mut read) = ws_stream.split();
 
                     // Send register/join message
@@ -256,6 +270,8 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
                     });
                     if let Err(e) = write.send(Message::Text(join_msg.to_string())).await {
                         println!("[Agent WS] Join failed: {}", e);
+                        WS_STATUS.store(0, Ordering::Relaxed);
+                        let _ = app_handle.emit("ws-status", "offline");
                         tokio::time::sleep(Duration::from_secs(5)).await;
                         continue;
                     }
@@ -297,9 +313,13 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
                                     Some(Ok(_)) => {}
                                     Some(Err(e)) => {
                                         println!("[Agent WS] Read socket error: {}", e);
+                                        WS_STATUS.store(0, Ordering::Relaxed);
+                                        let _ = app_handle.emit("ws-status", "offline");
                                         break;
                                     }
                                     None => {
+                                        WS_STATUS.store(0, Ordering::Relaxed);
+                                        let _ = app_handle.emit("ws-status", "offline");
                                         break;
                                     }
                                 }
@@ -308,6 +328,8 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
                                 if RECONNECT_REQUESTED.load(Ordering::Relaxed) {
                                     RECONNECT_REQUESTED.store(false, Ordering::Relaxed);
                                     println!("[Agent WS] Configuration changed. Reconnecting...");
+                                    WS_STATUS.store(0, Ordering::Relaxed);
+                                    let _ = app_handle.emit("ws-status", "offline");
                                     break;
                                 }
                             }
@@ -316,6 +338,8 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
                 }
                 Err(e) => {
                     println!("[Agent WS] Connection failed: {}. Retrying in 5 seconds...", e);
+                    WS_STATUS.store(0, Ordering::Relaxed);
+                    let _ = app_handle.emit("ws-status", "offline");
                 }
             }
             tokio::time::sleep(Duration::from_secs(5)).await;
@@ -326,7 +350,7 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![ping_server, cek_pesanan, tap_in, get_agent_config, save_agent_config])
+        .invoke_handler(tauri::generate_handler![ping_server, cek_pesanan, tap_in, get_agent_config, save_agent_config, get_ws_status])
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?.join("webview");
             std::fs::create_dir_all(&data_dir)?;

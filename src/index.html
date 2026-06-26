@@ -590,6 +590,7 @@
         <span id="app-status" class="pill warn">app...</span>
         <span id="bridge-status" class="pill warn">bridge...</span>
         <span id="mers-status" class="pill warn">mers...</span>
+        <span id="gateway-status" class="pill warn">gateway...</span>
       </div>
       <section class="home">
         <h1>MeRS Desktop</h1>
@@ -689,6 +690,12 @@
           setBadge('mers-status', online ? 'mers online' : 'mers offline', online ? 'ok' : 'bad');
         } catch {
           setBadge('mers-status', 'mers offline', 'bad');
+        }
+        try {
+          const status = await invoke('get_ws_status');
+          setBadge('gateway-status', `gateway ${status}`, status === 'online' ? 'ok' : status === 'connecting' ? 'warn' : 'bad');
+        } catch {
+          setBadge('gateway-status', 'gateway offline', 'bad');
         }
       }
 
@@ -884,6 +891,12 @@
 
       async function init() {
         await loadConfig();
+        if (window.__TAURI__?.event?.listen) {
+          window.__TAURI__.event.listen('ws-status', (event) => {
+            const status = event.payload;
+            setBadge('gateway-status', `gateway ${status}`, status === 'online' ? 'ok' : status === 'connecting' ? 'warn' : 'bad');
+          });
+        }
         await checkStatuses();
         setInterval(checkStatuses, 15000);
       }
