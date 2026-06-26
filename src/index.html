@@ -357,6 +357,27 @@
         overflow-wrap: anywhere;
       }
       
+      .meta b.status-badge {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 800;
+        font-size: 11px;
+        text-transform: uppercase;
+        width: max-content;
+        margin-top: 4px;
+      }
+      .meta b.status-badge.belum {
+        color: #f87171;
+        background: rgba(248, 113, 113, 0.15);
+        border: 1px solid rgba(248, 113, 113, 0.3);
+      }
+      .meta b.status-badge.sudah {
+        color: #34d399;
+        background: rgba(52, 211, 153, 0.15);
+        border: 1px solid rgba(52, 211, 153, 0.3);
+      }
+      
       .status {
         text-align: center;
         font-size: 16px;
@@ -987,7 +1008,7 @@
                 <span>Nama<b>${esc(order.first_name)}</b></span>
                 <span>Dept<b>${esc(order.dept)}</b></span>
                 <span>Loket<b>${esc(order.loket_name || order.order_loket)}</b></span>
-                <span>Status Ambil<b>${order.order_ambil ? 'Sudah' : 'Belum'}</b></span>
+                <span>Status Ambil<b class="status-badge ${order.order_ambil ? 'sudah' : 'belum'}">${order.order_ambil ? 'Sudah' : 'Belum'}</b></span>
                 <span>Kategori<b>${esc(order.base_menu)}</b></span>
                 <span>Tanggal<b>${esc(order.schedule_date)}</b></span>
               </div>
