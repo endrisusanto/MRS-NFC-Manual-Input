@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#050505">
     <title>MeRS Remote</title>
     <link rel="manifest" href="manifest.webmanifest">
-    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="icon" href="mers-logo.png" type="image/png">
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Fira+Code:wght@400;500;600&display=swap');
       
@@ -19,7 +19,7 @@
         --bg-dark: #080c14;
         --bg-radial: radial-gradient(circle at top, #0f1c30 0%, #06090e 70%);
         --card-bg: rgba(13, 22, 38, 0.7);
-        --border-glow: rgba(16, 185, 129, 0.15);
+        --border-glow: rgba(255, 255, 255, 0.15);
         --text-color: #f3f4f6;
         --font-sans: 'Outfit', sans-serif;
         --font-mono: 'Fira Code', monospace;
@@ -63,7 +63,7 @@
         font-size: 26px;
         font-weight: 800;
         letter-spacing: -0.5px;
-        background: linear-gradient(135deg, #34d399, #059669);
+        background: linear-gradient(135deg, #f5f5f5, #a3a3a3);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
       }
@@ -101,22 +101,22 @@
       button.pill {
         min-height: auto;
         cursor: pointer;
-        background: rgba(16, 185, 129, 0.1);
-        border-color: rgba(16, 185, 129, 0.2);
-        color: #34d399;
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+        color: #f5f5f5;
       }
       
       button.pill:hover {
-        background: rgba(16, 185, 129, 0.2);
-        border-color: rgba(16, 185, 129, 0.4);
-        box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+        background: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 255, 255, 0.4);
+        box-shadow: none;
       }
       
       .pill.ok {
-        color: #34d399;
-        border-color: rgba(52, 211, 153, 0.2);
-        background: rgba(52, 211, 153, 0.08);
-        box-shadow: 0 0 10px rgba(52, 211, 153, 0.05);
+        color: #f5f5f5;
+        border-color: rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.08);
+        box-shadow: none;
       }
       
       .pill.bad {
@@ -146,7 +146,7 @@
       label {
         display: block;
         margin-bottom: 2px;
-        color: #34d399;
+        color: #f5f5f5;
         font-size: 11px;
         font-weight: 800;
         text-transform: uppercase;
@@ -176,9 +176,9 @@
       }
       
       input:focus, select:focus {
-        border-color: #10b981;
+        border-color: #f5f5f5;
         background: rgba(0, 0, 0, 0.45);
-        box-shadow: 0 0 14px rgba(16, 185, 129, 0.15);
+        box-shadow: none;
       }
       
       .grid {
@@ -220,15 +220,15 @@
       }
       
       button.primary {
-        background: linear-gradient(135deg, #10b981, #059669);
+        background: linear-gradient(135deg, #f5f5f5, #a3a3a3);
         color: #fff;
         border-color: transparent;
-        box-shadow: 0 4px 16px rgba(16, 185, 129, 0.2);
+        box-shadow: none;
       }
       
       button.primary:hover {
-        background: linear-gradient(135deg, #34d399, #059669);
-        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
+        background: linear-gradient(135deg, #fff, #a3a3a3);
+        box-shadow: none;
       }
       
       button.active {
@@ -270,9 +270,9 @@
       }
       
       .status.ok {
-        color: #34d399;
-        border-color: rgba(52, 211, 153, 0.2);
-        background: rgba(52, 211, 153, 0.06);
+        color: #f5f5f5;
+        border-color: rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.06);
       }
       
       .status.warn {
@@ -295,7 +295,7 @@
         border-radius: 16px;
         border: 1px solid rgba(255, 255, 255, 0.06);
         background: rgba(0, 0, 0, 0.4);
-        color: #a7f3d0;
+        color: #f5f5f5;
         white-space: pre-wrap;
         font-family: var(--font-mono);
         font-size: 13px;
@@ -382,12 +382,12 @@
       }
       .mode-toggle::before {
         content: ""; position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px);
-        border-radius: 999px; background: #10b981; transition: transform .18s ease;
+        border-radius: 999px; background: #f5f5f5; transition: transform .18s ease;
       }
       .mode-toggle.nfc::before { transform: translateX(100%); }
       .mode-toggle span { z-index: 1; display: grid; place-items: center; font-size: 12px; font-weight: 850; }
       .result { grid-template-rows: auto auto; }
-      #result-summary { min-height: 120px; display: grid; place-items: center; text-align: center; color: #d1fae5; font-size: 18px; font-weight: 750; }
+      #result-summary { min-height: 120px; display: grid; place-items: center; text-align: center; color: #f5f5f5; font-size: 18px; font-weight: 750; }
       #result-image { width: 100%; max-height: 280px; object-fit: contain; border-radius: 16px; background: rgba(0,0,0,.25); }
       #debug-output { max-height: 180px; min-height: 80px; }
       .settings-status { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
@@ -847,6 +847,9 @@
           min-height: min(42svh, 360px);
         }
       }
+      @media (orientation: landscape) {
+        .top { display: none; }
+      }
       @media (min-width: 760px) and (orientation: landscape) and (max-height: 520px) {
         main {
           grid-template-columns: minmax(280px, 420px) minmax(320px, 1fr);
@@ -886,6 +889,52 @@
         }
         .result {
           grid-row: 1;
+        }
+      }
+      @media (orientation: landscape) {
+        main {
+          display: grid;
+          grid-template-columns: minmax(300px, 1fr) minmax(340px, 1fr);
+          grid-template-rows: 1fr;
+          gap: clamp(18px, 4vw, 56px);
+          align-items: center;
+          align-content: center;
+        }
+        .top {
+          display: none;
+        }
+        .card {
+          grid-column: 1;
+          grid-row: 1;
+          width: 100%;
+          max-width: none;
+          margin: 0;
+          align-self: center;
+        }
+        .result {
+          grid-column: 2;
+          grid-row: 1;
+          width: 100%;
+          height: auto;
+          margin: 0;
+          align-self: center;
+        }
+      }
+      @media (orientation: landscape) and (max-height: 520px) {
+        main {
+          padding: 16px 24px;
+        }
+        input,
+        select,
+        .mode-toggle {
+          height: 50px;
+        }
+        #send,
+        button.primary {
+          min-height: 54px;
+        }
+        #result-summary {
+          min-height: 170px;
         }
       }
     </style>
@@ -958,6 +1007,7 @@
       </form>
     </div>
 
+    <script src="mers-gen-map.js"></script>
     <script>
       const $ = id => document.getElementById(id);
       const DEFAULT_URL = 'https://makan.endrisusanto.my.id/';
@@ -1111,8 +1161,10 @@
 
       function uid() {
         $('uid').value = $('uid').value.replace(/\D/g, '').slice(0, 10);
-        if (/^\d{8,10}$/.test($('uid').value)) return $('uid').value;
-        setStatus('ID harus 8-10 digit angka.', 'bad');
+        const value = $('uid').value;
+        if (window.MERS_GEN_UID?.[value]) return window.MERS_GEN_UID[value];
+        if (/^\d{8,10}$/.test(value)) return value;
+        setStatus('GEN tidak terdaftar atau ID kartu tidak valid.', 'bad');
         return '';
       }
 
@@ -1146,6 +1198,7 @@
         $('scan-mode').classList.toggle('nfc', mode === 'nfc');
         $('scan-mode').setAttribute('aria-pressed', String(mode === 'nfc'));
         $('uid').readOnly = mode === 'nfc';
+        $('uid').placeholder = mode === 'nfc' ? '' : '1696235068';
         if (mode === 'nfc') scanNfc();
         else { $('uid').readOnly = false; $('uid').focus(); }
       }

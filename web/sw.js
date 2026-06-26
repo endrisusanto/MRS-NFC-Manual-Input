@@ -1,5 +1,5 @@
-const CACHE = 'mers-remote-v7';
-const ASSETS = ['.', 'index.html', 'manifest.webmanifest', 'icon.svg'];
+const CACHE = 'mers-remote-v8';
+const ASSETS = ['.', 'index.html', 'manifest.webmanifest', 'mers-logo.png', 'mers-gen-map.js'];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));

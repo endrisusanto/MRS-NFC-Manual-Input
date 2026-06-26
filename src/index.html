@@ -16,7 +16,7 @@
         --bg-dark: #080c14;
         --bg-radial: radial-gradient(circle at top, #0f1c30 0%, #06090e 70%);
         --card-bg: rgba(13, 22, 38, 0.7);
-        --border-glow: rgba(16, 185, 129, 0.15);
+        --border-glow: rgba(255, 255, 255, 0.15);
         --text-color: #f3f4f6;
         --font-sans: 'Outfit', sans-serif;
         --font-mono: 'Fira Code', monospace;
@@ -60,7 +60,7 @@
         font-size: 26px;
         font-weight: 800;
         letter-spacing: -0.5px;
-        background: linear-gradient(135deg, #34d399, #059669);
+        background: linear-gradient(135deg, #f5f5f5, #a3a3a3);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         text-align: center;
@@ -98,22 +98,22 @@
       
       button.pill {
         cursor: pointer;
-        background: rgba(16, 185, 129, 0.1);
-        border-color: rgba(16, 185, 129, 0.2);
-        color: #34d399;
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+        color: #f5f5f5;
       }
       
       button.pill:hover {
-        background: rgba(16, 185, 129, 0.2);
-        border-color: rgba(16, 185, 129, 0.4);
-        box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+        background: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 255, 255, 0.4);
+        box-shadow: 0 0 12px rgba(255, 255, 255, 0.2);
       }
       
       .pill.ok {
-        color: #34d399;
-        border-color: rgba(52, 211, 153, 0.2);
-        background: rgba(52, 211, 153, 0.08);
-        box-shadow: 0 0 10px rgba(52, 211, 153, 0.05);
+        color: #f5f5f5;
+        border-color: rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
       }
       
       .pill.bad {
@@ -146,7 +146,7 @@
         display: block;
         font-size: 22px;
         margin-bottom: 8px;
-        color: #34d399;
+        color: #f5f5f5;
       }
       
       .card span {
@@ -174,9 +174,9 @@
       }
       
       input:focus {
-        border-color: #10b981;
+        border-color: #f5f5f5;
         background: rgba(0, 0, 0, 0.45);
-        box-shadow: 0 0 14px rgba(16, 185, 129, 0.15);
+        box-shadow: 0 0 14px rgba(255, 255, 255, 0.15);
       }
       
       .cards {
@@ -285,7 +285,7 @@
       .hint {
         min-height: 20px;
         margin-top: 10px;
-        color: #34d399;
+        color: #f5f5f5;
         text-align: center;
         font-weight: 700;
         font-size: 13px;
@@ -338,7 +338,7 @@
         margin: 0 0 8px;
         font-size: 18px;
         font-weight: 800;
-        color: #34d399;
+        color: #f5f5f5;
       }
       
       .meta {
@@ -366,9 +366,9 @@
       }
       
       .status-ok {
-        color: #34d399;
-        border-color: rgba(52, 211, 153, 0.2);
-        background: rgba(52, 211, 153, 0.06);
+        color: #f5f5f5;
+        border-color: rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.06);
       }
       
       .status-warn {
@@ -458,7 +458,7 @@
         padding: 12px 16px;
         cursor: pointer;
         font-weight: 700;
-        color: #34d399;
+        color: #f5f5f5;
       }
       
       pre {
@@ -505,7 +505,7 @@
       .modal label {
         display: block;
         margin-bottom: 6px;
-        color: #34d399;
+        color: #f5f5f5;
         font-size: 11px;
         font-weight: 800;
         text-transform: uppercase;
@@ -581,6 +581,187 @@
         .loket { height: 52px; font-size: 18px; }
         .bento-card { min-height: 58px; padding: 8px; }
         .bento-name { font-size: 12px; }
+      }
+
+      :root {
+        --page: #f4f4f2;
+        --surface: #fff;
+        --text: #111;
+        --muted: #555;
+        --line: #111;
+        --primary: #111;
+        --primary-text: #fff;
+        --hover: #eee;
+        --danger: #9f1239;
+        --warn: #854d0e;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --page: #080808;
+          --surface: #111;
+          --text: #f5f5f5;
+          --muted: #bdbdbd;
+          --line: #f5f5f5;
+          --primary: #f5f5f5;
+          --primary-text: #080808;
+          --hover: #1f1f1f;
+          --danger: #fda4af;
+          --warn: #fcd34d;
+        }
+      }
+      * { transition: none; }
+      html,
+      body {
+        background: var(--page);
+        color: var(--text);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      body {
+        padding: 0;
+      }
+      .panel {
+        width: 100%;
+        max-width: none;
+        min-height: 100svh;
+        padding: clamp(18px, 4vw, 42px);
+        border: 0;
+        border-radius: 0;
+        background: var(--page);
+        color: var(--text);
+        box-shadow: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+      }
+      h1 {
+        color: var(--text);
+        background: none;
+        -webkit-text-fill-color: currentColor;
+        letter-spacing: .02em;
+        text-transform: uppercase;
+      }
+      p,
+      .card span,
+      .selected,
+      .meta,
+      .bento-label {
+        color: var(--muted);
+      }
+      input,
+      button,
+      .card,
+      .item,
+      .selected,
+      .portion,
+      .bento-card,
+      details,
+      .pill,
+      .modal form,
+      pre {
+        border: 1px solid var(--line);
+        border-radius: 0;
+        background: var(--surface);
+        color: var(--text);
+        box-shadow: none;
+      }
+      input {
+        height: 62px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: clamp(24px, 6vw, 40px);
+      }
+      input:focus {
+        border-color: var(--line);
+        outline: 3px solid var(--line);
+        outline-offset: 3px;
+        background: var(--surface);
+        box-shadow: none;
+      }
+      button:hover,
+      button.pill:hover {
+        transform: none;
+        border-color: var(--line);
+        background: var(--hover);
+        box-shadow: none;
+      }
+      .server-btn,
+      .back,
+      .loket,
+      .modal-actions button,
+      #tap,
+      #cek {
+        border-radius: 0;
+      }
+      .card strong,
+      .item h2,
+      summary,
+      .modal label,
+      .hint,
+      .pill.ok,
+      button.pill,
+      .selected b,
+      .meta b,
+      .bento-head h2,
+      .bento-name {
+        color: var(--text);
+      }
+      .status-ok,
+      .status-warn,
+      .status-danger,
+      .wrong,
+      .pill.ok,
+      .pill.warn,
+      .pill.bad {
+        border-color: var(--line);
+        background: var(--surface);
+        color: var(--text);
+      }
+      .status-danger,
+      .wrong,
+      .pill.bad {
+        color: var(--danger);
+      }
+      .status-warn,
+      .pill.warn,
+      .portion {
+        color: var(--warn);
+      }
+      .modal {
+        background: color-mix(in srgb, var(--page) 92%, transparent);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        animation: none;
+      }
+      .modal form {
+        animation: none;
+      }
+      @media (min-width: 900px) {
+        .panel {
+          align-content: center;
+        }
+        .badges {
+          grid-column: 1 / -1;
+        }
+        .home,
+        .tap {
+          align-self: center;
+        }
+        .result {
+          grid-column: 1 / -1;
+        }
+      }
+      body[data-step="home"] .panel,
+      body[data-step="tap"] .panel {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      .home,
+      .tap {
+        width: min(520px, 100%);
+      }
+      .result {
+        width: min(1180px, 100%);
+        margin: 0 auto;
       }
     </style>
   </head>
