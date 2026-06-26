@@ -894,7 +894,11 @@
         if (window.__TAURI__?.event?.listen) {
           window.__TAURI__.event.listen('ws-status', (event) => {
             const status = event.payload;
-            setBadge('gateway-status', `gateway ${status}`, status === 'online' ? 'ok' : status === 'connecting' ? 'warn' : 'bad');
+            if (status.startsWith('offline')) {
+              setBadge('gateway-status', status, 'bad');
+            } else {
+              setBadge('gateway-status', `gateway ${status}`, status === 'online' ? 'ok' : status === 'connecting' ? 'warn' : 'bad');
+            }
           });
         }
         await checkStatuses();

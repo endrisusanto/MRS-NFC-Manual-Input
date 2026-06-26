@@ -271,7 +271,8 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
                     if let Err(e) = write.send(Message::Text(join_msg.to_string())).await {
                         println!("[Agent WS] Join failed: {}", e);
                         WS_STATUS.store(0, Ordering::Relaxed);
-                        let _ = app_handle.emit("ws-status", "offline");
+                        let error_msg = format!("offline (Join fail: {})", e);
+                        let _ = app_handle.emit("ws-status", error_msg);
                         tokio::time::sleep(Duration::from_secs(5)).await;
                         continue;
                     }
@@ -314,12 +315,13 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
                                     Some(Err(e)) => {
                                         println!("[Agent WS] Read socket error: {}", e);
                                         WS_STATUS.store(0, Ordering::Relaxed);
-                                        let _ = app_handle.emit("ws-status", "offline");
+                                        let error_msg = format!("offline (Read error: {})", e);
+                                        let _ = app_handle.emit("ws-status", error_msg);
                                         break;
                                     }
                                     None => {
                                         WS_STATUS.store(0, Ordering::Relaxed);
-                                        let _ = app_handle.emit("ws-status", "offline");
+                                        let _ = app_handle.emit("ws-status", "offline (closed by server)");
                                         break;
                                     }
                                 }
@@ -339,7 +341,8 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
                 Err(e) => {
                     println!("[Agent WS] Connection failed: {}. Retrying in 5 seconds...", e);
                     WS_STATUS.store(0, Ordering::Relaxed);
-                    let _ = app_handle.emit("ws-status", "offline");
+                    let error_msg = format!("offline (Connect fail: {})", e);
+                    let _ = app_handle.emit("ws-status", error_msg);
                 }
             }
             tokio::time::sleep(Duration::from_secs(5)).await;
