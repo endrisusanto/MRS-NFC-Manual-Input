@@ -427,7 +427,30 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
     });
 }
 
+#[cfg(target_os = "windows")]
+fn setup_autostart() {
+    use std::os::windows::process::CommandExt;
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(path_str) = exe_path.to_str() {
+            // ponytail: add to registry for auto start hidden via --autostart
+            let cmd = format!(
+                "reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v \"MeRS NFC Desktop\" /t REG_SZ /d \"\\\"{}\\\" --autostart\" /f",
+                path_str
+            );
+            let _ = std::process::Command::new("cmd")
+                .args(&["/C", &cmd])
+                .creation_flags(0x08000000) // CREATE_NO_WINDOW
+                .status();
+        }
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn setup_autostart() {}
+
 pub fn run() {
+    setup_autostart();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
@@ -438,17 +461,89 @@ pub fn run() {
             save_agent_config,
             get_ws_status
         ])
+        .on_window_event(|window, event| {
+            match event {
+                tauri::WindowEvent::CloseRequested { api, .. } => {
+                    api.prevent_close();
+                    let _ = window.hide();
+                }
+                tauri::WindowEvent::Resized(_) => {
+                    // ponytail: hide window to tray when minimized
+                    if let Ok(true) = window.is_minimized() {
+                        let _ = window.hide();
+                    }
+                }
+                _ => {}
+            }
+        })
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?.join("webview");
             std::fs::create_dir_all(&data_dir)?;
 
-            WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
+            let args: Vec<String> = std::env::args().collect();
+            let autostart = args.iter().any(|arg| arg == "--autostart");
+
+            let window_builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
                 .title("MeRS NFC Desktop")
                 .inner_size(1280.0, 800.0)
                 .min_inner_size(420.0, 360.0)
                 .resizable(true)
-                .data_directory(data_dir)
+                .data_directory(data_dir);
+
+            let window_builder = if autostart {
+                window_builder.visible(false)
+            } else {
+                window_builder
+            };
+
+            window_builder.build()?;
+
+            // Build system tray icon and menu context
+            let show_i = tauri::menu::MenuItemBuilder::new("Buka MeRS NFC Agent")
+                .id("show")
+                .build(app)?;
+            let quit_i = tauri::menu::MenuItemBuilder::new("Keluar")
+                .id("quit")
+                .build(app)?;
+            let menu = tauri::menu::MenuBuilder::new(app)
+                .item(&show_i)
+                .item(&quit_i)
                 .build()?;
+
+            let icon = app.default_window_icon().cloned().expect("Failed to load default window icon");
+
+            let _tray = tauri::tray::TrayIconBuilder::new()
+                .menu(&menu)
+                .icon(icon)
+                .show_menu_on_left_click(false)
+                .on_menu_event(|app, event| {
+                    match event.id().0.as_str() {
+                        "show" => {
+                            if let Some(window) = app.get_webview_window("main") {
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                            }
+                        }
+                        "quit" => {
+                            app.exit(0);
+                        }
+                        _ => {}
+                    }
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let tauri::tray::TrayIconEvent::Click {
+                        button: tauri::tray::MouseButton::Left,
+                        button_state: tauri::tray::MouseButtonState::Up,
+                        ..
+                    } = event {
+                        let app = tray.app_handle();
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                })
+                .build(app)?;
 
             // Spawn background task for Cloud WebSocket relay communication
             let handle = app.handle().clone();
