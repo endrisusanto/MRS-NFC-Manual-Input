@@ -1091,10 +1091,10 @@
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       }
       .mode-button.cek-pesanan {
-        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        background: #2563eb;
       }
       .mode-button.cek-pesanan:hover {
-        background: linear-gradient(135deg, #60a5fa, #2563eb);
+        background: #1d4ed8;
       }
       .mode-button.ambil-pesanan {
         background: linear-gradient(135deg, #ef4444, #b91c1c);
@@ -1460,7 +1460,7 @@
         document.body.classList.toggle('nfc-mode', mode === 'nfc');
         $('scan-mode').setAttribute('aria-pressed', String(mode === 'nfc'));
         $('uid').readOnly = mode === 'nfc';
-        $('uid').placeholder = '';
+        $('uid').placeholder = mode === 'nfc' ? '' : '1696235068';
         if (mode === 'nfc') scanNfc();
         else { $('uid').readOnly = false; $('uid').focus(); }
       }
