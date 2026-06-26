@@ -1232,9 +1232,9 @@
         return String(value ?? '-').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
       }
 
-      function row(label, value) {
+      function row(label, value, customTd = '') {
         if (value === undefined || value === null || value === '') return '';
-        return `<tr><th>${esc(label)}</th><td>${esc(value)}</td></tr>`;
+        return `<tr><th>${esc(label)}</th><td ${customTd}>${esc(value)}</td></tr>`;
       }
 
       function table(title, rows) {
@@ -1250,11 +1250,18 @@
             row('Dept', order.dept),
             row('UID', order.no_kartu || $('uid').value),
             row('Meal', order.schedule_meal_name),
-            row('Menu', order.menu_name),
+            row('Menu Utama', order.menu_name),
+            row('Karbo', order.carbo_name),
+            row('Lauk Utama', order.main_name),
+            row('Sayur', order.soup_name),
+            row('Pendamping', order.option1_name || order.option2_name),
+            row('Sambal', order.option3_name),
+            row('Buah', order.fruit_name),
+            row('Minuman', order.additional_name),
             row('Kategori', order.base_menu),
             row('Tanggal', order.schedule_date),
             row('Loket', order.loket_name || order.order_loket),
-            row('Status Ambil', order.order_ambil ? 'Sudah' : 'Belum'),
+            row('Status Ambil', order.order_ambil ? 'Sudah' : 'Belum', order.order_ambil ? 'style="background-color: #16a34a; color: #fff; font-weight: bold; text-align: center; text-transform: uppercase;"' : 'style="background-color: #dc2626; color: #fff; font-weight: bold; text-align: center; text-transform: uppercase;"'),
             row('Sisa Porsi', order.remaining_portions || order.final_order),
           ])).join('');
         }
@@ -1270,11 +1277,18 @@
           ]),
           table('Pesanan Makan', [
             row('Meal', order.schedule_meal_name || tap.meal_time || data?.schedule?.data?.meal_time),
-            row('Menu', menu),
+            row('Menu Utama', menu),
+            row('Karbo', order.carbo_name || tap.carbo_name),
+            row('Lauk Utama', order.main_name || tap.main_name),
+            row('Sayur', order.soup_name || tap.soup_name),
+            row('Pendamping', order.option1_name || order.option2_name || tap.option1_name || tap.option2_name),
+            row('Sambal', order.option3_name || tap.option3_name),
+            row('Buah', order.fruit_name || tap.fruit_name),
+            row('Minuman', order.additional_name || tap.additional_name),
             row('Kategori', order.base_menu),
             row('Tanggal', order.schedule_date),
             row('Loket', order.loket_name || order.order_loket || tap.loket),
-            row('Status Ambil', order.order_ambil === undefined ? undefined : order.order_ambil ? 'Sudah' : 'Belum'),
+            row('Status Ambil', order.order_ambil === undefined ? undefined : order.order_ambil ? 'Sudah' : 'Belum', order.order_ambil ? 'style="background-color: #16a34a; color: #fff; font-weight: bold; text-align: center; text-transform: uppercase;"' : 'style="background-color: #dc2626; color: #fff; font-weight: bold; text-align: center; text-transform: uppercase;"'),
             row('Sisa Porsi', order.remaining_portions || tap.remaining_count),
             row('Total Order', tap.total_order),
             row('Sudah Ambil', tap.taken_count),

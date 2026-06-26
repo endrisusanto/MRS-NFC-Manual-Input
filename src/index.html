@@ -1043,27 +1043,75 @@
         `;
       }
 
+      let currentCarouselIndex = 0;
+
       function renderCekPesanan(data) {
         const orders = data?.data?.orders || [];
         if (!orders.length) {
           return `<div class="item status">${esc(data.message)}</div>`;
         }
-        return `<div class="order-strip ${orders.length === 1 ? 'single' : ''}">${orders.map(order => `
-          <div class="order-card">
-            <div class="item">
-              <h2>${esc(order.schedule_meal_name)} - ${esc(order.menu_name)}</h2>
-              <div class="meta">
-                <span>Nama<b>${esc(order.first_name)}</b></span>
-                <span>Dept<b>${esc(order.dept)}</b></span>
-                <span>Loket<b>${esc(order.loket_name || order.order_loket)}</b></span>
-                <span>Status Ambil<b>${order.order_ambil ? 'Sudah' : 'Belum'}</b></span>
-                <span>Kategori<b>${esc(order.base_menu)}</b></span>
-                <span>Tanggal<b>${esc(order.schedule_date)}</b></span>
+        currentCarouselIndex = 0;
+        
+        const cardsHtml = orders.map((order, idx) => `
+          <div class="order-card-wrapper" id="carousel-card-${idx}" style="${idx === 0 ? 'display: block;' : 'display: none;'}">
+            <div class="order-card">
+              <div class="item">
+                <h2>${esc(order.schedule_meal_name)} - ${esc(order.menu_name)}</h2>
+                <div class="meta">
+                  <span>Nama<b>${esc(order.first_name)}</b></span>
+                  <span>Dept<b>${esc(order.dept)}</b></span>
+                  <span>Loket<b>${esc(order.loket_name || order.order_loket)}</b></span>
+                  <span ${order.order_ambil ? 'style="background: #16a34a; color: #fff; padding: 6px; text-align: center; display: flex; flex-direction: column; justify-content: center;"' : 'style="background: #dc2626; color: #fff; padding: 6px; text-align: center; display: flex; flex-direction: column; justify-content: center;"'}>Status Ambil<b style="color: #fff !important;">${order.order_ambil ? 'Sudah' : 'Belum'}</b></span>
+                  <span>Kategori<b>${esc(order.base_menu)}</b></span>
+                  <span>Tanggal<b>${esc(order.schedule_date)}</b></span>
+                </div>
               </div>
+              ${renderBento(order, order.remaining_portions || order.final_order)}
             </div>
-            ${renderBento(order, order.remaining_portions || order.final_order)}
           </div>
-        `).join('')}</div>`;
+        `).join('');
+
+        const navigationHtml = orders.length > 1 ? `
+          <div class="carousel-nav" style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; gap: 10px;">
+            <button id="carousel-prev" type="button" class="back" style="margin: 0; flex: 1;">⬅ Prev</button>
+            <span id="carousel-indicator" style="font-weight: bold; font-size: 14px;">1 / ${orders.length}</span>
+            <button id="carousel-next" type="button" class="back" style="margin: 0; flex: 1;">Next ➡</button>
+          </div>
+        ` : '';
+
+        setTimeout(() => {
+          setupCarouselListeners(orders.length);
+        }, 50);
+
+        return `<div class="carousel-container">${cardsHtml}${navigationHtml}</div>`;
+      }
+
+      function setupCarouselListeners(total) {
+        if (total <= 1) return;
+        const prevBtn = document.getElementById('carousel-prev');
+        const nextBtn = document.getElementById('carousel-next');
+        const indicator = document.getElementById('carousel-indicator');
+        if (!prevBtn || !nextBtn || !indicator) return;
+        
+        const updateCarousel = () => {
+          for (let i = 0; i < total; i++) {
+            const card = document.getElementById(`carousel-card-${i}`);
+            if (card) {
+              card.style.display = i === currentCarouselIndex ? 'block' : 'none';
+            }
+          }
+          indicator.textContent = `${currentCarouselIndex + 1} / ${total}`;
+        };
+        
+        prevBtn.onclick = () => {
+          currentCarouselIndex = (currentCarouselIndex - 1 + total) % total;
+          updateCarousel();
+        };
+        
+        nextBtn.onclick = () => {
+          currentCarouselIndex = (currentCarouselIndex + 1) % total;
+          updateCarousel();
+        };
       }
 
       function renderTapIn(data) {
