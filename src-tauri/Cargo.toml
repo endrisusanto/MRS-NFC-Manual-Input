@@ -1,6 +1,6 @@
 [package]
 name = "mers-nfc-tauri"
-version = "1.0.38"
+version = "1.0.39"
 description = "MeRS NFC desktop wrapper"
 authors = ["Endri"]
 edition = "2021"
