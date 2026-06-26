@@ -1578,6 +1578,9 @@
 
       let installPrompt = null;
       window.addEventListener('beforeinstallprompt', event => {
+        if (window.AndroidNfc || /Android/i.test(navigator.userAgent)) {
+          return;
+        }
         event.preventDefault();
         installPrompt = event;
         $('install').hidden = false;
