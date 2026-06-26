@@ -3,7 +3,6 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#050505">
     <title>MeRS Remote</title>
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="mers-logo.png" type="image/png">
@@ -1042,6 +1041,30 @@
           margin-inline: auto;
         }
       }
+      .install-toast {
+        position: fixed;
+        left: 16px;
+        right: 16px;
+        bottom: max(16px, env(safe-area-inset-bottom));
+        z-index: 80;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: center;
+        width: min(520px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 12px;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        color: var(--text);
+        font-size: 13px;
+        font-weight: 800;
+      }
+      .install-toast[hidden] { display: none; }
+      .install-toast button {
+        min-height: 40px;
+        padding: 0 12px;
+      }
     </style>
   </head>
   <body>
@@ -1070,6 +1093,11 @@
         <div id="note" class="muted">Web NFC butuh Android Chrome + HTTPS.</div>
       </div>
     </main>
+
+    <div id="install-toast" class="install-toast" hidden>
+      <span>Install MeRS PWA</span>
+      <button id="install-toast-action" type="button">Install</button>
+    </div>
 
     <div id="config" class="modal" hidden>
       <form>
@@ -1117,6 +1145,7 @@
       const $ = id => document.getElementById(id);
       const DEFAULT_URL = 'https://makan.endrisusanto.my.id/';
       const DEFAULT_WS = 'wss://makan.endrisusanto.my.id';
+      const themeColor = document.querySelector('meta[name="theme-color"]');
       const savedWsUrl = localStorage.mersWsUrl || '';
       const legacyWsUrl = location.protocol === 'https:' ? `wss://${location.host}/ws` : `ws://${location.host}/ws`;
       if (savedWsUrl === legacyWsUrl) localStorage.removeItem('mersWsUrl');
@@ -1131,6 +1160,10 @@
         } catch {
           return value;
         }
+      }
+      function animateThemeColor(time = 0) {
+        themeColor?.setAttribute('content', `hsl(${Math.floor(time / 80) % 360} 85% 62%)`);
+        requestAnimationFrame(animateThemeColor);
       }
       const defaultWsUrl = location.protocol.startsWith('http') ? (location.protocol === 'https:' ? `wss://${location.host}/ws` : `ws://${location.host}/ws`) : DEFAULT_WS;
       const state = {
@@ -1372,16 +1405,25 @@
           setStatus('Tempelkan kartu NFC.', 'warn');
           return;
         }
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+          setStatus('Web NFC butuh HTTPS / PWA Android Chrome.', 'bad');
+          return;
+        }
         if (!('NDEFReader' in window)) {
-          setStatus('Web NFC tidak didukung browser ini.', 'bad');
+          setStatus('Browser ini tidak mendukung Web NFC. Gunakan Android app untuk NFC native.', 'bad');
           return;
         }
         try {
           const reader = new NDEFReader();
           await reader.scan();
           setStatus('Tempelkan kartu NFC.', 'warn');
+          reader.onreadingerror = () => setStatus('Kartu terbaca, tapi Web NFC gagal membaca data. Gunakan Android app untuk UID native.', 'bad');
           reader.onreading = event => {
             const serial = (event.serialNumber || '').replace(/:/g, '').toUpperCase();
+            if (!serial) {
+              setStatus('Serial UID tidak tersedia di Web NFC. Gunakan Android app untuk kartu ini.', 'bad');
+              return;
+            }
             const uidHex = reverseHexBytes(serial);
             $('uid').value = hexToDecimal(uidHex);
             setStatus(`NFC terbaca: ${serial} -> ${uidHex}`, 'ok');
@@ -1442,8 +1484,14 @@
         event.preventDefault();
         installPrompt = event;
         $('install').hidden = false;
+        $('install-toast').hidden = false;
       });
-      $('install').addEventListener('click', () => installPrompt?.prompt());
+      function promptInstall() {
+        installPrompt?.prompt();
+        $('install-toast').hidden = true;
+      }
+      $('install').addEventListener('click', promptInstall);
+      $('install-toast-action').addEventListener('click', promptInstall);
 
       $('preset-auto').addEventListener('click', () => {
         $('ws').value = location.protocol.startsWith('http') ? location.origin + '/' : DEFAULT_URL;
@@ -1459,6 +1507,7 @@
       });
 
       if (location.protocol === 'http:' || location.protocol === 'https:') navigator.serviceWorker?.register('sw.js').catch(() => {});
+      requestAnimationFrame(animateThemeColor);
       checkStatuses();
       setInterval(checkStatuses, 15000);
       if (state.config.url) connect();
