@@ -862,14 +862,6 @@
         
         <label for="device-id">Device / Loket ID</label>
         <input id="device-id" placeholder="loket-pc-1">
-
-        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
-          <input type="checkbox" id="bg-sound-enabled" style="width: 22px !important; height: 22px !important; margin: 0 !important; cursor: pointer; border-radius: 0; border: 1px solid var(--line); background: var(--surface);">
-          <label for="bg-sound-enabled" style="margin: 0; cursor: pointer; text-transform: none; letter-spacing: normal; font-size: 14px;">Aktifkan Musik Latar</label>
-        </div>
-        
-        <label for="bg-sound-source">Sumber Musik (File / YouTube)</label>
-        <input id="bg-sound-source" placeholder="/home/endri-pro/dev/BAS/Mers/mbg.mp3">
         
         <div class="modal-actions">
           <button id="cancel-settings" type="button">Batal</button>
@@ -877,7 +869,6 @@
         </div>
       </form>
     </div>
-    <div id="bg-sound-container" style="display: none; position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none;"></div>
     <script src="mers-gen-map.js"></script>
     <script>
       const invoke = window.__TAURI__.core.invoke;
@@ -899,93 +890,6 @@
           }
         } catch (e) {
           console.error("Gagal memuat konfigurasi dari backend:", e);
-        }
-      }
-
-      let audioNode = null;
-      let iframeNode = null;
-      let blobUrl = null;
-      let autoplayFallbackListener = null;
-
-      function stopBackgroundSound() {
-        if (audioNode) {
-          try { audioNode.pause(); } catch(e){}
-          audioNode.src = '';
-          audioNode = null;
-        }
-        if (iframeNode) {
-          try { iframeNode.remove(); } catch(e){}
-          iframeNode = null;
-        }
-        if (blobUrl) {
-          try { URL.revokeObjectURL(blobUrl); } catch(e){}
-          blobUrl = null;
-        }
-        if (autoplayFallbackListener) {
-          document.removeEventListener('click', autoplayFallbackListener);
-          autoplayFallbackListener = null;
-        }
-        const container = document.getElementById('bg-sound-container');
-        if (container) {
-          container.innerHTML = '';
-        }
-      }
-
-      function getYouTubeId(url) {
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-        const match = url.match(regExp);
-        return (match && match[2].length === 11) ? match[2] : null;
-      }
-
-      async function initBackgroundSound() {
-        stopBackgroundSound();
-
-        const enabled = currentConfig.bg_sound_enabled !== false;
-        const source = currentConfig.bg_sound_source || '/home/endri-pro/dev/BAS/Mers/mbg.mp3';
-
-        if (!enabled || !source.trim()) {
-          return;
-        }
-
-        const container = document.getElementById('bg-sound-container');
-        if (!container) return;
-
-        const ytId = getYouTubeId(source);
-        if (ytId) {
-          const iframe = document.createElement('iframe');
-          iframe.src = `https://www.youtube.com/embed/${ytId}?autoplay=1&loop=1&playlist=${ytId}&controls=0&showinfo=0&rel=0`;
-          iframe.allow = "autoplay";
-          iframe.style.width = "0";
-          iframe.style.height = "0";
-          iframe.style.border = "none";
-          iframeNode = iframe;
-          container.appendChild(iframe);
-        } else {
-          try {
-            const bytes = await invoke('get_audio_file', { path: source.trim() });
-            const blob = new Blob([new Uint8Array(bytes)], { type: 'audio/mpeg' });
-            blobUrl = URL.createObjectURL(blob);
-
-            const audio = document.createElement('audio');
-            audio.src = blobUrl;
-            audio.loop = true;
-            audioNode = audio;
-            container.appendChild(audio);
-
-            audio.play().catch(err => {
-              console.log("Autoplay blocked, adding click listener to start playback on interaction:", err);
-              autoplayFallbackListener = () => {
-                if (audioNode) {
-                  audioNode.play().catch(e => console.error("Failed to play on click:", e));
-                }
-                document.removeEventListener('click', autoplayFallbackListener);
-                autoplayFallbackListener = null;
-              };
-              document.addEventListener('click', autoplayFallbackListener);
-            });
-          } catch (e) {
-            console.error("Gagal memuat file audio lokal:", e);
-          }
         }
       }
 
@@ -1211,8 +1115,6 @@
         document.getElementById('server-url').value = currentConfig.server_url || '';
         document.getElementById('gateway-url').value = currentConfig.gateway_url || '';
         document.getElementById('device-id').value = currentConfig.device_id || '';
-        document.getElementById('bg-sound-enabled').checked = currentConfig.bg_sound_enabled !== false;
-        document.getElementById('bg-sound-source').value = currentConfig.bg_sound_source || '/home/endri-pro/dev/BAS/Mers/mbg.mp3';
         document.getElementById('config').hidden = false;
       });
       document.getElementById('cancel-settings').addEventListener('click', () => {
@@ -1231,30 +1133,23 @@
         const server_url = document.getElementById('server-url').value.trim() || defaultServer;
         const gateway_url = document.getElementById('gateway-url').value.trim() || 'wss://makan.endrisusanto.my.id';
         const device_id = document.getElementById('device-id').value.trim() || 'loket-pc-1';
-        const bg_sound_enabled = document.getElementById('bg-sound-enabled').checked;
-        const bg_sound_source = document.getElementById('bg-sound-source').value.trim() || '/home/endri-pro/dev/BAS/Mers/mbg.mp3';
 
         hint.textContent = 'Menyimpan konfigurasi...';
         try {
           await invoke('save_agent_config', {
             serverUrl: server_url,
             gatewayUrl: gateway_url,
-            deviceId: device_id,
-            bgSoundEnabled: bg_sound_enabled,
-            bgSoundSource: bg_sound_source
+            deviceId: device_id
           });
           currentConfig = {
             server_url,
             gateway_url,
-            device_id,
-            bg_sound_enabled,
-            bg_sound_source
+            device_id
           };
           localStorage.mersDesktopServer = server_url;
           document.getElementById('config').hidden = true;
           hint.textContent = `Konfigurasi disimpan. Server: ${serverUrl()}`;
           await checkStatuses();
-          await initBackgroundSound();
         } catch (error) {
           hint.textContent = `Gagal menyimpan: ${error}`;
         }
@@ -1267,7 +1162,6 @@
 
       async function init() {
         await loadConfig();
-        await initBackgroundSound();
         if (window.__TAURI__?.event?.listen) {
           window.__TAURI__.event.listen('ws-status', (event) => {
             const status = event.payload;
