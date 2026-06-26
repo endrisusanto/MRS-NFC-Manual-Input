@@ -983,6 +983,47 @@
       body.nfc-mode #send {
         display: none;
       }
+      /* Carousel styles */
+      .carousel {
+        position: relative;
+        width: 100%;
+        overflow: hidden;
+        margin-top: 10px;
+      }
+      .carousel-slide {
+        display: none;
+        width: 100%;
+      }
+      .carousel-slide.active {
+        display: block;
+        animation: fadeIn 0.2s ease-out;
+      }
+      .carousel-controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 12px;
+        padding: 0 4px;
+      }
+      .carousel-btn {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid var(--line);
+        color: var(--text);
+        padding: 6px 14px;
+        border-radius: 999px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 750;
+        transition: background 0.2s;
+      }
+      .carousel-btn:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+      .carousel-indicator {
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--muted);
+      }
       .detail-table {
         width: 100%;
         border-collapse: collapse;
@@ -1182,6 +1223,16 @@
       </form>
     </div>
 
+    <div id="result-modal" class="modal" hidden>
+      <form style="width: min(500px, 100%); max-height: 85vh; overflow-y: auto; display: flex; flex-direction: column; gap: 14px;">
+        <h3 style="margin-top: 0; font-size: 18px; font-weight: 850; text-transform: uppercase; letter-spacing: .08em; color: var(--text); text-align: center;" id="modal-result-title">Detail Pesanan</h3>
+        <div id="modal-result-content" style="display: flex; flex-direction: column; gap: 14px;"></div>
+        <div class="actions" style="margin-top: 10px;">
+          <button id="modal-result-close" type="button" class="primary" style="width: 100%;">Tutup</button>
+        </div>
+      </form>
+    </div>
+
     <script src="mers-gen-map.js"></script>
     <script>
       const $ = id => document.getElementById(id);
@@ -1252,28 +1303,86 @@
         return body ? `<table class="detail-table"><caption style="caption-side:top;text-align:left;font-weight:850;margin:0 0 8px">${esc(title)}</caption>${body}</table>` : '';
       }
 
-      function detailHtml(data) {
+      function isAndroidApp() {
+        return Boolean(window.AndroidNfc || navigator.userAgent.includes('MeRSRemoteAndroid'));
+      }
+
+      let currentSlide = 0;
+      window.changeSlide = function(direction) {
+        const slides = document.querySelectorAll('.carousel-slide');
+        if (!slides.length) return;
+        
+        slides[currentSlide].classList.remove('active');
+        currentSlide = (currentSlide + direction + slides.length) % slides.length;
+        slides[currentSlide].classList.add('active');
+        
+        const indicator = $('carousel-indicator');
+        if (indicator) {
+          indicator.textContent = `${currentSlide + 1} / ${slides.length}`;
+        }
+      };
+
+      function detailHtml(data, forceNoCarousel = false) {
         const orders = data?.data?.orders;
         if (Array.isArray(orders) && orders.length) {
-          return orders.map((order, index) => table(`Pesanan ${index + 1}`, [
-            row('Nama', order.first_name),
-            row('Dept', order.dept),
-            row('UID', order.no_kartu || $('uid').value),
-            row('Meal', order.schedule_meal_name),
-            row('Menu Utama', order.menu_name),
-            row('Karbo', order.carbo_name),
-            row('Lauk Utama', order.main_name),
-            row('Sayur', order.soup_name),
-            row('Pendamping', order.option1_name || order.option2_name),
-            row('Sambal', order.option3_name),
-            row('Buah', order.fruit_name),
-            row('Minuman', order.additional_name),
-            row('Kategori', order.base_menu),
-            row('Tanggal', order.schedule_date),
-            row('Loket', order.loket_name || order.order_loket),
-            row('Status Ambil', order.order_ambil ? 'Sudah' : 'Belum', order.order_ambil ? 'style="background-color: #16a34a; color: #fff; font-weight: bold; text-align: center; text-transform: uppercase;"' : 'style="background-color: #dc2626; color: #fff; font-weight: bold; text-align: center; text-transform: uppercase;"'),
-            row('Sisa Porsi', order.remaining_portions || order.final_order),
-          ])).join('');
+          if (orders.length > 1 && !forceNoCarousel) {
+            const slidesHtml = orders.map((order, index) => `
+              <div class="carousel-slide ${index === 0 ? 'active' : ''}" data-index="${index}">
+                ${table(`Pesanan ${index + 1} dari ${orders.length}`, [
+                  row('Nama', order.first_name),
+                  row('Dept', order.dept),
+                  row('UID', order.no_kartu || $('uid').value),
+                  row('Meal', order.schedule_meal_name),
+                  row('Menu Utama', order.menu_name),
+                  row('Karbo', order.carbo_name),
+                  row('Lauk Utama', order.main_name),
+                  row('Sayur', order.soup_name),
+                  row('Pendamping', order.option1_name || order.option2_name),
+                  row('Sambal', order.option3_name),
+                  row('Buah', order.fruit_name),
+                  row('Minuman', order.additional_name),
+                  row('Kategori', order.base_menu),
+                  row('Tanggal', order.schedule_date),
+                  row('Loket', order.loket_name || order.order_loket),
+                  row('Status Ambil', order.order_ambil ? 'Sudah' : 'Belum', order.order_ambil ? 'style="background-color: #16a34a; color: #fff; font-weight: bold; text-align: center; text-transform: uppercase;"' : 'style="background-color: #dc2626; color: #fff; font-weight: bold; text-align: center; text-transform: uppercase;"'),
+                  row('Sisa Porsi', order.remaining_portions || order.final_order),
+                ])}
+              </div>
+            `).join('');
+            
+            return `
+              <div class="carousel" id="order-carousel">
+                <div class="carousel-track">
+                  ${slidesHtml}
+                </div>
+                <div class="carousel-controls">
+                  <button class="carousel-btn prev" type="button" onclick="changeSlide(-1)">◀ Prev</button>
+                  <span class="carousel-indicator" id="carousel-indicator">1 / ${orders.length}</span>
+                  <button class="carousel-btn next" type="button" onclick="changeSlide(1)">Next ▶</button>
+                </div>
+              </div>
+            `;
+          } else {
+            return orders.map((order, index) => table(orders.length > 1 ? `Pesanan ${index + 1}` : 'Pesanan', [
+              row('Nama', order.first_name),
+              row('Dept', order.dept),
+              row('UID', order.no_kartu || $('uid').value),
+              row('Meal', order.schedule_meal_name),
+              row('Menu Utama', order.menu_name),
+              row('Karbo', order.carbo_name),
+              row('Lauk Utama', order.main_name),
+              row('Sayur', order.soup_name),
+              row('Pendamping', order.option1_name || order.option2_name),
+              row('Sambal', order.option3_name),
+              row('Buah', order.fruit_name),
+              row('Minuman', order.additional_name),
+              row('Kategori', order.base_menu),
+              row('Tanggal', order.schedule_date),
+              row('Loket', order.loket_name || order.order_loket),
+              row('Status Ambil', order.order_ambil ? 'Sudah' : 'Belum', order.order_ambil ? 'style="background-color: #16a34a; color: #fff; font-weight: bold; text-align: center; text-transform: uppercase;"' : 'style="background-color: #dc2626; color: #fff; font-weight: bold; text-align: center; text-transform: uppercase;"'),
+              row('Sisa Porsi', order.remaining_portions || order.final_order),
+            ])).join('');
+          }
         }
         const order = data?.order || data?.schedule?.data?.schedules?.[0] || {};
         const tap = data?.tap?.data || data?.data || {};
@@ -1334,12 +1443,22 @@
         const lower = text.toLowerCase();
         const kind = lower.includes('tidak pesan') || lower.includes('unplan') ? 'warn' : data?.success === false ? 'bad' : 'ok';
         setStatus(text, kind);
-        $('result-summary').classList.add('detail');
-        $('result-summary').innerHTML = detailHtml(data);
         setDebug(data);
         const image = isTauriApp() ? imageSrcFrom(data) : '';
         $('result-image').hidden = !image;
         if (image) $('result-image').src = image;
+
+        if (isAndroidApp()) {
+          $('modal-result-title').textContent = text;
+          $('modal-result-content').innerHTML = detailHtml(data, true);
+          $('result-modal').hidden = false;
+          $('result-summary').classList.remove('detail');
+          $('result-summary').textContent = 'Belum ada response.';
+        } else {
+          $('result-summary').classList.add('detail');
+          currentSlide = 0;
+          $('result-summary').innerHTML = detailHtml(data, false);
+        }
       }
 
       function setConn(state) {
@@ -1538,6 +1657,9 @@
       $('confirm-cancel').addEventListener('click', () => {
         $('confirm-modal').hidden = true;
         state.pendingUid = null;
+      });
+      $('modal-result-close').addEventListener('click', () => {
+        $('result-modal').hidden = true;
       });
 
       function openSettings() {
