@@ -937,6 +937,111 @@
           min-height: 170px;
         }
       }
+
+      .pill.ok {
+        border-color: #86efac;
+        background: #dcfce7;
+        color: #14532d;
+      }
+      .pill.warn {
+        border-color: #fde68a;
+        background: #fef3c7;
+        color: #713f12;
+      }
+      .pill.bad {
+        border-color: #fecdd3;
+        background: #ffe4e6;
+        color: #881337;
+      }
+      .settings-status .pill.ok::before { background: #22c55e; }
+      .settings-status .pill.warn::before { background: #f59e0b; }
+      .settings-status .pill.bad::before { background: #f43f5e; }
+      @media (prefers-color-scheme: dark) {
+        .pill.ok {
+          border-color: #4ade80;
+          background: #14291c;
+          color: #bbf7d0;
+        }
+        .pill.warn {
+          border-color: #facc15;
+          background: #2d240f;
+          color: #fde68a;
+        }
+        .pill.bad {
+          border-color: #fb7185;
+          background: #32161c;
+          color: #fecdd3;
+        }
+      }
+      input#uid {
+        background: #080808;
+        color: #fff;
+        caret-color: #fff;
+      }
+      input#uid::placeholder {
+        color: #fff;
+      }
+      body.nfc-mode #send {
+        display: none;
+      }
+      .detail-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        text-align: left;
+      }
+      .detail-table th,
+      .detail-table td {
+        border: 1px solid var(--line);
+        padding: 8px 10px;
+        vertical-align: top;
+      }
+      .detail-table th {
+        width: 38%;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+      }
+      #result-summary.detail {
+        display: block;
+        place-items: initial;
+        overflow: auto;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      @media (min-width: 900px) and (orientation: portrait) {
+        main {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .top,
+        .card,
+        .result {
+          width: min(520px, 100%);
+          margin-inline: auto;
+        }
+        .top {
+          min-height: 0;
+        }
+      }
+      @media (min-width: 1100px) and (min-height: 650px) {
+        main {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .top {
+          display: flex;
+          min-height: 0;
+        }
+        .top,
+        .card,
+        .result {
+          width: min(520px, 100%);
+          margin-inline: auto;
+        }
+      }
     </style>
   </head>
   <body>
@@ -1057,6 +1162,61 @@
         return data?.message || data?.tap?.message || data?.status || (data?.success === false ? 'Gagal.' : data?.success ? 'Berhasil.' : 'Response diterima.');
       }
 
+      function esc(value) {
+        return String(value ?? '-').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+      }
+
+      function row(label, value) {
+        if (value === undefined || value === null || value === '') return '';
+        return `<tr><th>${esc(label)}</th><td>${esc(value)}</td></tr>`;
+      }
+
+      function table(title, rows) {
+        const body = rows.filter(Boolean).join('');
+        return body ? `<table class="detail-table"><caption style="caption-side:top;text-align:left;font-weight:850;margin:0 0 8px">${esc(title)}</caption>${body}</table>` : '';
+      }
+
+      function detailHtml(data) {
+        const orders = data?.data?.orders;
+        if (Array.isArray(orders) && orders.length) {
+          return orders.map((order, index) => table(`Pesanan ${index + 1}`, [
+            row('Nama', order.first_name),
+            row('Dept', order.dept),
+            row('UID', order.no_kartu || $('uid').value),
+            row('Meal', order.schedule_meal_name),
+            row('Menu', order.menu_name),
+            row('Kategori', order.base_menu),
+            row('Tanggal', order.schedule_date),
+            row('Loket', order.loket_name || order.order_loket),
+            row('Status Ambil', order.order_ambil ? 'Sudah' : 'Belum'),
+            row('Sisa Porsi', order.remaining_portions || order.final_order),
+          ])).join('');
+        }
+        const order = data?.order || data?.schedule?.data?.schedules?.[0] || {};
+        const tap = data?.tap?.data || data?.data || {};
+        const menu = order.menu_name || tap.menu_info || order.schedule_meal_name;
+        const parts = [
+          table('Data Diri', [
+            row('Nama', order.first_name || tap.employee_name || data?.first_name),
+            row('Dept', order.dept || tap.dept || data?.dept),
+            row('UID', order.no_kartu || tap.uid || $('uid').value),
+            row('UID Hex', tap.uid_hex),
+          ]),
+          table('Pesanan Makan', [
+            row('Meal', order.schedule_meal_name || tap.meal_time || data?.schedule?.data?.meal_time),
+            row('Menu', menu),
+            row('Kategori', order.base_menu),
+            row('Tanggal', order.schedule_date),
+            row('Loket', order.loket_name || order.order_loket || tap.loket),
+            row('Status Ambil', order.order_ambil === undefined ? undefined : order.order_ambil ? 'Sudah' : 'Belum'),
+            row('Sisa Porsi', order.remaining_portions || tap.remaining_count),
+            row('Total Order', tap.total_order),
+            row('Sudah Ambil', tap.taken_count),
+          ]),
+        ].filter(Boolean).join('');
+        return parts || `<div>${esc(responseText(data))}</div>`;
+      }
+
       function imageSrcFrom(value) {
         if (typeof value === 'string') {
           const img = value.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1] || value;
@@ -1084,7 +1244,8 @@
         const lower = text.toLowerCase();
         const kind = lower.includes('tidak pesan') || lower.includes('unplan') ? 'warn' : data?.success === false ? 'bad' : 'ok';
         setStatus(text, kind);
-        $('result-summary').textContent = text;
+        $('result-summary').classList.add('detail');
+        $('result-summary').innerHTML = detailHtml(data);
         setDebug(data);
         const image = isTauriApp() ? imageSrcFrom(data) : '';
         $('result-image').hidden = !image;
@@ -1184,6 +1345,7 @@
         if (state.ws?.readyState === WebSocket.OPEN) {
           state.ws.send(JSON.stringify(message));
           setStatus('Terkirim.', 'ok');
+          $('result-summary').classList.remove('detail');
           $('result-summary').textContent = 'Terkirim.';
         } else if (state.config.url) {
           setStatus('WebSocket belum online.', 'bad');
@@ -1196,6 +1358,7 @@
       function setInputMode(mode) {
         state.inputMode = mode;
         $('scan-mode').classList.toggle('nfc', mode === 'nfc');
+        document.body.classList.toggle('nfc-mode', mode === 'nfc');
         $('scan-mode').setAttribute('aria-pressed', String(mode === 'nfc'));
         $('uid').readOnly = mode === 'nfc';
         $('uid').placeholder = mode === 'nfc' ? '' : '1696235068';
@@ -1222,6 +1385,7 @@
             const uidHex = reverseHexBytes(serial);
             $('uid').value = hexToDecimal(uidHex);
             setStatus(`NFC terbaca: ${serial} -> ${uidHex}`, 'ok');
+            send();
           };
         } catch (error) {
           setStatus(String(error), 'bad');

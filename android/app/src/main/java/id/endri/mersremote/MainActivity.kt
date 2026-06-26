@@ -132,6 +132,9 @@ class MainActivity : Activity() {
                 status.textContent = 'NFC terbaca: $hex -> $uidHex';
                 status.className = 'status ok';
               }
+              if (document.body.classList.contains('nfc-mode') && typeof send === 'function') {
+                send();
+              }
             })();
             """.trimIndent(),
             null

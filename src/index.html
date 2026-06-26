@@ -763,6 +763,39 @@
         width: min(1180px, 100%);
         margin: 0 auto;
       }
+
+      .pill.ok {
+        border-color: #86efac;
+        background: #dcfce7;
+        color: #14532d;
+      }
+      .pill.warn {
+        border-color: #fde68a;
+        background: #fef3c7;
+        color: #713f12;
+      }
+      .pill.bad {
+        border-color: #fecdd3;
+        background: #ffe4e6;
+        color: #881337;
+      }
+      @media (prefers-color-scheme: dark) {
+        .pill.ok {
+          border-color: #4ade80;
+          background: #14291c;
+          color: #bbf7d0;
+        }
+        .pill.warn {
+          border-color: #facc15;
+          background: #2d240f;
+          color: #fde68a;
+        }
+        .pill.bad {
+          border-color: #fb7185;
+          background: #32161c;
+          color: #fecdd3;
+        }
+      }
     </style>
   </head>
   <body data-step="home">
@@ -830,6 +863,7 @@
         </div>
       </form>
     </div>
+    <script src="mers-gen-map.js"></script>
     <script>
       const invoke = window.__TAURI__.core.invoke;
       const input = document.getElementById('uid');
@@ -882,8 +916,9 @@
 
       function uidValue() {
         input.value = input.value.replace(/\D/g, '').slice(0, 10);
+        if (window.MERS_GEN_UID?.[input.value]) return window.MERS_GEN_UID[input.value];
         if (/^\d{8,10}$/.test(input.value)) return input.value;
-        hint.textContent = 'ID harus 8-10 digit angka.';
+        hint.textContent = 'GEN tidak terdaftar atau ID kartu tidak valid.';
         input.focus();
         return '';
       }
