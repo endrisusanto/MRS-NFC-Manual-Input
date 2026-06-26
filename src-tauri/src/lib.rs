@@ -1,10 +1,10 @@
-use reqwest::header::SET_COOKIE;
-use std::time::Duration;
-use tauri::{Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 use futures_util::{SinkExt, StreamExt};
-use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
+use reqwest::header::SET_COOKIE;
 use serde::Deserialize;
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
+use std::time::Duration;
+use tauri::{Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
+use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
 const MERS_BASE_URL: &str = "http://107.102.8.148/MERS";
 const LOGIN_IDENTITY: &str = "16756586";
@@ -33,6 +33,23 @@ fn server_url(server: &str) -> String {
 
 fn scanner_uid(uid: &str) -> String {
     let raw = uid.trim();
+    if raw.contains(':') {
+        return reverse_hex_bytes(&raw.replace(':', ""));
+    }
+    if let Some(hex) = raw.strip_prefix('#') {
+        return hex.to_uppercase();
+    }
+    if let Some(input) = raw.strip_prefix('~') {
+        let hex = if input.chars().all(|c| c.is_ascii_digit()) {
+            input
+                .parse::<u128>()
+                .map(|value| format!("{value:X}"))
+                .unwrap_or_else(|_| input.to_string())
+        } else {
+            input.to_string()
+        };
+        return reverse_hex_bytes(&hex);
+    }
     if raw.chars().all(|c| c.is_ascii_digit()) {
         if let Ok(value) = raw.parse::<u128>() {
             let mut hex = format!("{value:X}");
@@ -43,6 +60,30 @@ fn scanner_uid(uid: &str) -> String {
         }
     }
     raw.to_uppercase()
+}
+
+fn reverse_hex_bytes(hex: &str) -> String {
+    let mut raw = hex.trim().to_uppercase();
+    if raw.len() % 2 != 0 {
+        raw = format!("0{raw}");
+    }
+    (0..raw.len())
+        .step_by(2)
+        .rev()
+        .map(|i| &raw[i..i + 2])
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::scanner_uid;
+
+    #[test]
+    fn scanner_uid_matches_extension_byte_order() {
+        assert_eq!(scanner_uid("2A:DA:1A:65"), "651ADA2A");
+        assert_eq!(scanner_uid("~2ADA1A65"), "651ADA2A");
+        assert_eq!(scanner_uid("#2ADA1A65"), "2ADA1A65");
+    }
 }
 
 async fn login_cookie(base_url: &str) -> Result<String, String> {
@@ -60,7 +101,9 @@ async fn login_cookie(base_url: &str) -> Result<String, String> {
         .map_err(|e| format!("Login MeRS gagal: {e}"))?;
 
     for header in res.headers().get_all(SET_COOKIE) {
-        let Ok(cookie) = header.to_str() else { continue };
+        let Ok(cookie) = header.to_str() else {
+            continue;
+        };
         if cookie.contains("ci_session") {
             if let Some(value) = cookie.split(';').next() {
                 return Ok(value.to_string());
@@ -85,7 +128,10 @@ async fn run_cek_pesanan(uid: &str, server: &str) -> Result<serde_json::Value, S
         .map_err(|e| e.to_string())?;
 
     let text = client
-        .get(format!("{base_url}/cekorder.php?check_order={}", uid.trim()))
+        .get(format!(
+            "{base_url}/cekorder.php?check_order={}",
+            uid.trim()
+        ))
         .header("Cookie", cookie)
         .send()
         .await
@@ -97,7 +143,11 @@ async fn run_cek_pesanan(uid: &str, server: &str) -> Result<serde_json::Value, S
     Ok(response_body(text))
 }
 
-async fn loket_schedule(base_url: &str, cookie: &str, loket: &str) -> Result<serde_json::Value, String> {
+async fn loket_schedule(
+    base_url: &str,
+    cookie: &str,
+    loket: &str,
+) -> Result<serde_json::Value, String> {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(3)) // ponytail: avoid hanging
         .build()
@@ -121,7 +171,7 @@ async fn run_tap_in(uid: &str, loket: &str, server: &str) -> Result<serde_json::
     let cookie = login_cookie(&base_url).await?;
     let schedule = loket_schedule(&base_url, &cookie, loket).await?;
     let payload = format!("{}:{}", scanner_uid(uid), loket.trim());
-    
+
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(3)) // ponytail: avoid hanging
         .build()
@@ -203,8 +253,11 @@ fn save_agent_config(
         "device_id": device_id.trim(),
         "server_url": server_url.trim()
     });
-    std::fs::write(&config_file, serde_json::to_string_pretty(&new_config).unwrap())
-        .map_err(|e| format!("Gagal menyimpan konfigurasi: {e}"))?;
+    std::fs::write(
+        &config_file,
+        serde_json::to_string_pretty(&new_config).unwrap(),
+    )
+    .map_err(|e| format!("Gagal menyimpan konfigurasi: {e}"))?;
 
     RECONNECT_REQUESTED.store(true, Ordering::Relaxed);
     Ok(())
@@ -234,27 +287,48 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
                 "device_id": "loket-pc-1",
                 "server_url": "http://107.102.8.148/MERS"
             });
-            let _ = std::fs::write(&config_file, serde_json::to_string_pretty(&default_config).unwrap());
+            let _ = std::fs::write(
+                &config_file,
+                serde_json::to_string_pretty(&default_config).unwrap(),
+            );
         }
 
         loop {
             // Read config dynamically to allow hot-reloading changes
             let (gateway_url, device_id, server_url) = match std::fs::read_to_string(&config_file) {
                 Ok(content) => {
-                    let json: serde_json::Value = serde_json::from_str(&content).unwrap_or_default();
-                    let url = json.get("gateway_url").and_then(|v| v.as_str()).unwrap_or("wss://makan.endrisusanto.my.id").to_string();
-                    let dev = json.get("device_id").and_then(|v| v.as_str()).unwrap_or("loket-pc-1").to_string();
-                    let srv = json.get("server_url").and_then(|v| v.as_str()).unwrap_or("http://107.102.8.148/MERS").to_string();
+                    let json: serde_json::Value =
+                        serde_json::from_str(&content).unwrap_or_default();
+                    let url = json
+                        .get("gateway_url")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("wss://makan.endrisusanto.my.id")
+                        .to_string();
+                    let dev = json
+                        .get("device_id")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("loket-pc-1")
+                        .to_string();
+                    let srv = json
+                        .get("server_url")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("http://107.102.8.148/MERS")
+                        .to_string();
                     (url, dev, srv)
                 }
-                Err(_) => {
-                    ("wss://makan.endrisusanto.my.id".to_string(), "loket-pc-1".to_string(), "http://107.102.8.148/MERS".to_string())
-                }
+                Err(_) => (
+                    "wss://makan.endrisusanto.my.id".to_string(),
+                    "loket-pc-1".to_string(),
+                    "http://107.102.8.148/MERS".to_string(),
+                ),
             };
 
             WS_STATUS.store(1, Ordering::Relaxed);
             let _ = app_handle.emit("ws-status", "connecting");
-            println!("[Agent WS] Connecting to cloud WebSocket gateway: {}", gateway_url);
+            println!(
+                "[Agent WS] Connecting to cloud WebSocket gateway: {}",
+                gateway_url
+            );
             match connect_async(&gateway_url).await {
                 Ok((ws_stream, _)) => {
                     println!("[Agent WS] Connected successfully!");
@@ -285,7 +359,7 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
                                         if let Ok(cmd) = serde_json::from_str::<WsIncomingCommand>(&text) {
                                             if cmd.msg_type == "command" {
                                                 println!("[Agent WS] Received command: {} for UID {}", cmd.action, cmd.uid);
-                                                
+
                                                 // Execute request locally on intranet MeRS PHP
                                                 let response_json = match cmd.action.as_str() {
                                                     "cek_pesanan" => {
@@ -339,7 +413,10 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
                     }
                 }
                 Err(e) => {
-                    println!("[Agent WS] Connection failed: {}. Retrying in 5 seconds...", e);
+                    println!(
+                        "[Agent WS] Connection failed: {}. Retrying in 5 seconds...",
+                        e
+                    );
                     WS_STATUS.store(0, Ordering::Relaxed);
                     let error_msg = format!("offline (Connect fail: {})", e);
                     let _ = app_handle.emit("ws-status", error_msg);
@@ -353,7 +430,14 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![ping_server, cek_pesanan, tap_in, get_agent_config, save_agent_config, get_ws_status])
+        .invoke_handler(tauri::generate_handler![
+            ping_server,
+            cek_pesanan,
+            tap_in,
+            get_agent_config,
+            save_agent_config,
+            get_ws_status
+        ])
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?.join("webview");
             std::fs::create_dir_all(&data_dir)?;

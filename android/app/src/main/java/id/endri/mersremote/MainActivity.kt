@@ -116,7 +116,8 @@ class MainActivity : Activity() {
     private fun handleNfc(intent: Intent?) {
         val tag = intent?.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG) ?: return
         val hex = tag.id.joinToString("") { "%02X".format(it) }
-        val decimal = BigInteger(hex, 16).toString()
+        val uidHex = tag.id.reversedArray().joinToString("") { "%02X".format(it) }
+        val decimal = BigInteger(uidHex, 16).toString()
         Toast.makeText(this, "NFC: $decimal", Toast.LENGTH_SHORT).show()
         webView.evaluateJavascript(
             """
@@ -128,7 +129,7 @@ class MainActivity : Activity() {
               }
               const status = document.getElementById('status');
               if (status) {
-                status.textContent = 'NFC terbaca: $hex';
+                status.textContent = 'NFC terbaca: $hex -> $uidHex';
                 status.className = 'status ok';
               }
             })();
