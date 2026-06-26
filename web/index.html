@@ -1460,7 +1460,7 @@
         document.body.classList.toggle('nfc-mode', mode === 'nfc');
         $('scan-mode').setAttribute('aria-pressed', String(mode === 'nfc'));
         $('uid').readOnly = mode === 'nfc';
-        $('uid').placeholder = mode === 'nfc' ? '' : '1696235068';
+        $('uid').placeholder = '';
         if (mode === 'nfc') scanNfc();
         else { $('uid').readOnly = false; $('uid').focus(); }
       }
