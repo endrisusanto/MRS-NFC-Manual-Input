@@ -417,68 +417,19 @@
       
       .bento {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 12px;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 8px;
         margin-top: 12px;
       }
       
       .bento-card {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        padding: 12px;
+        min-height: 72px;
+        padding: 10px;
         border: 1px solid var(--line);
         background: var(--surface);
-      }
-
-      .bento-card.utama {
-        grid-column: span 2;
-        grid-row: span 2;
-      }
-      .bento-card.utama .bento-img-wrap {
-        height: 180px;
-      }
-      .bento-card.karbo {
-        grid-column: span 2;
-      }
-      .bento-card.karbo .bento-img-wrap {
-        height: 100px;
-      }
-      .bento-card.sayur, .bento-card.pendamping, .bento-card.sambal, .bento-card.buah, .bento-card.minuman {
-        grid-column: span 1;
-      }
-      .bento-card.sayur .bento-img-wrap,
-      .bento-card.pendamping .bento-img-wrap,
-      .bento-card.sambal .bento-img-wrap,
-      .bento-card.buah .bento-img-wrap,
-      .bento-card.minuman .bento-img-wrap {
-        height: 100px;
-      }
-
-      .bento-img-wrap {
-        position: relative;
-        width: 100%;
-        background: var(--page);
-        margin-bottom: 8px;
-        overflow: hidden;
-        border: 1px solid var(--line);
         display: flex;
-        align-items: center;
+        flex-direction: column;
         justify-content: center;
-      }
-      .bento-img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-      .bento-img-fallback {
-        font-size: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-        color: var(--muted);
       }
       
       .bento-label {
@@ -862,7 +813,7 @@
         <h1>MeRS Desktop</h1>
         <p>Masukkan GEN 8 digit atau ID kartu 10 digit yang akan dieksekusi.</p>
         <button class="server-btn" id="settings">Server</button>
-        <input id="uid" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="1696235068" autofocus>
+        <input id="uid" inputmode="numeric" maxlength="10" autocomplete="off" autofocus>
         <div class="cards">
           <button class="card" id="tap"><strong>Tap In Scanner</strong><span>Masuk ke pilihan loket untuk ID ini.</span></button>
           <button class="card" id="cek"><strong>Cek Menu Pesanan</strong><span>Langsung tampilkan detail pesanan ID ini.</span></button>
@@ -881,18 +832,21 @@
         </div>
         <button class="back" id="back">Kembali</button>
       </section>
-      <section class="result">
-        <h1 id="result-title">Detail</h1>
-        <div class="selected">ID<b id="result-id"></b></div>
+      <div class="hint" id="hint"></div>
+    </main>
+
+    <div id="result-modal" class="modal" hidden>
+      <section class="result" style="width: min(800px, 100%); max-height: 90vh; overflow: auto; padding: 28px; border: 1px solid var(--line); background: var(--surface); color: var(--text);">
+        <h1 id="result-title" style="text-align: center;">Detail</h1>
+        <div class="selected" style="margin-bottom: 12px;">ID<b id="result-id"></b></div>
         <div id="result-summary" class="summary"></div>
         <details id="api-details">
           <summary>API Response</summary>
           <pre id="result-body"></pre>
         </details>
-        <button class="back" id="home">Beranda</button>
+        <button class="back" id="home" style="margin-top: 14px; width: 100%;">Beranda</button>
       </section>
-      <div class="hint" id="hint"></div>
-    </main>
+    </div>
     <div id="config" class="modal" hidden>
       <form>
         <label for="server-url">URL Server MeRS</label>
@@ -977,6 +931,7 @@
 
       function showHome() {
         hint.textContent = '';
+        document.getElementById('result-modal').hidden = true;
         document.body.dataset.step = 'home';
         input.focus();
       }
@@ -997,18 +952,17 @@
 
       function menuItems(menu) {
         return [
-          { label: 'Karbo', name: menu.carbo_name, pic: menu.carbo_pic, key: 'karbo' },
-          { label: 'Utama', name: menu.main_name || menu.menu_detail_name || menu.menu_name, pic: menu.menu_detail_pic || menu.main_pic, key: 'utama' },
-          { label: 'Sayur', name: menu.soup_name, pic: menu.soup_pic, key: 'sayur' },
-          { label: 'Pendamping', name: menu.option1_name || menu.option2_name, pic: menu.option1_pic || menu.option2_pic, key: 'pendamping' },
-          { label: 'Sambal', name: menu.option3_name, pic: menu.option3_pic, key: 'sambal' },
-          { label: 'Buah', name: menu.fruit_name, pic: menu.fruit_pic, key: 'buah' },
-          { label: 'Minuman', name: menu.additional_name, pic: menu.additional_pic, key: 'minuman' },
-        ].filter(item => item.name && item.name !== '-' && item.name.trim() !== '');
+          ['Karbo', menu.carbo_name, menu.menu_carbo],
+          ['Utama', menu.main_name || menu.menu_detail_name || menu.menu_name, menu.menu_main || menu.main_id],
+          ['Sayur', menu.soup_name, menu.menu_soup],
+          ['Pendamping', menu.option1_name || menu.option2_name, menu.menu_option1 || menu.menu_option2],
+          ['Sambal', menu.option3_name, menu.menu_option3],
+          ['Buah', menu.fruit_name, menu.menu_fruit],
+          ['Minuman', menu.additional_name, menu.menu_additional],
+        ].map(([label, name, id]) => ({ label, name: name || (id ? `#${id}` : '-') }));
       }
 
       function renderBento(menu, portions) {
-        const imgBase = `${serverUrl()}/assets/images/menu/`;
         return `
           <div class="item">
             <div class="bento-head">
@@ -1016,28 +970,12 @@
               <div class="portion">Sisa Porsi: ${esc(portions)}</div>
             </div>
             <div class="bento">
-              ${menuItems(menu).map(item => {
-                const hasPic = item.pic && item.pic !== '-';
-                const imgSrc = hasPic ? `${imgBase}${item.pic}` : '';
-                return `
-                  <div class="bento-card ${esc(item.key)}">
-                    <div class="bento-img-wrap">
-                      ${hasPic ? `
-                        <img src="${esc(imgSrc)}" alt="${esc(item.name)}"
-                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
-                             class="bento-img">
-                        <div class="bento-img-fallback" style="display:none;">🍴</div>
-                      ` : `
-                        <div class="bento-img-fallback" style="display:flex;">🍴</div>
-                      `}
-                    </div>
-                    <div>
-                      <div class="bento-label">${esc(item.label)}</div>
-                      <div class="bento-name">${esc(item.name)}</div>
-                    </div>
-                  </div>
-                `;
-              }).join('')}
+              ${menuItems(menu).map(item => `
+                <div class="bento-card">
+                  <div class="bento-label">${esc(item.label)}</div>
+                  <div class="bento-name">${esc(item.name)}</div>
+                </div>
+              `).join('')}
             </div>
           </div>
         `;
@@ -1148,7 +1086,7 @@
           document.getElementById('result-summary').innerHTML = command === 'tap_in' ? renderTapIn(data) : renderCekPesanan(data);
           document.getElementById('result-body').textContent = JSON.stringify(data, null, 2);
           document.getElementById('api-details').removeAttribute('open');
-          document.body.dataset.step = 'result';
+          document.getElementById('result-modal').hidden = false;
           hint.textContent = '';
         } catch (error) {
           hint.textContent = String(error);

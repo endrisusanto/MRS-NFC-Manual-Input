@@ -1054,9 +1054,9 @@
         width: min(520px, calc(100% - 32px));
         margin: 0 auto;
         padding: 12px;
-        border: 1px solid var(--line);
-        background: var(--surface);
-        color: var(--text);
+        border: 1px solid #1d4ed8;
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: #fff;
         font-size: 13px;
         font-weight: 800;
       }
@@ -1064,6 +1064,16 @@
       .install-toast button {
         min-height: 40px;
         padding: 0 12px;
+        background: #fff !important;
+        color: #1d4ed8 !important;
+        border: 1px solid #fff !important;
+        font-weight: 800 !important;
+        cursor: pointer;
+      }
+      .install-toast button:hover {
+        background: #e0f2fe !important;
+        color: #1e3a8a !important;
+        border-color: #e0f2fe !important;
       }
       .mode-button {
         width: 100%;
@@ -1108,7 +1118,7 @@
       <section class="card">
         <button id="mode-button" type="button" class="mode-button cek-pesanan">Cek Pesanan</button>
         <label for="uid">ID kartu / GEN</label>
-        <input id="uid" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="1696235068">
+        <input id="uid" inputmode="numeric" autocomplete="off" maxlength="10">
         <div class="scan-row" style="margin-top:10px">
           <button id="scan-mode" class="mode-toggle" type="button" aria-pressed="false"><span>Manual</span><span>NFC</span></button>
           <button id="send" class="primary">Kirim</button>
