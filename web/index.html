@@ -1065,6 +1065,37 @@
         min-height: 40px;
         padding: 0 12px;
       }
+      .mode-button {
+        width: 100%;
+        min-height: 56px;
+        border: none;
+        color: #fff;
+        font: 800 16px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .mode-button.cek-pesanan {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      }
+      .mode-button.cek-pesanan:hover {
+        background: linear-gradient(135deg, #60a5fa, #2563eb);
+      }
+      .mode-button.ambil-pesanan {
+        background: linear-gradient(135deg, #ef4444, #b91c1c);
+      }
+      .mode-button.ambil-pesanan:hover {
+        background: linear-gradient(135deg, #f87171, #dc2626);
+      }
+      #confirm-ok:hover {
+        background: #b91c1c !important;
+        border-color: #b91c1c !important;
+      }
     </style>
   </head>
   <body>
@@ -1075,6 +1106,7 @@
       </div>
 
       <section class="card">
+        <button id="mode-button" type="button" class="mode-button cek-pesanan">Cek Pesanan</button>
         <label for="uid">ID kartu / GEN</label>
         <input id="uid" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="1696235068">
         <div class="scan-row" style="margin-top:10px">
@@ -1107,17 +1139,6 @@
           <span id="mers-status" class="pill warn">mers...</span>
           <span id="conn" class="pill bad">ws offline</span>
         </div>
-        <div class="settings-section">
-          <label for="action">Mode kirim</label>
-          <select id="action">
-            <option value="cek_pesanan">Cek Pesanan</option>
-            <option value="tap_in">Tap In Scanner</option>
-          </select>
-        </div>
-        <div class="lokets settings-section" id="lokets" style="display:none">
-          <button type="button" data-loket="1">1</button><button type="button" data-loket="2">2</button><button type="button" data-loket="3">3</button>
-          <button type="button" data-loket="4">4</button><button type="button" data-loket="5">5</button><button type="button" data-loket="6">6</button>
-        </div>
         <label for="ws">WebSocket Gateway</label>
         <input id="ws" placeholder="https://makan.endrisusanto.my.id/">
         <div class="presets" style="margin-top: 6px; display: flex; gap: 8px; flex-wrap: wrap;">
@@ -1136,6 +1157,17 @@
         <div class="actions" style="margin-top:14px">
           <button id="cancel-settings" type="button">Batal</button>
           <button id="save" type="button" class="primary">Simpan</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="confirm-modal" class="modal" hidden>
+      <form style="text-align: center;">
+        <h3 style="margin-top: 0; font-size: 20px; font-weight: 850; text-transform: uppercase; letter-spacing: .08em; color: var(--text);">Konfirmasi Ambil Makan</h3>
+        <p style="font-size: 15px; margin: 16px 0 24px; color: var(--text); line-height: 1.5;">Aksi ini tidak bisa dibatalkan. Apakah Anda yakin ingin memproses pengambilan pesanan ini?</p>
+        <div class="actions">
+          <button id="confirm-cancel" type="button">Batal</button>
+          <button id="confirm-ok" type="button" class="primary" style="background: #dc2626; color: #fff; border-color: #dc2626;">Yakin, Kirim</button>
         </div>
       </form>
     </div>
@@ -1172,6 +1204,7 @@
         retryMs: 2500,
         loket: '1',
         inputMode: 'manual',
+        action: localStorage.mersAction || 'cek_pesanan',
         config: {
           url: localStorage.mersWsUrl || defaultWsUrl,
           device: localStorage.mersDevice || 'loket-pc-1',
@@ -1374,7 +1407,16 @@
       function send() {
         const value = uid();
         if (!value) return;
-        const message = { type: 'command', device: state.config.device, action: $('action').value, uid: value, loket: state.loket };
+        if (state.action === 'tap_in') {
+          state.pendingUid = value;
+          $('confirm-modal').hidden = false;
+          return;
+        }
+        executeSend(value);
+      }
+
+      function executeSend(value) {
+        const message = { type: 'command', device: state.config.device, action: state.action, uid: value, loket: state.loket };
         if (state.ws?.readyState === WebSocket.OPEN) {
           state.ws.send(JSON.stringify(message));
           setStatus('Terkirim.', 'ok');
@@ -1434,15 +1476,45 @@
         }
       }
 
+      function autoSelectLoket() {
+        // ponytail: auto-extract counter number from device ID to avoid manual counter selection UI
+        const deviceName = state.config.device || '';
+        const match = deviceName.match(/\d+/);
+        state.loket = match ? match[0] : '1';
+      }
+
+      function updateModeUI() {
+        const btn = $('mode-button');
+        if (state.action === 'cek_pesanan') {
+          btn.textContent = 'Cek Pesanan';
+          btn.className = 'mode-button cek-pesanan';
+        } else {
+          btn.textContent = 'Ambil Pesanan';
+          btn.className = 'mode-button ambil-pesanan';
+        }
+      }
+
       $('uid').addEventListener('input', uid);
       $('send').addEventListener('click', send);
       $('scan-mode').addEventListener('click', () => setInputMode(state.inputMode === 'manual' ? 'nfc' : 'manual'));
-      $('action').addEventListener('change', () => { $('lokets').style.display = $('action').value === 'tap_in' ? 'grid' : 'none'; });
-      document.querySelectorAll('[data-loket]').forEach(button => button.addEventListener('click', () => {
-        state.loket = button.dataset.loket;
-        document.querySelectorAll('[data-loket]').forEach(item => item.classList.toggle('active', item === button));
-      }));
-      document.querySelector('[data-loket="1"]').classList.add('active');
+      
+      $('mode-button').addEventListener('click', () => {
+        state.action = state.action === 'cek_pesanan' ? 'tap_in' : 'cek_pesanan';
+        localStorage.mersAction = state.action;
+        updateModeUI();
+      });
+
+      $('confirm-ok').addEventListener('click', () => {
+        $('confirm-modal').hidden = true;
+        if (state.pendingUid) {
+          executeSend(state.pendingUid);
+          state.pendingUid = null;
+        }
+      });
+      $('confirm-cancel').addEventListener('click', () => {
+        $('confirm-modal').hidden = true;
+        state.pendingUid = null;
+      });
 
       function openSettings() {
         $('ws').value = localStorage.mersWsUrl || (location.protocol.startsWith('http') ? location.origin + '/' : DEFAULT_URL);
@@ -1467,6 +1539,7 @@
         state.config.url = toWsUrl($('ws').value.trim());
         state.config.device = $('device').value.trim() || 'loket-pc-1';
         localStorage.mersDevice = state.config.device;
+        autoSelectLoket();
         $('config').hidden = true;
         if (state.config.url) {
           localStorage.mersWsUrl = state.config.url;
@@ -1510,6 +1583,10 @@
       requestAnimationFrame(animateThemeColor);
       checkStatuses();
       setInterval(checkStatuses, 15000);
+      
+      autoSelectLoket();
+      updateModeUI();
+
       if (state.config.url) connect();
       else setStatus('WebSocket belum diatur. Buka Server untuk mengaktifkan.', 'warn');
     </script>
