@@ -449,7 +449,9 @@
           const url = new URL(value);
           if (url.protocol === 'https:') url.protocol = 'wss:';
           if (url.protocol === 'http:') url.protocol = 'ws:';
-          if (url.pathname === '/') url.pathname = '/ws';
+          if (url.pathname === '/' && url.hostname.includes('makan.endrisusanto.my.id')) {
+            url.pathname = '/ws';
+          }
           return url.toString();
         } catch {
           return value;
