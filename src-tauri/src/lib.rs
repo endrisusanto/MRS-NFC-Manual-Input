@@ -266,7 +266,9 @@ fn get_agent_config(app_handle: tauri::AppHandle) -> Result<serde_json::Value, S
     Ok(serde_json::json!({
         "gateway_url": "wss://makan.endrisusanto.my.id",
         "device_id": "loket-pc-1",
-        "server_url": "http://107.102.8.148/MERS"
+        "server_url": "http://107.102.8.148/MERS",
+        "bg_sound_enabled": true,
+        "bg_sound_source": "/home/endri-pro/dev/BAS/Mers/mbg.mp3"
     }))
 }
 
@@ -276,6 +278,8 @@ fn save_agent_config(
     gateway_url: String,
     device_id: String,
     server_url: String,
+    bg_sound_enabled: bool,
+    bg_sound_source: String,
 ) -> Result<(), String> {
     let config_dir = app_handle.path().app_data_dir().unwrap_or_default();
     let _ = std::fs::create_dir_all(&config_dir);
@@ -283,7 +287,9 @@ fn save_agent_config(
     let new_config = serde_json::json!({
         "gateway_url": gateway_url.trim(),
         "device_id": device_id.trim(),
-        "server_url": server_url.trim()
+        "server_url": server_url.trim(),
+        "bg_sound_enabled": bg_sound_enabled,
+        "bg_sound_source": bg_sound_source.trim()
     });
     std::fs::write(
         &config_file,
@@ -293,6 +299,12 @@ fn save_agent_config(
 
     RECONNECT_REQUESTED.store(true, Ordering::Relaxed);
     Ok(())
+}
+
+#[tauri::command]
+fn get_audio_file(path: String) -> Result<Vec<u8>, String> {
+    // ponytail: read local file directly as bytes to bypass asset protocol scope controls
+    std::fs::read(&path).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -491,7 +503,8 @@ pub fn run() {
             tap_in,
             get_agent_config,
             save_agent_config,
-            get_ws_status
+            get_ws_status,
+            get_audio_file
         ])
         .on_window_event(|window, event| {
             match event {
