@@ -617,6 +617,13 @@
       <form>
         <label for="server-url">URL Server MeRS</label>
         <input id="server-url" placeholder="http://107.102.8.148/MERS">
+        
+        <label for="gateway-url">URL Gateway WebSocket</label>
+        <input id="gateway-url" placeholder="wss://makan.endrisusanto.my.id/ws">
+        
+        <label for="device-id">Device / Loket ID</label>
+        <input id="device-id" placeholder="loket-pc-1">
+        
         <div class="modal-actions">
           <button id="cancel-settings" type="button">Batal</button>
           <button id="save-settings" type="button">Simpan</button>
@@ -629,8 +636,25 @@
       const hint = document.getElementById('hint');
       const defaultServer = 'http://107.102.8.148/MERS';
 
+      let currentConfig = {
+        gateway_url: 'wss://makan.endrisusanto.my.id/ws',
+        device_id: 'loket-pc-1',
+        server_url: 'http://107.102.8.148/MERS'
+      };
+
+      async function loadConfig() {
+        try {
+          const cfg = await invoke('get_agent_config');
+          if (cfg) {
+            currentConfig = cfg;
+          }
+        } catch (e) {
+          console.error("Gagal memuat konfigurasi dari backend:", e);
+        }
+      }
+
       function serverUrl() {
-        return (localStorage.mersDesktopServer || defaultServer).replace(/\/+$/, '');
+        return (currentConfig.server_url || defaultServer).replace(/\/+$/, '');
       }
 
       function setBadge(id, text, kind) {
@@ -790,26 +814,53 @@
         showHome();
       });
       document.getElementById('home').addEventListener('click', showHome);
-      document.getElementById('settings').addEventListener('click', () => {
-        document.getElementById('server-url').value = serverUrl();
+      document.getElementById('settings').addEventListener('click', async () => {
+        await loadConfig();
+        document.getElementById('server-url').value = currentConfig.server_url || '';
+        document.getElementById('gateway-url').value = currentConfig.gateway_url || '';
+        document.getElementById('device-id').value = currentConfig.device_id || '';
         document.getElementById('config').hidden = false;
       });
       document.getElementById('cancel-settings').addEventListener('click', () => {
         document.getElementById('config').hidden = true;
       });
-      document.getElementById('save-settings').addEventListener('click', () => {
-        localStorage.mersDesktopServer = (document.getElementById('server-url').value.trim() || defaultServer).replace(/\/+$/, '');
-        document.getElementById('config').hidden = true;
-        hint.textContent = `Server: ${serverUrl()}`;
-        checkStatuses();
+      document.getElementById('save-settings').addEventListener('click', async () => {
+        const server_url = document.getElementById('server-url').value.trim() || defaultServer;
+        const gateway_url = document.getElementById('gateway-url').value.trim() || 'wss://makan.endrisusanto.my.id/ws';
+        const device_id = document.getElementById('device-id').value.trim() || 'loket-pc-1';
+
+        hint.textContent = 'Menyimpan konfigurasi...';
+        try {
+          await invoke('save_agent_config', {
+            serverUrl: server_url,
+            gatewayUrl: gateway_url,
+            deviceId: device_id
+          });
+          currentConfig = {
+            server_url,
+            gateway_url,
+            device_id
+          };
+          localStorage.mersDesktopServer = server_url;
+          document.getElementById('config').hidden = true;
+          hint.textContent = `Konfigurasi disimpan. Server: ${serverUrl()}`;
+          await checkStatuses();
+        } catch (error) {
+          hint.textContent = `Gagal menyimpan: ${error}`;
+        }
       });
       document.querySelectorAll('[data-loket]').forEach(button => button.addEventListener('click', () => {
         const uid = uidValue();
         if (!uid) return;
         runAction('tap_in', { uid, loket: button.dataset.loket }, `Tap In Scanner - Loket ${button.dataset.loket}`);
       }));
-      checkStatuses();
-      setInterval(checkStatuses, 15000);
+
+      async function init() {
+        await loadConfig();
+        await checkStatuses();
+        setInterval(checkStatuses, 15000);
+      }
+      init();
     </script>
   </body>
 </html>
