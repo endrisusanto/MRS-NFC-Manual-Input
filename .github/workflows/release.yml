@@ -38,6 +38,10 @@ jobs:
 
   windows:
     runs-on: windows-latest
+    env:
+      CARGO_HTTP_MULTIPLEXING: false
+      CARGO_NET_RETRY: 10
+      RUSTUP_MAX_RETRIES: 10
 
     steps:
       - uses: actions/checkout@v4
@@ -52,10 +56,26 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Install dependencies
-        run: npm ci
+        shell: powershell
+        run: |
+          git config --global http.version HTTP/1.1
+          npm config set fetch-retries 5
+          npm config set fetch-retry-maxtimeout 120000
+          npm ci
 
       - name: Build NSIS
-        run: npm run dist:win
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          for ($i = 1; $i -le 3; $i++) {
+            try {
+              npm run dist:win
+              break
+            } catch {
+              if ($i -eq 3) { throw }
+              Start-Sleep -Seconds (20 * $i)
+            }
+          }
 
       - name: Collect artifacts
         shell: powershell
