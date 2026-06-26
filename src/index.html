@@ -633,7 +633,7 @@
         <input id="server-url" placeholder="http://107.102.8.148/MERS">
         
         <label for="gateway-url">URL Gateway WebSocket</label>
-        <input id="gateway-url" placeholder="wss://makan.endrisusanto.my.id/ws">
+        <input id="gateway-url" placeholder="wss://makan.endrisusanto.my.id">
         <div class="presets" style="margin-top: -6px; margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap;">
           <button type="button" class="pill" id="preset-prod" style="min-height: auto; padding: 4px 8px; font-size: 11px; margin: 0;">Cloud</button>
           <button type="button" class="pill" id="preset-local3" style="min-height: auto; padding: 4px 8px; font-size: 11px; margin: 0;">Local 3000</button>
@@ -656,7 +656,7 @@
       const defaultServer = 'http://107.102.8.148/MERS';
 
       let currentConfig = {
-        gateway_url: 'wss://makan.endrisusanto.my.id/ws',
+        gateway_url: 'wss://makan.endrisusanto.my.id',
         device_id: 'loket-pc-1',
         server_url: 'http://107.102.8.148/MERS'
       };
@@ -850,7 +850,7 @@
         document.getElementById('config').hidden = true;
       });
       document.getElementById('preset-prod').addEventListener('click', () => {
-        document.getElementById('gateway-url').value = 'wss://makan.endrisusanto.my.id/ws';
+        document.getElementById('gateway-url').value = 'wss://makan.endrisusanto.my.id';
       });
       document.getElementById('preset-local3').addEventListener('click', () => {
         document.getElementById('gateway-url').value = 'ws://localhost:3000/ws';
@@ -860,7 +860,7 @@
       });
       document.getElementById('save-settings').addEventListener('click', async () => {
         const server_url = document.getElementById('server-url').value.trim() || defaultServer;
-        const gateway_url = document.getElementById('gateway-url').value.trim() || 'wss://makan.endrisusanto.my.id/ws';
+        const gateway_url = document.getElementById('gateway-url').value.trim() || 'wss://makan.endrisusanto.my.id';
         const device_id = document.getElementById('device-id').value.trim() || 'loket-pc-1';
 
         hint.textContent = 'Menyimpan konfigurasi...';

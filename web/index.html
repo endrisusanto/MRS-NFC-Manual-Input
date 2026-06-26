@@ -438,20 +438,17 @@
     <script>
       const $ = id => document.getElementById(id);
       const DEFAULT_URL = 'https://makan.endrisusanto.my.id/';
-      const DEFAULT_WS = 'wss://makan.endrisusanto.my.id/ws';
+      const DEFAULT_WS = 'wss://makan.endrisusanto.my.id';
       const savedWsUrl = localStorage.mersWsUrl || '';
       const legacyWsUrl = location.protocol === 'https:' ? `wss://${location.host}/ws` : `ws://${location.host}/ws`;
       if (savedWsUrl === legacyWsUrl) localStorage.removeItem('mersWsUrl');
-      if (savedWsUrl === 'wss://mers.endrisusanto.my.id/ws' || savedWsUrl === DEFAULT_WS) localStorage.removeItem('mersWsUrl');
+      if (savedWsUrl === 'wss://mers.endrisusanto.my.id/ws' || savedWsUrl === DEFAULT_WS || savedWsUrl === 'wss://makan.endrisusanto.my.id/ws') localStorage.removeItem('mersWsUrl');
       function toWsUrl(value) {
         if (!value) return '';
         try {
           const url = new URL(value);
           if (url.protocol === 'https:') url.protocol = 'wss:';
           if (url.protocol === 'http:') url.protocol = 'ws:';
-          if (url.pathname === '/' && url.hostname.includes('makan.endrisusanto.my.id')) {
-            url.pathname = '/ws';
-          }
           return url.toString();
         } catch {
           return value;

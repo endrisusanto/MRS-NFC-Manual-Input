@@ -182,7 +182,7 @@ fn get_agent_config(app_handle: tauri::AppHandle) -> Result<serde_json::Value, S
         }
     }
     Ok(serde_json::json!({
-        "gateway_url": "wss://makan.endrisusanto.my.id/ws",
+        "gateway_url": "wss://makan.endrisusanto.my.id",
         "device_id": "loket-pc-1",
         "server_url": "http://107.102.8.148/MERS"
     }))
@@ -230,7 +230,7 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
         // Write default config if not exists
         if !config_file.exists() {
             let default_config = serde_json::json!({
-                "gateway_url": "wss://makan.endrisusanto.my.id/ws",
+                "gateway_url": "wss://makan.endrisusanto.my.id",
                 "device_id": "loket-pc-1",
                 "server_url": "http://107.102.8.148/MERS"
             });
@@ -242,13 +242,13 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
             let (gateway_url, device_id, server_url) = match std::fs::read_to_string(&config_file) {
                 Ok(content) => {
                     let json: serde_json::Value = serde_json::from_str(&content).unwrap_or_default();
-                    let url = json.get("gateway_url").and_then(|v| v.as_str()).unwrap_or("wss://makan.endrisusanto.my.id/ws").to_string();
+                    let url = json.get("gateway_url").and_then(|v| v.as_str()).unwrap_or("wss://makan.endrisusanto.my.id").to_string();
                     let dev = json.get("device_id").and_then(|v| v.as_str()).unwrap_or("loket-pc-1").to_string();
                     let srv = json.get("server_url").and_then(|v| v.as_str()).unwrap_or("http://107.102.8.148/MERS").to_string();
                     (url, dev, srv)
                 }
                 Err(_) => {
-                    ("wss://makan.endrisusanto.my.id/ws".to_string(), "loket-pc-1".to_string(), "http://107.102.8.148/MERS".to_string())
+                    ("wss://makan.endrisusanto.my.id".to_string(), "loket-pc-1".to_string(), "http://107.102.8.148/MERS".to_string())
                 }
             };
 
