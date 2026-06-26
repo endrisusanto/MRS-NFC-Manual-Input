@@ -538,6 +538,356 @@
         box-shadow: none;
       }
       .actions { grid-template-columns: 1fr 1fr; }
+
+      /* Frontend v2: flat kiosk surface, backend flow unchanged. */
+      * { transition: none; }
+      html, body {
+        background: #f4f4f2;
+        color: #111;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      body {
+        padding: 0;
+        place-items: stretch;
+      }
+      main {
+        width: 100%;
+        max-width: none;
+        min-height: 100svh;
+        padding: clamp(18px, 5vw, 48px);
+        border: 0;
+        border-radius: 0;
+        background: #f4f4f2;
+        color: #111;
+      }
+      .top {
+        min-height: 28svh;
+        align-items: end;
+        padding: 0;
+      }
+      .brand-logo {
+        width: min(230px, 54vw);
+        margin: 0 auto;
+      }
+      .card {
+        width: min(520px, 100%);
+        margin: 0 auto;
+        gap: 14px;
+      }
+      label {
+        color: #111;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .12em;
+      }
+      input, select {
+        height: 62px;
+        border: 1px solid #111;
+        border-radius: 0;
+        background: #fff;
+        color: #111;
+        font: 700 18px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      input#uid {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: clamp(24px, 8vw, 40px);
+        letter-spacing: .06em;
+      }
+      input:focus, select:focus {
+        border-color: #111;
+        outline: 3px solid #111;
+        outline-offset: 3px;
+      }
+      button {
+        min-height: 58px;
+        border: 1px solid #111;
+        border-radius: 0;
+        background: #fff;
+        color: #111;
+        font: 800 14px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+      }
+      button:hover { background: #eee; border-color: #111; }
+      #send, button.primary {
+        min-height: 64px;
+        border-color: #111;
+        border-radius: 0;
+        background: #111;
+        color: #fff;
+      }
+      #send:hover, button.primary:hover { background: #000; }
+      .mode-toggle {
+        height: 62px;
+        border-radius: 0;
+        border-color: #111;
+        background: #fff;
+      }
+      .mode-toggle::before {
+        inset: 4px auto 4px 4px;
+        width: calc(50% - 4px);
+        border-radius: 0;
+        background: #111;
+      }
+      .mode-toggle span {
+        color: #111;
+        font-size: 13px;
+      }
+      .mode-toggle:not(.nfc) span:first-child,
+      .mode-toggle.nfc span:last-child {
+        color: #fff;
+      }
+      .result {
+        width: min(520px, 100%);
+        margin: 0 auto;
+        gap: 10px;
+      }
+      .status,
+      #result-summary {
+        border: 1px solid #111;
+        border-radius: 0;
+        background: #fff;
+        color: #111;
+      }
+      .status {
+        padding: 12px;
+        font-size: 12px;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+      }
+      #result-summary {
+        min-height: 112px;
+        padding: 22px;
+        font-size: clamp(20px, 6vw, 34px);
+        font-weight: 850;
+      }
+      #result-image {
+        border: 1px solid #111;
+        border-radius: 0;
+        background: #fff;
+      }
+      .modal {
+        padding: 16px;
+        background: rgba(244, 244, 242, .92);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        animation: none;
+      }
+      .modal form {
+        width: min(520px, 100%);
+        max-height: calc(100svh - 32px);
+        overflow: auto;
+        padding: 18px;
+        border: 1px solid #111;
+        border-radius: 0;
+        background: #f4f4f2;
+        color: #111;
+        animation: none;
+      }
+      .pill, button.pill, .pill.ok, .pill.warn, .pill.bad {
+        border-color: #111;
+        border-radius: 0;
+        background: #fff;
+        color: #111;
+      }
+      .settings-status .pill::before,
+      .settings-status .pill.ok::before,
+      .settings-status .pill.warn::before,
+      .settings-status .pill.bad::before {
+        background: #111;
+      }
+      pre {
+        border: 1px solid #111;
+        border-radius: 0;
+        background: #fff;
+        color: #111;
+      }
+      @media (max-width: 520px) {
+        main { padding: 18px; }
+        .top { min-height: 24svh; }
+        .settings-status { grid-template-columns: 1fr; }
+      }
+
+      :root {
+        --page: #f4f4f2;
+        --surface: #fff;
+        --text: #111;
+        --line: #111;
+        --primary: #111;
+        --primary-text: #fff;
+        --hover: #eee;
+        --placeholder: #777;
+        --modal-bg: rgba(244, 244, 242, .92);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --page: #080808;
+          --surface: #111;
+          --text: #f5f5f5;
+          --line: #f5f5f5;
+          --primary: #f5f5f5;
+          --primary-text: #080808;
+          --hover: #1f1f1f;
+          --placeholder: #bdbdbd;
+          --modal-bg: rgba(0, 0, 0, .88);
+        }
+      }
+      html, body, main {
+        background: var(--page);
+        color: var(--text);
+      }
+      label,
+      .mode-toggle span,
+      .status,
+      #result-summary,
+      .pill,
+      button.pill,
+      .pill.ok,
+      .pill.warn,
+      .pill.bad,
+      pre {
+        color: var(--text);
+      }
+      input,
+      select,
+      button,
+      .mode-toggle,
+      .status,
+      #result-summary,
+      #result-image,
+      .pill,
+      button.pill,
+      .pill.ok,
+      .pill.warn,
+      .pill.bad,
+      pre {
+        border-color: var(--line);
+        background: var(--surface);
+      }
+      input,
+      select {
+        color: var(--text);
+      }
+      input::placeholder {
+        color: var(--placeholder);
+        opacity: 1;
+      }
+      input:focus,
+      select:focus {
+        border-color: var(--line);
+        outline-color: var(--line);
+      }
+      button:hover {
+        background: var(--hover);
+        border-color: var(--line);
+      }
+      #send,
+      button.primary,
+      .mode-toggle::before,
+      .settings-status .pill::before,
+      .settings-status .pill.ok::before,
+      .settings-status .pill.warn::before,
+      .settings-status .pill.bad::before {
+        border-color: var(--primary);
+        background: var(--primary);
+        color: var(--primary-text);
+      }
+      #send:hover,
+      button.primary:hover {
+        background: var(--primary);
+      }
+      .mode-toggle:not(.nfc) span:first-child,
+      .mode-toggle.nfc span:last-child {
+        color: var(--primary-text);
+      }
+      .modal {
+        background: var(--modal-bg);
+      }
+      .modal form {
+        border-color: var(--line);
+        background: var(--page);
+        color: var(--text);
+      }
+      @media (min-width: 760px) and (orientation: landscape), (min-width: 900px) {
+        main {
+          display: grid;
+          grid-template-columns: minmax(320px, 480px) minmax(360px, 1fr);
+          grid-template-rows: auto auto;
+          column-gap: clamp(28px, 6vw, 96px);
+          row-gap: 18px;
+          align-content: center;
+          align-items: center;
+        }
+        .top,
+        .card {
+          width: 100%;
+          max-width: 480px;
+          margin: 0;
+        }
+        .top {
+          min-height: 0;
+          align-self: end;
+        }
+        .brand-logo {
+          width: min(240px, 28vw);
+        }
+        .card {
+          align-self: start;
+        }
+        .result {
+          grid-column: 2;
+          grid-row: 1 / span 2;
+          width: 100%;
+          height: 100%;
+          margin: 0;
+          align-self: stretch;
+          align-content: center;
+        }
+        #result-summary {
+          min-height: min(42svh, 360px);
+        }
+      }
+      @media (min-width: 760px) and (orientation: landscape) and (max-height: 520px) {
+        main {
+          grid-template-columns: minmax(280px, 420px) minmax(320px, 1fr);
+          grid-template-rows: 1fr;
+          column-gap: clamp(18px, 4vw, 48px);
+          padding: 14px 24px;
+        }
+        .top,
+        .card {
+          grid-column: 1;
+          grid-row: 1;
+        }
+        .top {
+          align-self: start;
+        }
+        .card {
+          align-self: end;
+        }
+        .brand-logo {
+          width: min(112px, 15vw);
+        }
+        .card {
+          gap: 10px;
+        }
+        input,
+        select,
+        .mode-toggle {
+          height: 48px;
+        }
+        #send,
+        button.primary {
+          min-height: 52px;
+        }
+        #result-summary {
+          min-height: 170px;
+          font-size: clamp(22px, 4vw, 34px);
+        }
+        .result {
+          grid-row: 1;
+        }
+      }
     </style>
   </head>
   <body>
