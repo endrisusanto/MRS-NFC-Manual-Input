@@ -1,4 +1,4 @@
-const CACHE = 'mers-remote-v8';
+const CACHE = 'mers-remote-v9';
 const ASSETS = ['.', 'index.html', 'manifest.webmanifest', 'mers-logo.png', 'mers-gen-map.js'];
 
 self.addEventListener('install', event => {
@@ -13,5 +13,13 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
-  event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request)));
+  event.respondWith(
+    fetch(event.request)
+      .then(response => {
+        const cacheCopy = response.clone();
+        caches.open(CACHE).then(cache => cache.put(event.request, cacheCopy));
+        return response;
+      })
+      .catch(() => caches.match(event.request))
+  );
 });
