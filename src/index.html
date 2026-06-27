@@ -616,20 +616,7 @@
         --danger: #9f1239;
         --warn: #854d0e;
       }
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --page: #080808;
-          --surface: #111;
-          --text: #f5f5f5;
-          --muted: #bdbdbd;
-          --line: #f5f5f5;
-          --primary: #f5f5f5;
-          --primary-text: #080808;
-          --hover: #1f1f1f;
-          --danger: #fda4af;
-          --warn: #fcd34d;
-        }
-      }
+
       * { transition: none; }
       html,
       body {
@@ -800,22 +787,137 @@
         background: #ffe4e6;
         color: #881337;
       }
-      @media (prefers-color-scheme: dark) {
-        .pill.ok {
-          border-color: #4ade80;
-          background: #14291c;
-          color: #bbf7d0;
-        }
-        .pill.warn {
-          border-color: #facc15;
-          background: #2d240f;
-          color: #fde68a;
-        }
-        .pill.bad {
-          border-color: #fb7185;
-          background: #32161c;
-          color: #fecdd3;
-        }
+
+
+      /* ── Order Modal ── */
+      .order-modal-inner {
+        width: min(560px, 100%);
+        max-height: 88vh;
+        overflow-y: auto;
+        padding: 28px;
+        border-radius: 24px;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        box-shadow: 0 30px 70px rgba(0,0,0,.8);
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .order-tabs {
+        display: flex;
+        border-bottom: 1px solid var(--line, rgba(255,255,255,.12));
+        margin-bottom: 4px;
+      }
+      .order-tab {
+        flex: 1;
+        padding: 9px 4px;
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        background: transparent;
+        border: none;
+        border-bottom: 2px solid transparent;
+        color: var(--text, #e5e7eb);
+        cursor: pointer;
+        min-height: auto;
+        border-radius: 0;
+      }
+      .order-tab.active { border-bottom-color: var(--primary); }
+      .order-step { display: none; flex-direction: column; gap: 12px; }
+      .order-step.active { display: flex; }
+      .order-label {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: var(--text);
+        opacity: .7;
+      }
+      .order-input {
+        width: 100%;
+        height: 48px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        color: var(--text);
+        padding: 0 12px;
+        font-size: 15px;
+        font-family: inherit;
+        outline: none;
+        margin-bottom: 0;
+        text-align: left;
+        letter-spacing: normal;
+      }
+      .order-input:focus { border-color: var(--primary); }
+      .order-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end; }
+      .menu-cards { display: flex; flex-direction: column; gap: 8px; }
+      .menu-card {
+        border: 2px solid var(--line, rgba(255,255,255,.1));
+        border-radius: 12px;
+        padding: 11px 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        background: transparent;
+        color: var(--text, #f5f5f5);
+        font-size: 14px;
+        font-weight: 700;
+        min-height: auto;
+      }
+      .menu-card:hover { border-color: #16a34a; background: rgba(22,163,74,.06); }
+      .menu-card.selected { border-color: #16a34a; background: rgba(22,163,74,.12); }
+      .menu-stock {
+        font-size: 11px; font-weight: 700; padding: 3px 9px;
+        border-radius: 20px; white-space: nowrap; flex-shrink: 0;
+      }
+      .stock-ok  { background: #14291c; color: #bbf7d0; border: 1px solid #4ade80; }
+      .stock-low { background: #2d240f; color: #fde68a; border: 1px solid #facc15; }
+      .stock-out { background: #32161c; color: #fecdd3; border: 1px solid #fb7185; }
+      @media (prefers-color-scheme: light) {
+        .stock-ok  { background: #dcfce7; color: #14532d; }
+        .stock-low { background: #fef9c3; color: #713f12; }
+        .stock-out { background: #fee2e2; color: #7f1d1d; }
+      }
+      .order-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+      .order-btn {
+        height: 48px;
+        border-radius: 12px;
+        border: 1px solid var(--line, rgba(255,255,255,.1));
+        background: rgba(255,255,255,.04);
+        color: var(--text, #e5e7eb);
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .order-btn.primary {
+        background: var(--primary, #f5f5f5);
+        color: var(--primary-text, #080808);
+        border-color: var(--primary, #f5f5f5);
+      }
+      .order-btn:hover { opacity: .85; }
+      .order-btn:disabled { opacity: .4; cursor: not-allowed; }
+      .order-msg { font-size: 12px; color: #f87171; margin: 0; }
+      .order-loading { text-align: center; padding: 16px; opacity: .6; font-size: 13px; }
+      .order-history-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      .order-history-table th, .order-history-table td {
+        text-align: left; padding: 6px 8px;
+        border-bottom: 1px solid var(--line, rgba(255,255,255,.08));
+        vertical-align: middle;
+      }
+      .order-history-table th { font-size: 11px; font-weight: 800; opacity: .6; text-transform: uppercase; }
+      .btn-batal {
+        padding: 3px 9px; font-size: 11px; font-weight: 700;
+        background: #32161c; color: #f87171;
+        border: 1px solid #fb7185; border-radius: 8px; cursor: pointer; min-height: auto;
+      }
+      .btn-batal:hover { background: #3f1a20; }
+      @media (prefers-color-scheme: light) {
+        .btn-batal { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
       }
     </style>
   </head>
@@ -831,6 +933,7 @@
         <h1>MeRS Desktop</h1>
         <p>Masukkan GEN 8 digit atau ID kartu 10 digit yang akan dieksekusi.</p>
         <button class="server-btn" id="settings">Server</button>
+        <button class="server-btn" id="pesan-btn" style="background:#16a34a;color:#fff;border-color:#16a34a;width:auto;padding:0 14px;">🍽 Pesan Menu</button>
         <input id="uid" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="1696235068" autofocus>
         <div class="cards">
           <button class="card" id="tap"><strong>Tap In Scanner</strong><span>Masuk ke pilihan loket untuk ID ini.</span></button>
@@ -884,6 +987,79 @@
         </div>
       </form>
     </div>
+
+    <!-- ── Order Modal ── -->
+    <div id="order-modal" class="modal" hidden>
+      <div class="order-modal-inner">
+        <h3 style="margin:0 0 4px; font-size:18px; font-weight:850; text-align:center;">🍽 Pesan Menu</h3>
+
+        <div class="order-tabs">
+          <button class="order-tab active" data-tab="pesan">Pesan</button>
+          <button class="order-tab" data-tab="riwayat">Riwayat</button>
+        </div>
+
+        <!-- Step: Login -->
+        <div class="order-step active" id="ostep-login">
+          <p style="margin:0; font-size:13px; opacity:.7;">Login dengan GEN ID dan password (tanggal lahir).</p>
+          <div>
+            <label class="order-label">GEN ID</label>
+            <input class="order-input" id="o-gen" inputmode="numeric" autocomplete="off" maxlength="12">
+          </div>
+          <div>
+            <label class="order-label">Password (Tanggal Lahir)</label>
+            <input class="order-input" id="o-pass" type="password" autocomplete="current-password">
+          </div>
+          <p class="order-msg" id="o-login-msg" hidden></p>
+          <div class="order-actions">
+            <button class="order-btn" id="o-cancel">Batal</button>
+            <button class="order-btn primary" id="o-login">Masuk →</button>
+          </div>
+        </div>
+
+        <!-- Step: Pilih Menu -->
+        <div class="order-step" id="ostep-menu">
+          <div class="order-row">
+            <div>
+              <label class="order-label">Tanggal</label>
+              <input class="order-input" id="o-date" type="date">
+            </div>
+            <div>
+              <label class="order-label">Jadwal</label>
+              <select class="order-input" id="o-meal">
+                <option value="2">Makan Siang</option>
+                <option value="3">Makan Malam</option>
+              </select>
+            </div>
+            <button class="order-btn primary" id="o-load" style="height:48px;">Cari</button>
+          </div>
+          <div class="menu-cards" id="o-menu-list"></div>
+          <div class="order-actions">
+            <button class="order-btn" id="o-logout">Logout</button>
+            <button class="order-btn primary" id="o-submit" disabled>Simpan Pesanan</button>
+          </div>
+        </div>
+
+        <!-- Tab: Riwayat -->
+        <div class="order-step" id="ostep-history">
+          <div class="order-row">
+            <div>
+              <label class="order-label">Dari</label>
+              <input class="order-input" id="o-from" type="date">
+            </div>
+            <div>
+              <label class="order-label">Sampai</label>
+              <input class="order-input" id="o-to" type="date">
+            </div>
+            <button class="order-btn primary" id="o-history-load" style="height:48px;">Muat</button>
+          </div>
+          <div id="o-history-content"><div class="order-loading">Pilih tanggal lalu klik Muat.</div></div>
+          <div class="order-actions">
+            <button class="order-btn primary" id="o-history-close" style="grid-column:1/-1;">Tutup</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script src="mers-gen-map.js"></script>
     <script>
       const invoke = window.__TAURI__.core.invoke;
@@ -1142,6 +1318,199 @@
         setInterval(checkStatuses, 15000);
       }
       init();
+
+      // ── Fitur Pesan Menu ─────────────────────────────────────────────────
+      const ORDER_KEY = 'mers_order_creds_desktop';
+      let orderCreds = null;
+      let selectedMenuId = null;
+
+      function oToday()    { return new Date().toISOString().split('T')[0]; }
+      function oTomorrow() { const d = new Date(); d.setDate(d.getDate()+1); return d.toISOString().split('T')[0]; }
+
+      function showOStep(step) {
+        document.querySelectorAll('.order-step').forEach(s => s.classList.remove('active'));
+        document.getElementById('ostep-' + step).classList.add('active');
+      }
+
+      document.querySelectorAll('.order-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.order-tab').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          const tab = btn.dataset.tab;
+          if (tab === 'pesan') {
+            showOStep(orderCreds ? 'menu' : 'login');
+          } else {
+            if (!orderCreds) { showOStep('login'); return; }
+            showOStep('history');
+            document.getElementById('o-from').value = oToday();
+            document.getElementById('o-to').value   = oToday();
+          }
+        });
+      });
+
+      document.getElementById('pesan-btn').addEventListener('click', () => {
+        try { orderCreds = JSON.parse(localStorage.getItem(ORDER_KEY)); } catch(_) {}
+        document.getElementById('order-modal').hidden = false;
+        if (orderCreds) {
+          showOStep('menu');
+          document.getElementById('o-date').value = oTomorrow();
+        } else {
+          showOStep('login');
+        }
+      });
+
+      document.getElementById('o-cancel').addEventListener('click', () => {
+        document.getElementById('order-modal').hidden = true;
+      });
+
+      document.getElementById('o-login').addEventListener('click', async () => {
+        const genId    = document.getElementById('o-gen').value.trim();
+        const password = document.getElementById('o-pass').value.trim();
+        const msg      = document.getElementById('o-login-msg');
+        if (!genId || !password) { msg.textContent = 'GEN ID dan password wajib diisi.'; msg.hidden = false; return; }
+        msg.hidden = true;
+        const btn = document.getElementById('o-login');
+        btn.disabled = true; btn.textContent = 'Masuk...';
+        try {
+          const res = await invoke('order_login', { genId, password, server: serverUrl() });
+          if (res.success) {
+            orderCreds = { genId, password };
+            localStorage.setItem(ORDER_KEY, JSON.stringify(orderCreds));
+            showOStep('menu');
+            document.getElementById('o-date').value = oTomorrow();
+          } else {
+            msg.textContent = res.message || 'Login gagal';
+            msg.hidden = false;
+          }
+        } catch(e) {
+          msg.textContent = String(e);
+          msg.hidden = false;
+        }
+        btn.disabled = false; btn.textContent = 'Masuk →';
+      });
+
+      document.getElementById('o-logout').addEventListener('click', () => {
+        orderCreds = null;
+        localStorage.removeItem(ORDER_KEY);
+        showOStep('login');
+      });
+
+      document.getElementById('o-load').addEventListener('click', loadOrderMenu);
+
+      async function loadOrderMenu() {
+        if (!orderCreds) return;
+        const date    = document.getElementById('o-date').value;
+        const meal_id = document.getElementById('o-meal').value;
+        if (!date) return;
+        const list = document.getElementById('o-menu-list');
+        list.innerHTML = '<div class="order-loading">Memuat menu...</div>';
+        selectedMenuId = null;
+        document.getElementById('o-submit').disabled = true;
+        try {
+          const [stock, names] = await Promise.all([
+            invoke('order_stock',      { genId: orderCreds.genId, password: orderCreds.password, server: serverUrl(), date, mealId: meal_id }),
+            invoke('order_menu_names', { genId: orderCreds.genId, password: orderCreds.password, server: serverUrl(), date, mealId: meal_id }),
+          ]);
+          if (!stock.success || !stock.data?.length) {
+            list.innerHTML = '<div class="order-loading">Tidak ada menu tersedia.</div>'; return;
+          }
+          const ns = names.names || {};
+          list.innerHTML = stock.data.map(item => {
+            const name  = ns[item.schedule_menu_id] || ('Menu #' + item.schedule_menu_id);
+            const bal   = parseInt(item.qty_balance, 10);
+            const cls   = bal > 20 ? 'stock-ok' : bal > 0 ? 'stock-low' : 'stock-out';
+            return `<button class="menu-card" data-id="${item.schedule_menu_id}" ${bal === 0 ? 'disabled style="opacity:.4"' : ''}>
+              <span>${name}</span>
+              <span class="menu-stock ${cls}">${bal > 0 ? bal + ' sisa' : 'Habis'}</span>
+            </button>`;
+          }).join('');
+          document.querySelectorAll('.menu-card:not([disabled])').forEach(card => {
+            card.addEventListener('click', () => {
+              document.querySelectorAll('.menu-card').forEach(c => c.classList.remove('selected'));
+              card.classList.add('selected');
+              selectedMenuId = card.dataset.id;
+              document.getElementById('o-submit').disabled = false;
+            });
+          });
+        } catch(e) {
+          list.innerHTML = `<div class="order-loading" style="color:#f87171">Gagal: ${e}</div>`;
+        }
+      }
+
+      document.getElementById('o-submit').addEventListener('click', async () => {
+        if (!orderCreds || !selectedMenuId) return;
+        const date    = document.getElementById('o-date').value;
+        const meal_id = document.getElementById('o-meal').value;
+        const jadwal  = meal_id === '2' ? 'Makan Siang' : 'Makan Malam';
+        if (!confirm(`Pesan untuk ${jadwal} tanggal ${date}?`)) return;
+        const btn = document.getElementById('o-submit');
+        btn.disabled = true; btn.textContent = 'Menyimpan...';
+        try {
+          const res = await invoke('order_submit', {
+            genId: orderCreds.genId, password: orderCreds.password,
+            server: serverUrl(), date, mealId: meal_id, menuId: selectedMenuId
+          });
+          if (res.success) { alert('✅ Pesanan berhasil disimpan!'); document.getElementById('order-modal').hidden = true; }
+          else alert('❌ Gagal: ' + (res.message || 'Error'));
+        } catch(e) { alert('❌ Error: ' + e); }
+        btn.disabled = false; btn.textContent = 'Simpan Pesanan';
+      });
+
+      document.getElementById('o-history-load').addEventListener('click', loadOrderHistory);
+      document.getElementById('o-history-close').addEventListener('click', () => {
+        document.getElementById('order-modal').hidden = true;
+      });
+
+      async function loadOrderHistory() {
+        if (!orderCreds) return;
+        const from = document.getElementById('o-from').value;
+        const to   = document.getElementById('o-to').value;
+        if (!from || !to) return;
+        const cont = document.getElementById('o-history-content');
+        cont.innerHTML = '<div class="order-loading">Memuat riwayat...</div>';
+        try {
+          const data = await invoke('order_history', {
+            genId: orderCreds.genId, password: orderCreds.password,
+            server: serverUrl(), from, to
+          });
+          if (!data.success || !data.rows?.length) {
+            cont.innerHTML = '<div class="order-loading">Tidak ada pesanan di rentang ini.</div>'; return;
+          }
+          cont.innerHTML = `<div style="overflow-x:auto">
+            <table class="order-history-table">
+              <thead><tr><th>Tgl</th><th>Jadwal</th><th>Menu</th><th>Status</th><th></th></tr></thead>
+              <tbody>${data.rows.map(row => {
+                const isSudah = row.status?.toLowerCase().includes('sudah');
+                const badge = isSudah
+                  ? 'background:#14291c;color:#bbf7d0;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700'
+                  : 'background:#32161c;color:#f87171;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700';
+                return `<tr>
+                  <td>${row.tanggal?.replace(/(\d+) (\w+) \d+/, '$1 $2') || ''}</td>
+                  <td>${(row.jadwal || '').replace('Makan ', '')}</td>
+                  <td><b>${row.menu || ''}</b></td>
+                  <td><span style="${badge}">${isSudah ? 'Sudah' : 'Belum'}</span></td>
+                  <td>${row.xid && !isSudah ? `<button class="btn-batal" data-xid="${row.xid}">Batal</button>` : ''}</td>
+                </tr>`;
+              }).join('')}</tbody>
+            </table></div>`;
+          document.querySelectorAll('.btn-batal').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              if (!confirm('Batalkan pesanan ini?')) return;
+              btn.disabled = true; btn.textContent = '...';
+              try {
+                const res = await invoke('order_cancel', {
+                  genId: orderCreds.genId, password: orderCreds.password,
+                  server: serverUrl(), xid: btn.dataset.xid
+                });
+                if (res.success) { alert('✅ Pesanan dibatalkan.'); loadOrderHistory(); }
+                else alert('❌ ' + (res.message || 'Gagal'));
+              } catch(e) { alert('❌ Error: ' + e); }
+            });
+          });
+        } catch(e) {
+          cont.innerHTML = `<div class="order-loading" style="color:#f87171">Gagal: ${e}</div>`;
+        }
+      }
     </script>
   </body>
 </html>

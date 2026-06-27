@@ -371,7 +371,7 @@
 
       .top { justify-content: center; position: relative; border-bottom: 0; padding-bottom: 4px; }
       .top h1, .badges span { display: none; }
-      .brand-logo { width: 176px; max-width: 62vw; height: auto; filter: drop-shadow(0 18px 36px rgba(16,185,129,.25)); }
+      .brand-logo { width: 100px; max-width: 40vw; height: auto; filter: drop-shadow(0 18px 36px rgba(16,185,129,.25)); }
       main { max-width: 440px; grid-template-rows: auto auto 1fr auto; }
       .card { border: 0; background: transparent; padding: 0; }
       .scan-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; }
@@ -385,7 +385,7 @@
       }
       .mode-toggle.nfc::before { transform: translateX(100%); }
       .mode-toggle span { z-index: 1; display: grid; place-items: center; font-size: 12px; font-weight: 850; }
-      .result { grid-template-rows: auto auto; }
+      .result { grid-template-rows: auto; }
       #result-summary { min-height: 120px; display: grid; place-items: center; text-align: center; color: #f5f5f5; font-size: 18px; font-weight: 750; }
       #result-image { width: 100%; max-height: 280px; object-fit: contain; border-radius: 16px; background: rgba(0,0,0,.25); }
       #debug-output { max-height: 180px; min-height: 80px; }
@@ -411,7 +411,7 @@
         backdrop-filter: none;
         -webkit-backdrop-filter: none;
       }
-      .brand-logo { width: 168px; filter: none; cursor: pointer; }
+      .brand-logo { width: 100px; filter: none; cursor: pointer; }
       button:hover {
         transform: none;
         background: #171717;
@@ -476,7 +476,8 @@
         background: #e5e5e5;
         box-shadow: none;
       }
-      .foot { display: none; }
+      .foot { display: block; }
+      #note { display: none; }
       .status,
       #result-summary,
       pre {
@@ -560,12 +561,12 @@
         color: #111;
       }
       .top {
-        min-height: 28svh;
+        min-height: 14svh;
         align-items: end;
         padding: 0;
       }
       .brand-logo {
-        width: min(140px, 35vw);
+        width: min(90px, 28vw);
         margin: 0 auto;
       }
       .card {
@@ -718,19 +719,7 @@
         --placeholder: #777;
         --modal-bg: rgba(244, 244, 242, .92);
       }
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --page: #080808;
-          --surface: #111;
-          --text: #f5f5f5;
-          --line: #f5f5f5;
-          --primary: #f5f5f5;
-          --primary-text: #080808;
-          --hover: #1f1f1f;
-          --placeholder: #bdbdbd;
-          --modal-bg: rgba(0, 0, 0, .88);
-        }
-      }
+
       html, body, main {
         background: var(--page);
         color: var(--text);
@@ -955,30 +944,14 @@
       .settings-status .pill.ok::before { background: #22c55e; }
       .settings-status .pill.warn::before { background: #f59e0b; }
       .settings-status .pill.bad::before { background: #f43f5e; }
-      @media (prefers-color-scheme: dark) {
-        .pill.ok {
-          border-color: #4ade80;
-          background: #14291c;
-          color: #bbf7d0;
-        }
-        .pill.warn {
-          border-color: #facc15;
-          background: #2d240f;
-          color: #fde68a;
-        }
-        .pill.bad {
-          border-color: #fb7185;
-          background: #32161c;
-          color: #fecdd3;
-        }
-      }
+
       input#uid {
-        background: #080808;
-        color: #fff;
-        caret-color: #fff;
+        background: var(--surface);
+        color: var(--text);
+        caret-color: var(--text);
       }
       input#uid::placeholder {
-        color: #fff;
+        color: var(--placeholder);
       }
       body.nfc-mode #send {
         display: none;
@@ -1006,7 +979,7 @@
         padding: 0 4px;
       }
       .carousel-btn {
-        background: rgba(255, 255, 255, 0.08);
+        background: var(--surface);
         border: 1px solid var(--line);
         color: var(--text);
         padding: 6px 14px;
@@ -1048,6 +1021,11 @@
         overflow: auto;
         font-size: 14px;
         font-weight: 600;
+      }
+      /* Hasil selalu muncul di modal — sembunyikan box dari halaman utama */
+      #result-summary,
+      #result-image {
+        display: none !important;
       }
       @media (min-width: 900px) and (orientation: portrait) {
         main {
@@ -1161,6 +1139,20 @@
         display: flex;
         flex-direction: column;
         gap: 14px;
+        padding: 24px;
+        border-radius: 0;
+        border: 1px solid #111;
+        background: #f4f4f2;
+        color: #111;
+      }
+      #order-modal input,
+      #order-modal select {
+        background: #fff;
+        color: #111;
+        border-color: #111;
+      }
+      #order-modal label {
+        color: #111;
       }
       .order-tabs {
         display: flex;
@@ -1214,6 +1206,9 @@
       .stock-ok  { background: #dcfce7; color: #14532d; }
       .stock-low { background: #fef9c3; color: #713f12; }
       .stock-out { background: #fee2e2; color: #7f1d1d; }
+      .menu-day { display: flex; flex-direction: column; gap: 8px; }
+      .menu-day h4, .menu-meal h5 { margin: 0; }
+      .menu-meal { display: flex; flex-direction: column; gap: 8px; }
 
       .history-table { width: 100%; border-collapse: collapse; font-size: 12px; }
       .history-table th, .history-table td {
@@ -1237,12 +1232,7 @@
       .history-table .btn-batal:hover { background: #fecaca; }
       .order-loading { text-align: center; padding: 20px; color: var(--text); opacity: .6; font-size: 13px; }
 
-      @media (prefers-color-scheme: dark) {
-        .stock-ok  { background: #14291c; color: #bbf7d0; }
-        .stock-low { background: #2d240f; color: #fde68a; }
-        .stock-out { background: #32161c; color: #fecdd3; }
-        .history-table .btn-batal { background: #3b1515; color: #f87171; border-color: #7f1d1d; }
-      }
+
     </style>
   </head>
   <body>
@@ -1254,7 +1244,6 @@
 
       <section class="card">
         <button id="mode-button" type="button" class="mode-button cek-pesanan">Cek Pesanan</button>
-        <button id="pesan-menu-btn" type="button" class="mode-button pesan-menu">🍽 Pesan Menu</button>
         <label for="uid">ID kartu / GEN</label>
         <input id="uid" inputmode="numeric" autocomplete="off" maxlength="10">
         <div class="scan-row" style="margin-top:10px">
@@ -1270,6 +1259,7 @@
       </section>
 
       <div class="foot">
+        <button id="pesan-menu-btn" type="button" class="mode-button pesan-menu" style="width:100%; margin-bottom:8px;">🍽 Pesan Menu</button>
         <div id="note" class="muted">Web NFC butuh Android Chrome + HTTPS.</div>
       </div>
     </main>
@@ -1350,7 +1340,7 @@
           <p id="order-login-msg" style="margin:0; font-size:12px; color:#dc2626; display:none;"></p>
           <div class="actions">
             <button id="order-cancel-login" type="button">Batal</button>
-            <button id="order-do-login" type="button" class="primary" style="grid-column: 1/-1;">Masuk →</button>
+            <button id="order-do-login" type="button" class="primary">Masuk →</button>
           </div>
         </div>
 
@@ -1612,21 +1602,13 @@
         setStatus(text, kind);
         setDebug(data);
         const image = isTauriApp() ? imageSrcFrom(data) : '';
-        $('result-image').hidden = !image;
-        if (image) $('result-image').src = image;
+        $('result-image').hidden = true;
 
-        if (isAndroidApp()) {
-          $('modal-result-title').textContent = text;
-          currentSlide = 0;
-          $('modal-result-content').innerHTML = detailHtml(data, false);
-          $('result-modal').hidden = false;
-          $('result-summary').classList.remove('detail');
-          $('result-summary').textContent = 'Belum ada response.';
-        } else {
-          $('result-summary').classList.add('detail');
-          currentSlide = 0;
-          $('result-summary').innerHTML = detailHtml(data, false);
-        }
+        // Always show result in modal (Android + PWA web)
+        $('modal-result-title').textContent = text;
+        currentSlide = 0;
+        $('modal-result-content').innerHTML = detailHtml(data, false);
+        $('result-modal').hidden = false;
       }
 
       function setConn(state) {
@@ -1689,6 +1671,13 @@
           state.ws.onerror = () => setConn('offline');
           state.ws.onmessage = event => {
             const data = JSON.parse(event.data);
+            if (data.requestId && orderRequests.has(data.requestId)) {
+              const pending = orderRequests.get(data.requestId);
+              clearTimeout(pending.timer);
+              orderRequests.delete(data.requestId);
+              pending.resolve(data);
+              return;
+            }
             renderResponse(data);
           };
         } catch (error) {
@@ -1731,8 +1720,6 @@
         if (state.ws?.readyState === WebSocket.OPEN) {
           state.ws.send(JSON.stringify(message));
           setStatus('Terkirim.', 'ok');
-          $('result-summary').classList.remove('detail');
-          $('result-summary').textContent = 'Terkirim.';
         } else if (state.config.url) {
           setStatus('WebSocket belum online.', 'bad');
         } else {
@@ -1911,6 +1898,7 @@
       const ORDER_KEY = 'mers_order_creds';
       let orderCreds = null; // { genId, password }
       let selectedMenuId = null;
+      const orderRequests = new Map();
 
       function orderProxyBase() {
         // Derive proxy base from current WS URL or page origin
@@ -1924,13 +1912,45 @@
         return location.origin;
       }
 
+      function orderLocalDate(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+
       function orderToday() {
-        return new Date().toISOString().split('T')[0];
+        return orderLocalDate(new Date());
       }
 
       function orderTomorrow() {
         const d = new Date(); d.setDate(d.getDate() + 1);
-        return d.toISOString().split('T')[0];
+        return orderLocalDate(d);
+      }
+
+      function orderDateRange(start, count = 4) {
+        const base = new Date(`${start}T00:00:00`);
+        return Array.from({ length: count }, (_, i) => {
+          const d = new Date(base);
+          d.setDate(base.getDate() + i);
+          return orderLocalDate(d);
+        });
+      }
+
+      function orderWsRequest(payload) {
+        return new Promise((resolve, reject) => {
+          if (state.ws?.readyState !== WebSocket.OPEN) {
+            reject(new Error('WebSocket belum online.'));
+            return;
+          }
+          const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+          const timer = setTimeout(() => {
+            orderRequests.delete(requestId);
+            reject(new Error('Timeout menunggu Tauri agent.'));
+          }, 30000);
+          orderRequests.set(requestId, { resolve, reject, timer });
+          state.ws.send(JSON.stringify({ type: 'command', device: state.config.device, requestId, ...payload }));
+        });
       }
 
       function openOrderModal() {
@@ -1939,7 +1959,8 @@
         try { orderCreds = JSON.parse(localStorage.getItem(ORDER_KEY)); } catch (_) {}
         if (orderCreds) {
           showOrderStep('menu');
-          $('order-date').value = orderTomorrow();
+          $('order-date').value = orderToday();
+          loadMenuOptions();
         } else {
           showOrderStep('login');
         }
@@ -1984,23 +2005,16 @@
         $('order-login-msg').style.display = 'none';
 
         try {
-          const r = await fetch(orderProxyBase() + '/mers-proxy/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ genId, password }),
-          });
-          const data = await r.json();
-          if (data.success) {
-            orderCreds = { genId, password };
-            localStorage.setItem(ORDER_KEY, JSON.stringify(orderCreds));
-            showOrderStep('menu');
-            $('order-date').value = orderTomorrow();
-          } else {
-            $('order-login-msg').textContent = data.message || 'Login gagal';
-            $('order-login-msg').style.display = 'block';
-          }
+          orderCreds = { genId, password };
+          localStorage.setItem(ORDER_KEY, JSON.stringify(orderCreds));
+          showOrderStep('menu');
+          $('order-date').value = orderToday();
+          await loadMenuOptions();
         } catch (e) {
-          $('order-login-msg').textContent = 'Tidak dapat terhubung ke server proxy.';
+          orderCreds = null;
+          localStorage.removeItem(ORDER_KEY);
+          showOrderStep('login');
+          $('order-login-msg').textContent = e.message || 'Login gagal';
           $('order-login-msg').style.display = 'block';
         }
         $('order-do-login').disabled = false;
@@ -2028,38 +2042,47 @@
         selectedMenuId = null;
         $('order-submit').disabled = true;
 
-        const base = orderProxyBase();
-        const qs   = `date=${date}&meal_id=${meal_id}&genId=${orderCreds.genId}&password=${encodeURIComponent(orderCreds.password)}`;
-
         try {
-          const [stockRes, namesRes] = await Promise.all([
-            fetch(`${base}/mers-proxy/stock?${qs}`).then(r => r.json()),
-            fetch(`${base}/mers-proxy/menu-names?${qs}`).then(r => r.json()),
-          ]);
+          const data = await orderWsRequest({
+            action: 'order_menu_range',
+            genId: orderCreds.genId,
+            password: orderCreds.password,
+            dates: orderDateRange(date, 4),
+          });
 
-          if (!stockRes.success || !stockRes.data?.length) {
+          if (!data.success && !data.days?.some(day => day.meals?.some(meal => meal.menus?.length))) {
+            throw new Error(data.message || data.errors?.[0]?.message || 'Menu tidak tersedia');
+          }
+
+          if (!data.days?.length) {
             list.innerHTML = '<div class="order-loading">Tidak ada menu tersedia untuk tanggal ini.</div>';
             return;
           }
 
-          const names = namesRes.names || {};
-          list.innerHTML = stockRes.data.map(item => {
-            const name   = names[item.schedule_menu_id] || ('Menu #' + item.schedule_menu_id);
-            const bal    = parseInt(item.qty_balance, 10);
-            const cls    = bal > 20 ? 'stock-ok' : bal > 0 ? 'stock-low' : 'stock-out';
-            const label  = bal > 0 ? `${bal} sisa` : 'Habis';
-            return `
-              <div class="menu-card" data-id="${item.schedule_menu_id}" ${bal === 0 ? 'style="opacity:.5;pointer-events:none"' : ''}>
-                <span class="menu-card-name">${name}</span>
-                <span class="menu-card-stock ${cls}">${label}</span>
-              </div>`;
-          }).join('');
+          list.innerHTML = data.days.map(day => `
+            <div class="menu-day">
+              <h4>${esc(day.date)}</h4>
+              ${(day.meals || []).map(meal => `
+                <div class="menu-meal">
+                  <h5>${esc(meal.meal_name)}</h5>
+                  ${(meal.menus || []).length ? meal.menus.map(item => {
+                    const bal = parseInt(item.qty_balance, 10) || 0;
+                    const cls = bal > 20 ? 'stock-ok' : bal > 0 ? 'stock-low' : 'stock-out';
+                    const label = bal > 0 ? `${bal} sisa` : 'Habis';
+                    return `
+                      <div class="menu-card" data-id="${esc(item.id)}" data-date="${esc(day.date)}" data-meal="${esc(meal.meal_id)}" ${bal === 0 ? 'style="opacity:.5;pointer-events:none"' : ''}>
+                        <span class="menu-card-name">${esc(item.name)}</span>
+                        <span class="menu-card-stock ${cls}">${label}</span>
+                      </div>`;
+                  }).join('') : '<div class="order-loading">Tidak ada menu.</div>'}
+                </div>`).join('')}
+            </div>`).join('');
 
           document.querySelectorAll('.menu-card').forEach(card => {
             card.addEventListener('click', () => {
               document.querySelectorAll('.menu-card').forEach(c => c.classList.remove('selected'));
               card.classList.add('selected');
-              selectedMenuId = card.dataset.id;
+              selectedMenuId = { id: card.dataset.id, date: card.dataset.date, meal_id: card.dataset.meal };
               $('order-submit').disabled = false;
             });
           });
@@ -2071,8 +2094,8 @@
       // Submit order
       $('order-submit').addEventListener('click', async () => {
         if (!orderCreds || !selectedMenuId) return;
-        const date    = $('order-date').value;
-        const meal_id = $('order-meal').value;
+        const date    = selectedMenuId.date;
+        const meal_id = selectedMenuId.meal_id;
         const jadwal  = meal_id === '2' ? 'Makan Siang' : 'Makan Malam';
 
         if (!confirm(`Pesan untuk ${jadwal} tanggal ${date}?`)) return;
@@ -2089,7 +2112,7 @@
               password: orderCreds.password,
               xtanggal: date,
               xjadwal: meal_id,
-              menusaya: selectedMenuId,
+              menusaya: selectedMenuId.id,
             }),
           });
           const data = await r.json();
