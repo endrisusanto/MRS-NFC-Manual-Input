@@ -1823,6 +1823,7 @@
       const ORDER_KEY = 'mers_order_creds';
       let orderCreds = null; // { genId, password }
       let selectedMenus = new Map();
+      let canceledXids = new Set();
       const orderRequests = new Map();
 
       function orderProxyBase() {
@@ -2033,8 +2034,9 @@
                     const labelText = isOrdered ? 'Sudah pesan' : label;
                     const badgeCls = isOrdered ? 'stock-low' : cls;
                     const isDisabled = bal === 0;
+                    const xidAttr = existing && existing.xid ? `data-xid="${esc(existing.xid)}"` : '';
                     return `
-                      <label class="${cardCls}" data-key="${esc(key)}" data-id="${esc(item.id)}" data-date="${esc(day.date)}" data-meal="${esc(meal.meal_id)}" ${isDisabled ? 'style="opacity:.4;pointer-events:none"' : ''}>
+                      <label class="${cardCls}" data-key="${esc(key)}" data-id="${esc(item.id)}" data-date="${esc(day.date)}" data-meal="${esc(meal.meal_id)}" ${xidAttr} ${isDisabled ? 'style="opacity:.4;pointer-events:none"' : ''}>
                         <input type="radio" name="order-${esc(key)}" ${isOrdered ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}>
                         <span class="menu-card-name">${esc(item.name)}${item.detail ? `<small>${esc(item.detail)}</small>` : ''}</span>
                         <span class="menu-card-stock ${badgeCls}">${labelText}</span>
@@ -2047,12 +2049,36 @@
             if (card.classList.contains('selected')) {
               selectedMenus.set(card.dataset.key, { id: card.dataset.id, date: card.dataset.date, meal_id: card.dataset.meal });
             }
+
+            card.addEventListener('click', (e) => {
+              if (card.style.pointerEvents === 'none') return;
+              const isAlreadySelected = card.classList.contains('selected');
+              if (isAlreadySelected) {
+                e.preventDefault();
+                const input = card.querySelector('input');
+                if (input) input.checked = false;
+                card.classList.remove('selected');
+                selectedMenus.delete(card.dataset.key);
+
+                const xid = card.dataset.xid;
+                if (xid) {
+                  canceledXids.add(xid);
+                }
+                $('order-submit').disabled = false;
+              }
+            });
+
             card.querySelector('input')?.addEventListener('change', () => {
               document.querySelectorAll('.menu-card').forEach(c => {
                 if (c.dataset.key === card.dataset.key) c.classList.remove('selected');
               });
               card.classList.add('selected');
               selectedMenus.set(card.dataset.key, { id: card.dataset.id, date: card.dataset.date, meal_id: card.dataset.meal });
+
+              document.querySelectorAll(`.menu-card[data-key="${card.dataset.key}"]`).forEach(c => {
+                if (c.dataset.xid) canceledXids.delete(c.dataset.xid);
+              });
+
               $('order-submit').disabled = false;
             });
           });
@@ -2063,10 +2089,13 @@
 
       // Submit order
       $('order-submit').addEventListener('click', async () => {
-        if (!orderCreds || !selectedMenus.size) return;
+        if (!orderCreds) return;
         const orders = [...selectedMenus.values()];
+        const cancels = [...canceledXids];
 
-        if (!confirm(`Simpan ${orders.length} pesanan terpilih?`)) return;
+        if (!orders.length && !cancels.length) return;
+
+        if (!confirm(`Simpan perubahan pesanan Anda (Simpan: ${orders.length}, Batalkan: ${cancels.length})?`)) return;
 
         $('order-submit').disabled = true;
         $('order-submit').textContent = 'Menyimpan...';
@@ -2075,6 +2104,15 @@
           const results = [];
           for (const order of orders) {
             results.push(await submitOrder(order));
+          }
+          for (const xid of cancels) {
+            const data = await orderWsRequest({
+              action: 'order_cancel',
+              genId: orderCreds.genId,
+              password: orderCreds.password,
+              xid,
+            });
+            results.push(data);
           }
           const failed = results.filter(item => !item.success);
           if (!failed.length) {

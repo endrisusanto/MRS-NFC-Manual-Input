@@ -1325,6 +1325,8 @@
       const ORDER_KEY = 'mers_order_creds_desktop';
       let orderCreds = null;
       let selectedMenuId = null;
+      let canceledXid = null;
+      let initialXid = null;
 
       function oToday()    { return new Date().toISOString().split('T')[0]; }
       function oTomorrow() { const d = new Date(); d.setDate(d.getDate()+1); return d.toISOString().split('T')[0]; }
@@ -1440,6 +1442,9 @@
             return rDate === date && historyMeal(row.jadwal) === meal_id;
           });
 
+          canceledXid = null;
+          initialXid = orderedRow ? orderedRow.xid : null;
+
           const menus = data.days?.[0]?.meals?.find(meal => String(meal.meal_id) === meal_id)?.menus || [];
           if (!menus.length) {
             list.innerHTML = '<div class="order-loading">Tidak ada menu tersedia.</div>'; return;
@@ -1458,9 +1463,17 @@
           }).join('');
           document.querySelectorAll('.menu-card:not([disabled])').forEach(card => {
             card.addEventListener('click', () => {
-              document.querySelectorAll('.menu-card').forEach(c => c.classList.remove('selected'));
-              card.classList.add('selected');
-              selectedMenuId = card.dataset.id;
+              const isAlreadySelected = card.classList.contains('selected');
+              if (isAlreadySelected) {
+                card.classList.remove('selected');
+                selectedMenuId = null;
+                if (initialXid) canceledXid = initialXid;
+              } else {
+                document.querySelectorAll('.menu-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                selectedMenuId = card.dataset.id;
+                canceledXid = null;
+              }
               document.getElementById('o-submit').disabled = false;
             });
           });
@@ -1470,21 +1483,46 @@
       }
 
       document.getElementById('o-submit').addEventListener('click', async () => {
-        if (!orderCreds || !selectedMenuId) return;
-        const date    = document.getElementById('o-date').value;
-        const meal_id = document.getElementById('o-meal').value;
-        const jadwal  = meal_id === '2' ? 'Makan Siang' : 'Makan Malam';
-        if (!confirm(`Pesan untuk ${jadwal} tanggal ${date}?`)) return;
+        if (!orderCreds) return;
         const btn = document.getElementById('o-submit');
-        btn.disabled = true; btn.textContent = 'Menyimpan...';
-        try {
-          const res = await invoke('order_submit', {
-            genId: orderCreds.genId, password: orderCreds.password,
-            server: serverUrl(), date, mealId: meal_id, menuId: selectedMenuId
-          });
-          if (res.success) { alert('✅ Pesanan berhasil disimpan!'); document.getElementById('order-modal').hidden = true; }
-          else alert('❌ Gagal: ' + (res.message || 'Error'));
-        } catch(e) { alert('❌ Error: ' + e); }
+        
+        let res;
+        if (selectedMenuId) {
+          const date    = document.getElementById('o-date').value;
+          const meal_id = document.getElementById('o-meal').value;
+          const jadwal  = meal_id === '2' ? 'Makan Siang' : 'Makan Malam';
+          if (!confirm(`Pesan untuk ${jadwal} tanggal ${date}?`)) return;
+          
+          btn.disabled = true; btn.textContent = 'Menyimpan...';
+          try {
+            res = await invoke('order_submit', {
+              genId: orderCreds.genId, password: orderCreds.password,
+              server: serverUrl(), date, mealId: meal_id, menuId: selectedMenuId
+            });
+          } catch(e) { alert('❌ Error: ' + e); btn.disabled = false; btn.textContent = 'Simpan Pesanan'; return; }
+        } else if (canceledXid) {
+          const date    = document.getElementById('o-date').value;
+          const meal_id = document.getElementById('o-meal').value;
+          const jadwal  = meal_id === '2' ? 'Makan Siang' : 'Makan Malam';
+          if (!confirm(`Batalkan pesanan untuk ${jadwal} tanggal ${date}?`)) return;
+          
+          btn.disabled = true; btn.textContent = 'Membatalkan...';
+          try {
+            res = await invoke('order_cancel', {
+              genId: orderCreds.genId, password: orderCreds.password,
+              server: serverUrl(), xid: canceledXid
+            });
+          } catch(e) { alert('❌ Error: ' + e); btn.disabled = false; btn.textContent = 'Simpan Pesanan'; return; }
+        } else {
+          return;
+        }
+        
+        if (res.success) { 
+          alert('✅ Perubahan berhasil disimpan!'); 
+          document.getElementById('order-modal').hidden = true; 
+        } else {
+          alert('❌ Gagal: ' + (res.message || 'Error'));
+        }
         btn.disabled = false; btn.textContent = 'Simpan Pesanan';
       });
 
