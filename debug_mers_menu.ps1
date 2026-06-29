@@ -194,6 +194,42 @@ if ($GenId -and $Password) {
         $report.login = [PSCustomObject]@{ ok = $false; error = $_.Exception.Message }
     }
 
+    # Try fetching the global final-order report mapping
+    $from = $Dates[0]
+    $to = $Dates[-1]
+    $reportUrl = "$BaseUrl/reports/generate/$from/$to/all/final-order"
+    $reportPage = Invoke-Check $reportUrl $session
+    
+    $reportNames = @{}
+    if ($reportPage.ok) {
+        foreach ($m in [regex]::Matches($reportPage.body, '(?is)finalorder/view/(\d+)')) {
+            $id = $m.Groups[1].Value
+            $matchIdx = $m.Index
+            
+            $bodyPre = $reportPage.body.Substring(0, $matchIdx)
+            $trStart = $bodyPre.LastIndexOf("<tr")
+            if ($trStart -ge 0) {
+                $rowHtml = $reportPage.body.Substring($trStart, $matchIdx + 500 - $trStart)
+                $cells = @()
+                foreach ($cellMatch in [regex]::Matches($rowHtml, '(?is)<td[^>]*>(.*?)</td>')) {
+                    $cells += ([regex]::Replace($cellMatch.Groups[1].Value, '<[^>]+>', ' ') -replace '\s+', ' ').Trim()
+                }
+                if ($cells.Count -gt 4) {
+                    $reportNames[$id] = $cells[4]
+                }
+            }
+        }
+    }
+    
+    $report.finalOrderReport = [PSCustomObject]@{
+        url = $reportUrl
+        ok = $reportPage.ok
+        status = $reportPage.status
+        length = $reportPage.length
+        parsedCount = $reportNames.Count
+        mappings = $reportNames
+    }
+
     foreach ($day in $Dates) {
         foreach ($mealId in $MealIds) {
             $stock = Invoke-Check "$BaseUrl/order/get_stock_data?date=$day&schedule_meal_id=$mealId" $session
