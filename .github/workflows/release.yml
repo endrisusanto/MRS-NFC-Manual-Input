@@ -63,6 +63,13 @@ jobs:
           npm config set fetch-retry-maxtimeout 120000
           npm ci
 
+      - name: Add WiX to PATH
+        shell: powershell
+        run: |
+          $wix = Get-ChildItem "C:\Program Files (x86)\WiX Toolset*\bin" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($wix) { echo $wix.FullName | Out-File -Append -FilePath $env:GITHUB_PATH }
+          else { choco install wixtoolset -y --no-progress }
+
       - name: Build MSI
         shell: powershell
         run: |
