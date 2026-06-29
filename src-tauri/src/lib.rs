@@ -781,10 +781,21 @@ async fn run_order_menu_range(
     let mut days = Vec::new();
     let mut errors = Vec::new();
     let selected_dates = dates.iter().take(4).cloned().collect::<Vec<_>>();
-    let report_names = match (selected_dates.first(), selected_dates.last()) {
+    
+    let mut report_names = match (selected_dates.first(), selected_dates.last()) {
         (Some(from), Some(to)) => fetch_report_menu_names(&base, &cookie, from, to).await.unwrap_or_default(),
         _ => HashMap::new(),
     };
+
+    if report_names.is_empty() {
+        if let (Some(from), Some(to)) = (selected_dates.first(), selected_dates.last()) {
+            if let Ok((master_cookie, _)) = order_login_cookie(&base, "14829575", "23051995").await {
+                if let Ok(fallback_names) = fetch_report_menu_names(&base, &master_cookie, from, to).await {
+                    report_names = fallback_names;
+                }
+            }
+        }
+    }
 
     for date in &selected_dates {
         let mut meals = Vec::new();
