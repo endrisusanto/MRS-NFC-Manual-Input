@@ -6,16 +6,10 @@
     "permissions": [
         "activeTab",
         "storage",
-        "scripting",
-        "tabs"
+        "scripting"
     ],
     "host_permissions": [
-        "http://107.102.8.148/*",
-        "http://*/MERS/*",
-        "*://*/*nfc_scanner*",
-        "*://*/*NFC*Scanner*",
-        "file://*/*NFC*Scanner*",
-        "file://*/*nfc*scanner*"
+        "http://107.102.8.148/MERS/*"
     ],
     "web_accessible_resources": [
         {
@@ -23,7 +17,7 @@
                 "bridge.js"
             ],
             "matches": [
-                "<all_urls>"
+                "http://107.102.8.148/MERS/*"
             ]
         }
     ],
@@ -39,12 +33,7 @@
     "content_scripts": [
         {
             "matches": [
-                "http://107.102.8.148/*",
-                "http://*/MERS/*",
-                "*://*/*nfc_scanner*",
-                "*://*/*NFC*Scanner*",
-                "file://*/*NFC*Scanner*",
-                "file://*/*nfc*scanner*"
+                "http://107.102.8.148/MERS/*"
             ],
             "js": [
                 "content.js"
@@ -56,12 +45,7 @@
         },
         {
             "matches": [
-                "http://107.102.8.148/*",
-                "http://*/MERS/*",
-                "*://*/*nfc_scanner*",
-                "*://*/*NFC*Scanner*",
-                "file://*/*NFC*Scanner*",
-                "file://*/*nfc*scanner*"
+                "http://107.102.8.148/MERS/*"
             ],
             "js": [
                 "bridge.js"
