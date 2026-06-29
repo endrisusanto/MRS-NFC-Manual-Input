@@ -1168,11 +1168,23 @@
         align-items: center;
         justify-content: space-between;
         gap: 10px;
+        -webkit-tap-highlight-color: transparent;
       }
       .menu-card:hover { border-color: #16a34a; background: rgba(22,163,74,.06); }
       .menu-card.selected { border-color: #16a34a; background: rgba(22,163,74,.12); }
       .menu-card.ordered { border-color: #f59e0b; background: #fffbeb; cursor: default; }
-      .menu-card input { width: 18px; height: 18px; accent-color: #16a34a; flex-shrink: 0; }
+      .menu-card input {
+        width: 18px;
+        height: 18px;
+        accent-color: #16a34a;
+        flex-shrink: 0;
+        outline: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .menu-card input:focus, .menu-card input:active {
+        outline: none;
+        box-shadow: none;
+      }
       .menu-card-name { flex: 1; font-size: 14px; font-weight: 700; }
       .menu-card-name small { display:block; margin-top:4px; font-size:11px; font-weight:600; line-height:1.35; opacity:.7; }
       .menu-card-stock {
@@ -1186,9 +1198,55 @@
       .stock-ok  { background: #dcfce7; color: #14532d; }
       .stock-low { background: #fef9c3; color: #713f12; }
       .stock-out { background: #fee2e2; color: #7f1d1d; }
-      .menu-day { display: flex; flex-direction: column; gap: 8px; }
-      .menu-day h4, .menu-meal h5 { margin: 0; }
-      .menu-meal { display: flex; flex-direction: column; gap: 8px; }
+
+      /* ponytail: layout with day cards & meal cards containing drop shadow */
+      .day-card {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 16px;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .day-title {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 800;
+        color: #1e293b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .day-meals {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .meal-card {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 12px;
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -1px rgba(0, 0, 0, 0.01);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .meal-title {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 750;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .menu-list-container {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
 
       .order-loading { text-align: center; padding: 20px; color: var(--text); opacity: .6; font-size: 13px; }
 
@@ -2018,38 +2076,44 @@
           }
 
           list.innerHTML = data.days.map(day => `
-            <div class="menu-day">
-              <h4>${esc(day.date)}</h4>
-              ${(day.meals || []).map(meal => `
-                <div class="menu-meal">
-                  <h5>${esc(meal.meal_name)}</h5>
-                  ${(meal.menus || []).length ? meal.menus.map(item => {
-                    const bal = parseInt(item.qty_balance, 10) || 0;
-                    const cls = bal > 20 ? 'stock-ok' : bal > 0 ? 'stock-low' : 'stock-out';
-                    const label = bal > 0 ? `${bal} sisa` : 'Habis';
-                    const key = `${day.date}|${meal.meal_id}`;
-                    const existing = ordered.get(key);
-                    const isOrdered = existing && isMenuMatch(item.name, existing.menu);
-                    const cardCls = isOrdered ? 'menu-card selected' : 'menu-card';
-                    // ponytail: show taken status (Sudah/Belum Diambil) with appropriate badge colors
-                    let badgeCls = cls;
-                    let labelText = label;
-                    if (isOrdered) {
-                      const status = existing ? (existing.status || 'Belum Diambil') : 'Belum Diambil';
-                      labelText = `Sudah pesan (${status})`;
-                      badgeCls = status.toLowerCase().includes('sudah') ? 'stock-ok' : 'stock-low';
-                    }
-                    const isDisabled = bal === 0;
-                    const xidAttr = existing && existing.xid ? `data-xid="${esc(existing.xid)}"` : '';
-                    return `
-                      <label class="${cardCls}" data-key="${esc(key)}" data-id="${esc(item.id)}" data-date="${esc(day.date)}" data-meal="${esc(meal.meal_id)}" ${xidAttr} ${isDisabled ? 'style="opacity:.4;pointer-events:none"' : ''}>
-                        <input type="radio" name="order-${esc(key)}" ${isOrdered ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}>
-                        <span class="menu-card-name">${esc(item.name)}${item.detail ? `<small>${esc(item.detail)}</small>` : ''}</span>
-                        <span class="menu-card-stock ${badgeCls}">${labelText}</span>
-                      </label>`;
-                  }).join('') : '<div class="order-loading">Pemilihan Menu Sudah ditutup</div>'}
-                </div>`).join('')}
-            </div>`).join('');
+            <div class="day-card">
+              <h4 class="day-title">${esc(day.date)}</h4>
+              <div class="day-meals">
+                ${(day.meals || []).map(meal => `
+                  <div class="meal-card">
+                    <h5 class="meal-title">${esc(meal.meal_name)}</h5>
+                    <div class="menu-list-container">
+                      ${(meal.menus || []).length ? meal.menus.map(item => {
+                        const bal = parseInt(item.qty_balance, 10) || 0;
+                        const cls = bal > 20 ? 'stock-ok' : bal > 0 ? 'stock-low' : 'stock-out';
+                        const label = bal > 0 ? `${bal} sisa` : 'Habis';
+                        const key = `${day.date}|${meal.meal_id}`;
+                        const existing = ordered.get(key);
+                        const isOrdered = existing && isMenuMatch(item.name, existing.menu);
+                        const cardCls = isOrdered ? 'menu-card selected' : 'menu-card';
+                        // ponytail: show taken status (Sudah/Belum Diambil) with appropriate badge colors
+                        let badgeCls = cls;
+                        let labelText = label;
+                        if (isOrdered) {
+                          const status = existing ? (existing.status || 'Belum Diambil') : 'Belum Diambil';
+                          labelText = `Sudah pesan (${status})`;
+                          badgeCls = status.toLowerCase().includes('sudah') ? 'stock-ok' : 'stock-low';
+                        }
+                        const isDisabled = bal === 0;
+                        const xidAttr = existing && existing.xid ? `data-xid="${esc(existing.xid)}"` : '';
+                        return `
+                          <label class="${cardCls}" data-key="${esc(key)}" data-id="${esc(item.id)}" data-date="${esc(day.date)}" data-meal="${esc(meal.meal_id)}" ${xidAttr} ${isDisabled ? 'style="opacity:.4;pointer-events:none"' : ''}>
+                            <input type="radio" name="order-${esc(key)}" ${isOrdered ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}>
+                            <span class="menu-card-name">${esc(item.name)}${item.detail ? `<small>${esc(item.detail)}</small>` : ''}</span>
+                            <span class="menu-card-stock ${badgeCls}">${labelText}</span>
+                          </label>`;
+                      }).join('') : '<div class="order-loading">Pemilihan Menu Sudah ditutup</div>'}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `).join('');
 
           document.querySelectorAll('.menu-card').forEach(card => {
             if (card.classList.contains('selected')) {
