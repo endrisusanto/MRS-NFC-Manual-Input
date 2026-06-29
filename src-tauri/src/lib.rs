@@ -134,6 +134,12 @@ mod tests {
     }
 
     #[test]
+    fn html_menu_names_reads_label_input_unquoted() {
+        let names = html_menu_labels(r#"<label><input name=menusaya value=49959>Ayam Goreng</label>"#);
+        assert_eq!(names.get("49959").unwrap().name, "Ayam Goreng");
+    }
+
+    #[test]
     fn html_menu_labels_reads_card_detail() {
         let html = r#"
           <div class="menu-card">
@@ -373,7 +379,7 @@ fn all_html_text(html: &str, pattern: &str) -> Vec<String> {
 }
 
 fn html_menu_labels(page: &str) -> HashMap<String, MenuLabel> {
-    let id_re = regex::Regex::new(r#"(?is)(?:value|data-id|data-menu-id|data-schedule-menu-id)\s*=\s*["'](\d+)["']"#).unwrap();
+    let id_re = regex::Regex::new(r#"(?is)(?:value|data-id|data-menu-id|data-schedule-menu-id)\s*=\s*["']?(\d+)["']?"#).unwrap();
     let mut labels = HashMap::new();
 
     for cap in id_re.captures_iter(page) {
@@ -394,14 +400,14 @@ fn html_menu_labels(page: &str) -> HashMap<String, MenuLabel> {
         if let Ok(re) = regex::Regex::new(r#"(?is)<input[^>]*>"#) {
             clean_chunk = re.replace_all(&clean_chunk, "").to_string();
         }
-        if let Ok(re) = regex::Regex::new(r#"(?is)<[^>]+(?:class|id)\s*=\s*["'][^"']*(?:menu-item-name|menu-info|detail)[^"']*["'][^>]*>.*?</[^>]+>"#) {
+        if let Ok(re) = regex::Regex::new(r#"(?is)<[^>]+(?:class|id)\s*=\s*["']?[^"']*(?:menu-item-name|menu-info|detail)[^"']*["']?[^>]*>.*?</[^>]+>"#) {
             clean_chunk = re.replace_all(&clean_chunk, "").to_string();
         }
-        if let Ok(re) = regex::Regex::new(r#"(?is)<[^>]+(?:class|id)\s*=\s*["'][^"']*(?:qty|stock|balance)[^"']*["'][^>]*>.*?</[^>]+>"#) {
+        if let Ok(re) = regex::Regex::new(r#"(?is)<[^>]+(?:class|id)\s*=\s*["']?[^"']*(?:qty|stock|balance)[^"']*["']?[^>]*>.*?</[^>]+>"#) {
             clean_chunk = re.replace_all(&clean_chunk, "").to_string();
         }
 
-        let mut title = first_html_text(chunk, r#"(?is)<[^>]+(?:class|id)\s*=\s*["'][^"']*(?:menu-title|menu-name|item-title)[^"']*["'][^>]*>(.*?)</[^>]+>"#);
+        let mut title = first_html_text(chunk, r#"(?is)<[^>]+(?:class|id)\s*=\s*["']?[^"']*(?:menu-title|menu-name|item-title)[^"']*["']?[^>]*>(.*?)</[^>]+>"#);
         if title.is_empty() {
             title = first_html_text(chunk, r#"(?is)<h[2-5][^>]*>(.*?)</h[2-5]>"#);
         }
@@ -417,7 +423,7 @@ fn html_menu_labels(page: &str) -> HashMap<String, MenuLabel> {
             continue;
         }
 
-        let detail = all_html_text(chunk, r#"(?is)<[^>]+(?:class|id)\s*=\s*["'][^"']*(?:menu-item-name|menu-info)[^"']*["'][^>]*>(.*?)</[^>]+>"#)
+        let detail = all_html_text(chunk, r#"(?is)<[^>]+(?:class|id)\s*=\s*["']?[^"']*(?:menu-item-name|menu-info)[^"']*["']?[^>]*>(.*?)</[^>]+>"#)
             .join(" | ");
         labels.entry(id).or_insert(MenuLabel { name, detail });
     }
@@ -721,7 +727,7 @@ async fn fetch_order_menu(
     let stock = response_body(stock_text);
 
     let page_text = client
-        .get(format!("{base}/order/pilihmenu?xtanggal={date}&xjadwal={meal_id}"))
+        .get(format!("{base}/order/pilihmenu?xtanggal={date}&xjadwal={meal_id}&xfor_date={date}&xjm={meal_id}"))
         .header("Cookie", cookie)
         .send().await.map_err(|e| e.to_string())?
         .text().await.map_err(|e| e.to_string())?;
@@ -863,7 +869,7 @@ async fn order_menu_names(gen_id: String, password: String, server: String, date
     let (cookie, _) = ensure_order_session(&base, &gen_id, &password).await?;
     let client = reqwest::Client::builder().timeout(Duration::from_secs(5)).build().map_err(|e| e.to_string())?;
     let text = client
-        .get(format!("{base}/order/pilihmenu?xtanggal={date}&xjadwal={meal_id}"))
+        .get(format!("{base}/order/pilihmenu?xtanggal={date}&xjadwal={meal_id}&xfor_date={date}&xjm={meal_id}"))
         .header("Cookie", cookie)
         .send().await.map_err(|e| e.to_string())?
         .text().await.map_err(|e| e.to_string())?;

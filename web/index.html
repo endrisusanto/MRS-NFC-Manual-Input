@@ -2087,6 +2087,59 @@
         }
       }
 
+      function mrsConfirm(message, title = 'Konfirmasi') {
+        return new Promise((resolve) => {
+          const modal = $('mrs-dialog-modal');
+          const titleEl = $('mrs-dialog-title');
+          const msgEl = $('mrs-dialog-msg');
+          const okBtn = $('mrs-dialog-ok');
+          const cancelBtn = $('mrs-dialog-cancel');
+          
+          titleEl.textContent = title;
+          msgEl.textContent = message;
+          cancelBtn.style.display = 'block';
+          modal.hidden = false;
+          
+          const cleanup = (val) => {
+            modal.hidden = true;
+            okBtn.removeEventListener('click', onOk);
+            cancelBtn.removeEventListener('click', onCancel);
+            resolve(val);
+          };
+          
+          function onOk() { cleanup(true); }
+          function onCancel() { cleanup(false); }
+          
+          okBtn.addEventListener('click', onOk);
+          cancelBtn.addEventListener('click', onCancel);
+        });
+      }
+
+      function mrsAlert(message, title = 'Info') {
+        return new Promise((resolve) => {
+          const modal = $('mrs-dialog-modal');
+          const titleEl = $('mrs-dialog-title');
+          const msgEl = $('mrs-dialog-msg');
+          const okBtn = $('mrs-dialog-ok');
+          const cancelBtn = $('mrs-dialog-cancel');
+          
+          titleEl.textContent = title;
+          msgEl.textContent = message;
+          cancelBtn.style.display = 'none';
+          modal.hidden = false;
+          
+          const cleanup = () => {
+            modal.hidden = true;
+            okBtn.removeEventListener('click', onOk);
+            resolve();
+          };
+          
+          function onOk() { cleanup(); }
+          
+          okBtn.addEventListener('click', onOk);
+        });
+      }
+
       // Submit order
       $('order-submit').addEventListener('click', async () => {
         if (!orderCreds) return;
@@ -2095,7 +2148,7 @@
 
         if (!orders.length && !cancels.length) return;
 
-        if (!confirm(`Simpan perubahan pesanan Anda (Simpan: ${orders.length}, Batalkan: ${cancels.length})?`)) return;
+        if (!await mrsConfirm(`Simpan perubahan pesanan Anda (Simpan: ${orders.length}, Batalkan: ${cancels.length})?`)) return;
 
         $('order-submit').disabled = true;
         $('order-submit').textContent = 'Menyimpan...';
@@ -2116,18 +2169,29 @@
           }
           const failed = results.filter(item => !item.success);
           if (!failed.length) {
-            alert('✅ Pesanan berhasil disimpan!');
+            await mrsAlert('✅ Pesanan berhasil disimpan!');
             $('order-modal').hidden = true;
           } else {
-            alert('❌ Gagal: ' + (failed[0].message || 'Sebagian pesanan gagal'));
+            await mrsAlert('❌ Gagal: ' + (failed[0].message || 'Sebagian pesanan gagal'));
           }
         } catch (e) {
-          alert('❌ Error: ' + e.message);
+          await mrsAlert('❌ Error: ' + e.message);
         }
         $('order-submit').disabled = false;
         $('order-submit').textContent = 'Simpan Pesanan';
       });
 
     </script>
+    <!-- Custom Modal Dialog -->
+    <div id="mrs-dialog-modal" class="modal" hidden style="z-index: 9999;">
+      <div class="modal-form" style="width: min(380px, 90%); text-align: center; display: flex; flex-direction: column; gap: 20px; padding: 24px; border-radius: 20px;">
+        <h3 id="mrs-dialog-title" style="margin: 0; font-size: 16px; font-weight: 850; color: var(--text);">Konfirmasi</h3>
+        <p id="mrs-dialog-msg" style="margin: 0; font-size: 14px; opacity: 0.85; line-height: 1.5; color: var(--text);"></p>
+        <div class="actions" style="margin-top: 10px; display: flex; gap: 10px;">
+          <button id="mrs-dialog-cancel" type="button" style="width: 100%;">Batal</button>
+          <button id="mrs-dialog-ok" type="button" class="primary" style="width: 100%;">OK</button>
+        </div>
+      </div>
+    </div>
   </body>
 </html>

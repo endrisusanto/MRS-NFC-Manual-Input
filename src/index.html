@@ -1482,6 +1482,59 @@
         }
       }
 
+      function mrsConfirm(message, title = 'Konfirmasi') {
+        return new Promise((resolve) => {
+          const modal = document.getElementById('mrs-dialog-modal');
+          const titleEl = document.getElementById('mrs-dialog-title');
+          const msgEl = document.getElementById('mrs-dialog-msg');
+          const okBtn = document.getElementById('mrs-dialog-ok');
+          const cancelBtn = document.getElementById('mrs-dialog-cancel');
+          
+          titleEl.textContent = title;
+          msgEl.textContent = message;
+          cancelBtn.style.display = 'block';
+          modal.hidden = false;
+          
+          const cleanup = (val) => {
+            modal.hidden = true;
+            okBtn.removeEventListener('click', onOk);
+            cancelBtn.removeEventListener('click', onCancel);
+            resolve(val);
+          };
+          
+          function onOk() { cleanup(true); }
+          function onCancel() { cleanup(false); }
+          
+          okBtn.addEventListener('click', onOk);
+          cancelBtn.addEventListener('click', onCancel);
+        });
+      }
+
+      function mrsAlert(message, title = 'Info') {
+        return new Promise((resolve) => {
+          const modal = document.getElementById('mrs-dialog-modal');
+          const titleEl = document.getElementById('mrs-dialog-title');
+          const msgEl = document.getElementById('mrs-dialog-msg');
+          const okBtn = document.getElementById('mrs-dialog-ok');
+          const cancelBtn = document.getElementById('mrs-dialog-cancel');
+          
+          titleEl.textContent = title;
+          msgEl.textContent = message;
+          cancelBtn.style.display = 'none';
+          modal.hidden = false;
+          
+          const cleanup = () => {
+            modal.hidden = true;
+            okBtn.removeEventListener('click', onOk);
+            resolve();
+          };
+          
+          function onOk() { cleanup(); }
+          
+          okBtn.addEventListener('click', onOk);
+        });
+      }
+
       document.getElementById('o-submit').addEventListener('click', async () => {
         if (!orderCreds) return;
         const btn = document.getElementById('o-submit');
@@ -1491,7 +1544,7 @@
           const date    = document.getElementById('o-date').value;
           const meal_id = document.getElementById('o-meal').value;
           const jadwal  = meal_id === '2' ? 'Makan Siang' : 'Makan Malam';
-          if (!confirm(`Pesan untuk ${jadwal} tanggal ${date}?`)) return;
+          if (!await mrsConfirm(`Pesan untuk ${jadwal} tanggal ${date}?`)) return;
           
           btn.disabled = true; btn.textContent = 'Menyimpan...';
           try {
@@ -1499,12 +1552,12 @@
               genId: orderCreds.genId, password: orderCreds.password,
               server: serverUrl(), date, mealId: meal_id, menuId: selectedMenuId
             });
-          } catch(e) { alert('❌ Error: ' + e); btn.disabled = false; btn.textContent = 'Simpan Pesanan'; return; }
+          } catch(e) { await mrsAlert('❌ Error: ' + e); btn.disabled = false; btn.textContent = 'Simpan Pesanan'; return; }
         } else if (canceledXid) {
           const date    = document.getElementById('o-date').value;
           const meal_id = document.getElementById('o-meal').value;
           const jadwal  = meal_id === '2' ? 'Makan Siang' : 'Makan Malam';
-          if (!confirm(`Batalkan pesanan untuk ${jadwal} tanggal ${date}?`)) return;
+          if (!await mrsConfirm(`Batalkan pesanan untuk ${jadwal} tanggal ${date}?`)) return;
           
           btn.disabled = true; btn.textContent = 'Membatalkan...';
           try {
@@ -1512,16 +1565,16 @@
               genId: orderCreds.genId, password: orderCreds.password,
               server: serverUrl(), xid: canceledXid
             });
-          } catch(e) { alert('❌ Error: ' + e); btn.disabled = false; btn.textContent = 'Simpan Pesanan'; return; }
+          } catch(e) { await mrsAlert('❌ Error: ' + e); btn.disabled = false; btn.textContent = 'Simpan Pesanan'; return; }
         } else {
           return;
         }
         
         if (res.success) { 
-          alert('✅ Perubahan berhasil disimpan!'); 
+          await mrsAlert('✅ Perubahan berhasil disimpan!'); 
           document.getElementById('order-modal').hidden = true; 
         } else {
-          alert('❌ Gagal: ' + (res.message || 'Error'));
+          await mrsAlert('❌ Gagal: ' + (res.message || 'Error'));
         }
         btn.disabled = false; btn.textContent = 'Simpan Pesanan';
       });
@@ -1565,16 +1618,16 @@
             </table></div>`;
           document.querySelectorAll('.btn-batal').forEach(btn => {
             btn.addEventListener('click', async () => {
-              if (!confirm('Batalkan pesanan ini?')) return;
+              if (!await mrsConfirm('Batalkan pesanan ini?')) return;
               btn.disabled = true; btn.textContent = '...';
               try {
                 const res = await invoke('order_cancel', {
                   genId: orderCreds.genId, password: orderCreds.password,
                   server: serverUrl(), xid: btn.dataset.xid
                 });
-                if (res.success) { alert('✅ Pesanan dibatalkan.'); loadOrderHistory(); }
-                else alert('❌ ' + (res.message || 'Gagal'));
-              } catch(e) { alert('❌ Error: ' + e); }
+                if (res.success) { await mrsAlert('✅ Pesanan dibatalkan.'); loadOrderHistory(); }
+                else await mrsAlert('❌ ' + (res.message || 'Gagal'));
+              } catch(e) { await mrsAlert('❌ Error: ' + e); }
             });
           });
         } catch(e) {
@@ -1582,5 +1635,16 @@
         }
       }
     </script>
+    <!-- Custom Modal Dialog -->
+    <div id="mrs-dialog-modal" class="modal" hidden style="z-index: 9999;">
+      <div class="order-modal-inner" style="width: min(380px, 90%); text-align: center; display: flex; flex-direction: column; gap: 20px; padding: 24px; border-radius: 20px;">
+        <h3 id="mrs-dialog-title" style="margin: 0; font-size: 16px; font-weight: 850; color: var(--text);">Konfirmasi</h3>
+        <p id="mrs-dialog-msg" style="margin: 0; font-size: 14px; opacity: 0.85; line-height: 1.5; color: var(--text);"></p>
+        <div class="order-actions" style="margin-top: 10px; display: flex; gap: 10px;">
+          <button id="mrs-dialog-cancel" type="button" class="order-btn" style="width: 100%;">Batal</button>
+          <button id="mrs-dialog-ok" type="button" class="order-btn primary" style="width: 100%;">OK</button>
+        </div>
+      </div>
+    </div>
   </body>
 </html>
