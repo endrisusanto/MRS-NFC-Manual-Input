@@ -1447,7 +1447,7 @@
 
           const menus = data.days?.[0]?.meals?.find(meal => String(meal.meal_id) === meal_id)?.menus || [];
           if (!menus.length) {
-            list.innerHTML = '<div class="order-loading">Tidak ada menu tersedia.</div>'; return;
+            list.innerHTML = '<div class="order-loading">Pemilihan Menu Sudah ditutup</div>'; return;
           }
           list.innerHTML = menus.map(item => {
             const bal   = parseInt(item.qty_balance, 10);
@@ -1456,9 +1456,17 @@
             if (isOrdered) {
               selectedMenuId = item.id;
             }
+            // ponytail: show taken status (Sudah/Belum Diambil) with appropriate badge colors
+            let badgeCls = cls;
+            let labelText = bal > 0 ? bal + ' sisa' : 'Habis';
+            if (isOrdered) {
+              const status = orderedRow.status || 'Belum Diambil';
+              labelText = `Sudah pesan (${status})`;
+              badgeCls = status.toLowerCase().includes('sudah') ? 'stock-ok' : 'stock-low';
+            }
             return `<button class="menu-card ${isOrdered ? 'selected' : ''}" data-id="${esc(item.id)}" ${bal === 0 ? 'disabled style="opacity:.4"' : ''}>
               <span class="menu-card-name">${isOrdered ? '✅ ' : ''}${esc(item.name)}${item.detail ? `<small>${esc(item.detail)}</small>` : ''}</span>
-              <span class="menu-stock ${isOrdered ? 'stock-low' : cls}">${isOrdered ? 'Sudah pesan' : (bal > 0 ? bal + ' sisa' : 'Habis')}</span>
+              <span class="menu-stock ${badgeCls}">${labelText}</span>
             </button>`;
           }).join('');
           document.querySelectorAll('.menu-card:not([disabled])').forEach(card => {

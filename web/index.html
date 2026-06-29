@@ -2013,7 +2013,7 @@
           }
 
           if (!data.days?.length) {
-            list.innerHTML = '<div class="order-loading">Tidak ada menu tersedia untuk tanggal ini.</div>';
+            list.innerHTML = '<div class="order-loading">Pemilihan Menu Sudah ditutup</div>';
             return;
           }
 
@@ -2031,8 +2031,14 @@
                     const existing = ordered.get(key);
                     const isOrdered = existing && isMenuMatch(item.name, existing.menu);
                     const cardCls = isOrdered ? 'menu-card selected' : 'menu-card';
-                    const labelText = isOrdered ? 'Sudah pesan' : label;
-                    const badgeCls = isOrdered ? 'stock-low' : cls;
+                    // ponytail: show taken status (Sudah/Belum Diambil) with appropriate badge colors
+                    let badgeCls = cls;
+                    let labelText = label;
+                    if (isOrdered) {
+                      const status = existing ? (existing.status || 'Belum Diambil') : 'Belum Diambil';
+                      labelText = `Sudah pesan (${status})`;
+                      badgeCls = status.toLowerCase().includes('sudah') ? 'stock-ok' : 'stock-low';
+                    }
                     const isDisabled = bal === 0;
                     const xidAttr = existing && existing.xid ? `data-xid="${esc(existing.xid)}"` : '';
                     return `
@@ -2041,7 +2047,7 @@
                         <span class="menu-card-name">${esc(item.name)}${item.detail ? `<small>${esc(item.detail)}</small>` : ''}</span>
                         <span class="menu-card-stock ${badgeCls}">${labelText}</span>
                       </label>`;
-                  }).join('') : '<div class="order-loading">Tidak ada menu.</div>'}
+                  }).join('') : '<div class="order-loading">Pemilihan Menu Sudah ditutup</div>'}
                 </div>`).join('')}
             </div>`).join('');
 
