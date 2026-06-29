@@ -72,17 +72,14 @@ jobs:
 
       - name: Build MSI
         shell: powershell
+        run: npm run dist:win
+
+      - name: Debug bundle output
+        if: always()
+        shell: powershell
         run: |
-          $ErrorActionPreference = "Stop"
-          for ($i = 1; $i -le 3; $i++) {
-            try {
-              npm run dist:win
-              break
-            } catch {
-              if ($i -eq 3) { throw }
-              Start-Sleep -Seconds (20 * $i)
-            }
-          }
+          Write-Host "=== Bundle directory contents ==="
+          Get-ChildItem src-tauri/target/release/bundle -Recurse -ErrorAction SilentlyContinue | Select-Object FullName
 
       - name: Collect artifacts
         shell: powershell

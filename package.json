@@ -1,6 +1,6 @@
 {
   "name": "mers-nfc-tauri",
-  "version": "1.0.47",
+  "version": "1.0.48",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,7 +8,7 @@
     "dev": "tauri dev",
     "web:dev": "python3 -m http.server 4173 -d web",
     "android:debug": "./scripts/android-debug.sh",
-    "dist:win": "tauri build --bundles nsis"
+    "dist:win": "tauri build --bundles msi"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2"
