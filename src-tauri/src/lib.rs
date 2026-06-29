@@ -107,7 +107,7 @@ fn reverse_hex_bytes(hex: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{html_menu_labels, menu_detail, menu_name, scanner_uid, MenuLabel};
+    use super::{html_menu_labels, menu_detail, menu_name, report_menu_names, scanner_uid, MenuLabel};
     use std::collections::HashMap;
 
     #[test]
@@ -120,9 +120,11 @@ mod tests {
     #[test]
     fn menu_name_prefers_main_name_then_html_name() {
         let names = HashMap::from([("49959".to_string(), MenuLabel { name: "Menu HTML".to_string(), detail: String::new() })]);
-        assert_eq!(menu_name(&serde_json::json!({"main_name": "AYAM"}), &names, "49959"), "AYAM");
-        assert_eq!(menu_name(&serde_json::json!({}), &names, "49959"), "Menu HTML");
-        assert_eq!(menu_name(&serde_json::json!({}), &names, "1"), "Menu #1");
+        let reports = HashMap::from([("50065".to_string(), "AYAM BAKAR KALASAN".to_string())]);
+        assert_eq!(menu_name(&serde_json::json!({"main_name": "AYAM"}), &names, &reports, "49959"), "AYAM");
+        assert_eq!(menu_name(&serde_json::json!({}), &names, &reports, "49959"), "Menu HTML");
+        assert_eq!(menu_name(&serde_json::json!({}), &names, &reports, "50065"), "AYAM BAKAR KALASAN");
+        assert_eq!(menu_name(&serde_json::json!({}), &names, &reports, "1"), "Menu #1");
     }
 
     #[test]
@@ -173,6 +175,19 @@ mod tests {
             "additional_name": "pudding melon"
         }), &HashMap::new(), "49904");
         assert_eq!(detail, "Nasi Putih | Fuyunghai | Bening Bayam | Tumis Tempe Cabe ijo | Pangsit Isi Tahu | Sambal Tomat | Jeruk | pudding melon");
+    }
+
+    #[test]
+    fn report_menu_names_reads_final_order_rows() {
+        let html = r#"
+          <tr>
+            <td>30 Juni 2026</td><td>Makan Siang</td><td>1,2</td><td>Vendor</td>
+            <td>AYAM BAKAR KALASAN</td><td>350</td><td>231</td><td></td><td>0</td>
+            <td>[<a href="http://x/finalorder/view/50065">Rincian</a>]</td>
+          </tr>
+        "#;
+        let names = report_menu_names(html);
+        assert_eq!(names.get("50065").unwrap(), "AYAM BAKAR KALASAN");
     }
 }
 
@@ -336,7 +351,31 @@ fn html_menu_labels(page: &str) -> HashMap<String, MenuLabel> {
     labels
 }
 
-fn menu_name(item: &serde_json::Value, html_names: &HashMap<String, MenuLabel>, id: &str) -> String {
+fn report_menu_names(page: &str) -> HashMap<String, String> {
+    let row_re = regex::Regex::new(r#"(?is)<tr[^>]*>(.*?)</tr>"#).unwrap();
+    let link_re = regex::Regex::new(r#"finalorder/view/(\d+)"#).unwrap();
+    let cell_re = regex::Regex::new(r#"(?is)<td[^>]*>(.*?)</td>"#).unwrap();
+    let mut names = HashMap::new();
+
+    for row in row_re.captures_iter(page) {
+        let Some(id) = link_re.captures(&row[1]).map(|cap| cap[1].to_string()) else { continue; };
+        let cells = cell_re.captures_iter(&row[1])
+            .map(|cap| clean_html_text(&cap[1]))
+            .collect::<Vec<_>>();
+        if let Some(name) = cells.get(4).filter(|name| !name.is_empty()) {
+            names.insert(id, name.clone());
+        }
+    }
+
+    names
+}
+
+fn menu_name(
+    item: &serde_json::Value,
+    html_names: &HashMap<String, MenuLabel>,
+    report_names: &HashMap<String, String>,
+    id: &str,
+) -> String {
     [
         "main_name",
         "menu_detail_name",
@@ -351,6 +390,7 @@ fn menu_name(item: &serde_json::Value, html_names: &HashMap<String, MenuLabel>, 
     .find(|value| !value.is_empty())
     .map(str::to_string)
     .or_else(|| html_names.get(id).map(|label| label.name.clone()))
+    .or_else(|| report_names.get(id).cloned())
     .unwrap_or_else(|| format!("Menu #{id}"))
 }
 
@@ -459,6 +499,7 @@ async fn fetch_order_menu(
     date: &str,
     meal_id: &str,
     meal_name: &str,
+    report_names: &HashMap<String, String>,
 ) -> Result<serde_json::Value, String> {
     let cache_key = format!("{base}|{date}|{meal_id}");
     {
@@ -495,7 +536,7 @@ async fn fetch_order_menu(
             .unwrap_or_default();
         serde_json::json!({
             "id": id,
-            "name": menu_name(item, &names, &id),
+            "name": menu_name(item, &names, report_names, &id),
             "detail": menu_detail(item, &names, &id),
             "qty_balance": item["qty_balance"].clone()
         })
@@ -513,6 +554,16 @@ async fn fetch_order_menu(
     Ok(value)
 }
 
+async fn fetch_report_menu_names(base: &str, cookie: &str, from: &str, to: &str) -> Result<HashMap<String, String>, String> {
+    let client = reqwest::Client::builder().timeout(Duration::from_secs(5)).build().map_err(|e| e.to_string())?;
+    let text = client
+        .get(format!("{base}/reports/generate/{from}/{to}/all/final-order"))
+        .header("Cookie", cookie)
+        .send().await.map_err(|e| e.to_string())?
+        .text().await.map_err(|e| e.to_string())?;
+    Ok(report_menu_names(&text))
+}
+
 async fn run_order_menu_range(
     gen_id: &str,
     password: &str,
@@ -523,11 +574,16 @@ async fn run_order_menu_range(
     let (cookie, _) = ensure_order_session(&base, gen_id, password).await?;
     let mut days = Vec::new();
     let mut errors = Vec::new();
+    let selected_dates = dates.iter().take(4).cloned().collect::<Vec<_>>();
+    let report_names = match (selected_dates.first(), selected_dates.last()) {
+        (Some(from), Some(to)) => fetch_report_menu_names(&base, &cookie, from, to).await.unwrap_or_default(),
+        _ => HashMap::new(),
+    };
 
-    for date in dates.iter().take(4) {
+    for date in &selected_dates {
         let mut meals = Vec::new();
         for (meal_id, meal_name) in [("2", "Makan Siang"), ("3", "Makan Malam")] {
-            match fetch_order_menu(&base, &cookie, date, meal_id, meal_name).await {
+            match fetch_order_menu(&base, &cookie, date, meal_id, meal_name, &report_names).await {
                 Ok(meal) => meals.push(meal),
                 Err(message) => errors.push(serde_json::json!({ "date": date, "meal_id": meal_id, "message": message })),
             }
