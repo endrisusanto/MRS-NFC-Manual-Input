@@ -483,19 +483,39 @@ fn order_history_rows(page: &str, target_gen: Option<&str>) -> Vec<serde_json::V
             .map(|c| clean_html_text(&c[1]))
             .collect::<Vec<_>>();
         if cells.len() >= 7 {
-            let row_gen = &cells[4];
+            let mut offset = 0;
             if let Some(target) = target_gen {
-                if row_gen != target {
+                if cells.get(4) == Some(&target.to_string()) {
+                    offset = 0;
+                } else if cells.get(5) == Some(&target.to_string()) {
+                    offset = 1;
+                } else {
                     continue;
                 }
+            } else {
+                let is_date_0 = !report_date_iso(&cells[0]).is_empty();
+                let is_date_1 = cells.len() > 1 && !report_date_iso(&cells[1]).is_empty();
+                if !is_date_0 && is_date_1 {
+                    offset = 1;
+                }
             }
+
+            let tanggal = cells.get(0 + offset).cloned().unwrap_or_default();
+            let jadwal = cells.get(1 + offset).cloned().unwrap_or_default();
+            let loket = cells.get(2 + offset).cloned().unwrap_or_default();
+            let nama = cells.get(3 + offset).cloned().unwrap_or_default();
+            let gen = cells.get(4 + offset).cloned().unwrap_or_default();
+            let part = cells.get(5 + offset).cloned().unwrap_or_default();
+            let menu = cells.get(6 + offset).cloned().unwrap_or_default();
+            let status = cells.get(7 + offset).cloned().unwrap_or_default();
+
             let xid = xid_re.captures(tr_inner).map(|c| c[1].to_string());
             rows.push(serde_json::json!({
-                "tanggal": cells[0],
-                "tanggal_iso": report_date_iso(&cells[0]),
-                "jadwal": cells[1], "loket": cells[2],
-                "nama": cells[3], "gen": cells[4], "part": cells[5],
-                "menu": cells[6], "status": cells.get(7).cloned().unwrap_or_default(),
+                "tanggal": tanggal,
+                "tanggal_iso": report_date_iso(&tanggal),
+                "jadwal": jadwal, "loket": loket,
+                "nama": nama, "gen": gen, "part": part,
+                "menu": menu, "status": status,
                 "xid": xid
             }));
         }
@@ -943,25 +963,23 @@ async fn order_history(gen_id: String, password: String, server: String, from: S
     let mut success = false;
     
     // As requested: use the untaken widget algorithm. 
-    // Fetch /all/final-order using the Master Account, then filter by gen_id.
-    if let Ok((master_cookie, _)) = order_login_cookie(&base, "14829575", "23051995").await {
-        let res_fallback = client
-            .get(format!("{base}/reports/generate/{from}/{to}/all/final-order"))
-            .header("Cookie", master_cookie)
-            .send().await;
-        if let Ok(response) = res_fallback {
-            if response.status().is_success() {
-                if let Ok(t) = response.text().await {
-                    if t.contains("<table") {
-                        text = t;
-                        success = true;
-                    }
+    // Fetch /all/final-order using the user's own cookie.
+    let res_all = client
+        .get(format!("{base}/reports/generate/{from}/{to}/all/final-order"))
+        .header("Cookie", &cookie)
+        .send().await;
+    if let Ok(response) = res_all {
+        if response.status().is_success() {
+            if let Ok(t) = response.text().await {
+                if t.contains("<table") {
+                    text = t;
+                    success = true;
                 }
             }
         }
     }
     
-    // If master account fails (e.g. offline or changed), fallback to standard user request
+    // If all/final-order fails, fallback to uid/final-order
     if !success {
         let res = client
             .get(format!("{base}/reports/generate/{from}/{to}/{uid}/final-order"))

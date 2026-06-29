@@ -27,21 +27,12 @@ try {
     $loginRes = Invoke-WebRequest -Uri $loginUrl -Method Post -Body @{ identity = $GenId; password = $Password } -WebSession $session -TimeoutSec 12 -UseBasicParsing
     Write-Host "   Login sukses! Cookie diperoleh." -ForegroundColor Green
     
-    Write-Host "   Mengekstrak Internal User ID dari order/pilihmenu..." -ForegroundColor Yellow
-    $pilihMenuRes = Invoke-WebRequest -Uri "$BaseUrl/order/pilihmenu" -WebSession $session -TimeoutSec 12 -UseBasicParsing
-    $InternalId = $GenId
-    if ($pilihMenuRes.Content -match "reports/generate/[^/]+/[^/]+/(\d+)") {
-        $InternalId = $matches[1]
-        Write-Host "   Internal User ID ditemukan: $InternalId" -ForegroundColor Green
-    } else {
-        Write-Warning "   Internal User ID tidak ditemukan, menggunakan GenId: $GenId"
-    }
+# Simulate Rust backend: fetch all/final-order using Master Account
+    $reportUrl = "$BaseUrl/reports/generate/$FromDate/$ToDate/all/final-order"
 } catch {
-    Write-Warning "   Gagal login dengan user ${GenId}: $($_)"
+    Write-Warning "   Gagal login: $($_)"
 }
 
-# Try fetching reports with the user session first
-$reportUrl = "$BaseUrl/reports/generate/$FromDate/$ToDate/$InternalId/final-order"
 Write-Host "2. Mengunduh data report final-order dari URL:" -ForegroundColor Yellow
 Write-Host "   $reportUrl" -ForegroundColor Gray
 
