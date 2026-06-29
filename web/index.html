@@ -1269,7 +1269,9 @@
         gap: 8px;
       }
 
-      .order-loading { text-align: center; padding: 20px; color: var(--text); opacity: .6; font-size: 13px; }
+      .order-loading { text-align: center; padding: 24px; color: var(--text); opacity: .8; font-size: 14px; font-weight: bold; }
+      @keyframes wobble { 0%, 100% { transform: rotate(-12deg) scale(1); } 50% { transform: rotate(12deg) scale(1.15); } }
+      @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
 
 
     </style>
@@ -2130,7 +2132,7 @@
         const dates = orderDateRange(orderToday(), 4);
 
         const list = $('order-menu-list');
-        list.innerHTML = '<div class="order-loading">Memuat menu...</div>';
+        list.innerHTML = '<div class="order-loading"><div style="font-size:42px; display:inline-block; animation: wobble 1.5s infinite ease-in-out;">🍱</div><div style="margin-top:12px; animation: pulse 1.5s infinite; letter-spacing: 0.5px;">Memuat menu...</div></div>';
         selectedMenus = new Map();
         $('order-submit').disabled = true;
 

@@ -905,7 +905,9 @@
       .order-btn:hover { opacity: .85; }
       .order-btn:disabled { opacity: .4; cursor: not-allowed; }
       .order-msg { font-size: 12px; color: #f87171; margin: 0; }
-      .order-loading { text-align: center; padding: 16px; opacity: .6; font-size: 13px; }
+      .order-loading { text-align: center; padding: 24px; opacity: .8; font-size: 14px; font-weight: bold; }
+      @keyframes wobble { 0%, 100% { transform: rotate(-12deg) scale(1); } 50% { transform: rotate(12deg) scale(1.15); } }
+      @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
       .order-history-table { width: 100%; border-collapse: collapse; font-size: 12px; }
       .order-history-table th, .order-history-table td {
         text-align: left; padding: 6px 8px;
@@ -1428,7 +1430,7 @@
         const meal_id = document.getElementById('o-meal').value;
         if (!date) return;
         const list = document.getElementById('o-menu-list');
-        list.innerHTML = '<div class="order-loading">Memuat menu...</div>';
+        list.innerHTML = '<div class="order-loading"><div style="font-size:42px; display:inline-block; animation: wobble 1.5s infinite ease-in-out;">🍱</div><div style="margin-top:12px; animation: pulse 1.5s infinite; letter-spacing: 0.5px;">Memuat menu...</div></div>';
         selectedMenuId = null;
         document.getElementById('o-submit').disabled = true;
         try {
@@ -1599,7 +1601,7 @@
         const to   = document.getElementById('o-to').value;
         if (!from || !to) return;
         const cont = document.getElementById('o-history-content');
-        cont.innerHTML = '<div class="order-loading">Memuat riwayat...</div>';
+        cont.innerHTML = '<div class="order-loading"><div style="font-size:42px; display:inline-block; animation: wobble 1.5s infinite ease-in-out;">⏳</div><div style="margin-top:12px; animation: pulse 1.5s infinite; letter-spacing: 0.5px;">Memuat riwayat...</div></div>';
         try {
           const data = await invoke('order_history', {
             genId: orderCreds.genId, password: orderCreds.password,
