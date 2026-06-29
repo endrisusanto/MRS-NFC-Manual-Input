@@ -107,7 +107,7 @@ fn reverse_hex_bytes(hex: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{html_menu_labels, menu_detail, menu_name, order_history_rows, report_menu_names, scanner_uid, MenuLabel};
+    use super::{apply_report_menu_names, enrich_order_from_schedule, html_menu_labels, menu_detail, menu_name, order_history_rows, report_menu_names, scanner_uid, MenuLabel};
     use std::collections::HashMap;
 
     #[test]
@@ -204,6 +204,38 @@ mod tests {
         assert_eq!(rows[0]["jadwal"], "Makan Malam");
         assert_eq!(rows[0]["menu"], "TELUR BALADO");
         assert_eq!(rows[0]["status"], "Belum Diambil");
+    }
+
+    #[test]
+    fn enrich_order_from_schedule_fills_matching_menu_detail() {
+        let mut order = serde_json::json!({ "menu_name": "FUYUNGHAI" });
+        let schedule = serde_json::json!({
+            "menu_name": "FUYUNGHAI",
+            "carbo_name": "Nasi Putih",
+            "main_name": "Fuyunghai",
+            "soup_name": "Bening Bayam"
+        });
+        enrich_order_from_schedule(&mut order, &schedule);
+        assert_eq!(order["carbo_name"], "Nasi Putih");
+        assert_eq!(order["main_name"], "Fuyunghai");
+
+        let mut other = serde_json::json!({ "menu_name": "AYAM KECAP" });
+        enrich_order_from_schedule(&mut other, &schedule);
+        assert!(other["carbo_name"].is_null());
+    }
+
+    #[test]
+    fn apply_report_menu_names_replaces_menu_id_fallback() {
+        let reports = HashMap::from([("49959".to_string(), "UDANG GORENG TEPUNG".to_string())]);
+        let mut value = serde_json::json!({
+            "menus": [
+                { "id": "49959", "name": "Menu #49959" },
+                { "id": "49960", "name": "AYAM KECAP" }
+            ]
+        });
+        apply_report_menu_names(&mut value, &reports);
+        assert_eq!(value["menus"][0]["name"], "UDANG GORENG TEPUNG");
+        assert_eq!(value["menus"][1]["name"], "AYAM KECAP");
     }
 }
 
@@ -458,6 +490,19 @@ fn menu_name(
     .unwrap_or_else(|| format!("Menu #{id}"))
 }
 
+fn apply_report_menu_names(value: &mut serde_json::Value, report_names: &HashMap<String, String>) {
+    let Some(menus) = value["menus"].as_array_mut() else { return; };
+    for menu in menus {
+        let id = json_text(menu, "id").to_string();
+        let name = json_text(menu, "name");
+        if name.starts_with("Menu #") {
+            if let Some(report_name) = report_names.get(&id) {
+                menu["name"] = serde_json::Value::String(report_name.clone());
+            }
+        }
+    }
+}
+
 fn menu_detail(item: &serde_json::Value, html_names: &HashMap<String, MenuLabel>, id: &str) -> String {
     let from_json = [
         "carbo_name",
@@ -481,6 +526,43 @@ fn menu_detail(item: &serde_json::Value, html_names: &HashMap<String, MenuLabel>
     html_names.get(id).map(|label| label.detail.clone()).unwrap_or_default()
 }
 
+fn json_text<'a>(value: &'a serde_json::Value, key: &str) -> &'a str {
+    value[key].as_str().map(str::trim).unwrap_or_default()
+}
+
+fn copy_if_missing(order: &mut serde_json::Value, schedule: &serde_json::Value, key: &str) {
+    let missing = order[key].is_null() || json_text(order, key).is_empty();
+    if missing && !schedule[key].is_null() {
+        order[key] = schedule[key].clone();
+    }
+}
+
+fn enrich_order_from_schedule(order: &mut serde_json::Value, schedule: &serde_json::Value) {
+    let order_menu = json_text(order, "menu_name");
+    let schedule_menu = json_text(schedule, "menu_name");
+    if !order_menu.is_empty() && !schedule_menu.eq_ignore_ascii_case(order_menu) {
+        return;
+    }
+
+    for key in [
+        "menu_name",
+        "base_menu",
+        "remaining_portions",
+        "total_orders",
+        "taken_orders",
+        "main_name",
+        "carbo_name",
+        "soup_name",
+        "option1_name",
+        "option2_name",
+        "option3_name",
+        "fruit_name",
+        "additional_name",
+    ] {
+        copy_if_missing(order, schedule, key);
+    }
+}
+
 // Helper functions for shared execution
 async fn run_cek_pesanan(uid: &str, server: &str) -> Result<serde_json::Value, String> {
     let base_url = server_url(server);
@@ -495,7 +577,7 @@ async fn run_cek_pesanan(uid: &str, server: &str) -> Result<serde_json::Value, S
             "{base_url}/cekorder.php?check_order={}",
             uid.trim()
         ))
-        .header("Cookie", cookie)
+        .header("Cookie", &cookie)
         .send()
         .await
         .map_err(|e| format!("Cek pesanan gagal: {e}"))?
@@ -503,7 +585,32 @@ async fn run_cek_pesanan(uid: &str, server: &str) -> Result<serde_json::Value, S
         .await
         .map_err(|e| e.to_string())?;
 
-    Ok(response_body(text))
+    let mut data = response_body(text);
+    let mut schedules = HashMap::new();
+    if let Some(orders) = data["data"]["orders"].as_array_mut() {
+        for order in orders {
+            let loket = json_text(order, "loket_name")
+                .split(',')
+                .next()
+                .filter(|value| !value.is_empty())
+                .or_else(|| json_text(order, "order_loket").split(',').next())
+                .unwrap_or_default()
+                .to_string();
+            if loket.is_empty() {
+                continue;
+            }
+            if !schedules.contains_key(&loket) {
+                if let Ok(schedule) = loket_schedule(&base_url, &cookie, &loket).await {
+                    schedules.insert(loket.clone(), schedule);
+                }
+            }
+            if let Some(schedule) = schedules.get(&loket).and_then(|value| value["data"]["schedules"].as_array()).and_then(|items| items.first()) {
+                enrich_order_from_schedule(order, schedule);
+            }
+        }
+    }
+
+    Ok(data)
 }
 
 async fn loket_schedule(
@@ -571,7 +678,9 @@ async fn fetch_order_menu(
         if let Some(map) = cache.as_ref() {
             if let Some((created, value)) = map.get(&cache_key) {
                 if created.elapsed() < Duration::from_secs(60) {
-                    return Ok(value.clone());
+                    let mut value = value.clone();
+                    apply_report_menu_names(&mut value, report_names);
+                    return Ok(value);
                 }
             }
         }
@@ -608,7 +717,8 @@ async fn fetch_order_menu(
         None => Vec::new(),
     };
 
-    let value = serde_json::json!({ "meal_id": meal_id, "meal_name": meal_name, "menus": menus });
+    let mut value = serde_json::json!({ "meal_id": meal_id, "meal_name": meal_name, "menus": menus });
+    apply_report_menu_names(&mut value, report_names);
     {
         let mut cache = order_menu_cache();
         if let Some(map) = cache.as_mut() {
