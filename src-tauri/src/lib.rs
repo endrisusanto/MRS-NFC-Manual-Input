@@ -107,7 +107,7 @@ fn reverse_hex_bytes(hex: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{html_menu_labels, menu_name, scanner_uid, MenuLabel};
+    use super::{html_menu_labels, menu_detail, menu_name, scanner_uid, MenuLabel};
     use std::collections::HashMap;
 
     #[test]
@@ -158,6 +158,21 @@ mod tests {
         let label = html_menu_labels(html).get("49959").unwrap().clone();
         assert_eq!(label.name, "AYAM BAKAR");
         assert_eq!(label.detail, "Nasi | Sayur Asem | Buah");
+    }
+
+    #[test]
+    fn menu_detail_prefers_json_components() {
+        let detail = menu_detail(&serde_json::json!({
+            "carbo_name": "Nasi Putih",
+            "main_name": "Fuyunghai",
+            "soup_name": "Bening Bayam",
+            "option1_name": "Tumis Tempe Cabe ijo",
+            "option2_name": "Pangsit Isi Tahu",
+            "option3_name": "Sambal Tomat",
+            "fruit_name": "Jeruk",
+            "additional_name": "pudding melon"
+        }), &HashMap::new(), "49904");
+        assert_eq!(detail, "Nasi Putih | Fuyunghai | Bening Bayam | Tumis Tempe Cabe ijo | Pangsit Isi Tahu | Sambal Tomat | Jeruk | pudding melon");
     }
 }
 
@@ -339,7 +354,26 @@ fn menu_name(item: &serde_json::Value, html_names: &HashMap<String, MenuLabel>, 
     .unwrap_or_else(|| format!("Menu #{id}"))
 }
 
-fn menu_detail(html_names: &HashMap<String, MenuLabel>, id: &str) -> String {
+fn menu_detail(item: &serde_json::Value, html_names: &HashMap<String, MenuLabel>, id: &str) -> String {
+    let from_json = [
+        "carbo_name",
+        "main_name",
+        "soup_name",
+        "option1_name",
+        "option2_name",
+        "option3_name",
+        "fruit_name",
+        "additional_name",
+    ]
+    .iter()
+    .filter_map(|key| item[*key].as_str())
+    .map(str::trim)
+    .filter(|value| !value.is_empty())
+    .collect::<Vec<_>>()
+    .join(" | ");
+    if !from_json.is_empty() {
+        return from_json;
+    }
     html_names.get(id).map(|label| label.detail.clone()).unwrap_or_default()
 }
 
@@ -462,7 +496,7 @@ async fn fetch_order_menu(
         serde_json::json!({
             "id": id,
             "name": menu_name(item, &names, &id),
-            "detail": menu_detail(&names, &id),
+            "detail": menu_detail(item, &names, &id),
             "qty_balance": item["qty_balance"].clone()
         })
         }).collect(),
