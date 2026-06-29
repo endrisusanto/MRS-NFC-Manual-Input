@@ -1998,7 +1998,7 @@
             from: dates[0],
             to: dates[dates.length - 1],
           }).catch(() => ({ rows: [] }));
-          const ordered = new Map((history.rows || []).map(row => [`${historyDate(row.tanggal)}|${historyMeal(row.jadwal)}`, row]));
+          const ordered = new Map((history.rows || []).map(row => [`${row.tanggal_iso || historyDate(row.tanggal)}|${historyMeal(row.jadwal)}`, row]));
 
           if (!data.success && !data.days?.some(day => day.meals?.some(meal => meal.menus?.length))) {
             throw new Error(data.message || data.errors?.[0]?.message || 'Menu tidak tersedia');

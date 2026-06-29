@@ -107,7 +107,7 @@ fn reverse_hex_bytes(hex: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{html_menu_labels, menu_detail, menu_name, report_menu_names, scanner_uid, MenuLabel};
+    use super::{html_menu_labels, menu_detail, menu_name, order_history_rows, report_menu_names, scanner_uid, MenuLabel};
     use std::collections::HashMap;
 
     #[test]
@@ -188,6 +188,22 @@ mod tests {
         "#;
         let names = report_menu_names(html);
         assert_eq!(names.get("50065").unwrap(), "AYAM BAKAR KALASAN");
+    }
+
+    #[test]
+    fn order_history_rows_parse_indonesian_report() {
+        let html = r#"
+          <tr>
+            <td>02 Juli 2026</td><td>Makan Malam</td><td>4</td><td>Endri Susanto</td>
+            <td>16756586</td><td>PE</td><td>TELUR BALADO</td>
+            <td><span class="badge bg-warning"><i class="ti"></i>Belum Diambil</span></td>
+          </tr>
+        "#;
+        let rows = order_history_rows(html);
+        assert_eq!(rows[0]["tanggal_iso"], "2026-07-02");
+        assert_eq!(rows[0]["jadwal"], "Makan Malam");
+        assert_eq!(rows[0]["menu"], "TELUR BALADO");
+        assert_eq!(rows[0]["status"], "Belum Diambil");
     }
 }
 
@@ -368,6 +384,54 @@ fn report_menu_names(page: &str) -> HashMap<String, String> {
     }
 
     names
+}
+
+fn report_date_iso(value: &str) -> String {
+    let re = regex::Regex::new(r#"(?i)^\s*(\d{1,2})\s+([[:alpha:]]+)\s+(\d{4})\s*$"#).unwrap();
+    let Some(cap) = re.captures(value) else { return String::new(); };
+    let month = match cap[2].to_lowercase().as_str() {
+        "januari" | "january" => "01",
+        "februari" | "february" => "02",
+        "maret" | "march" => "03",
+        "april" => "04",
+        "mei" | "may" => "05",
+        "juni" | "june" => "06",
+        "juli" | "july" => "07",
+        "agustus" | "august" => "08",
+        "september" => "09",
+        "oktober" | "october" => "10",
+        "november" => "11",
+        "desember" | "december" => "12",
+        _ => return String::new(),
+    };
+    format!("{}-{}-{:0>2}", &cap[3], month, &cap[1])
+}
+
+fn order_history_rows(page: &str) -> Vec<serde_json::Value> {
+    let tr_re = regex::Regex::new(r"(?is)<tr[^>]*>(.*?)</tr>").unwrap();
+    let td_re = regex::Regex::new(r"(?is)<td[^>]*>(.*?)</td>").unwrap();
+    let xid_re = regex::Regex::new(r"xid=(\d+)").unwrap();
+    let mut rows = Vec::new();
+
+    for tr in tr_re.captures_iter(page) {
+        let tr_inner = &tr[1];
+        let cells = td_re.captures_iter(tr_inner)
+            .map(|c| clean_html_text(&c[1]))
+            .collect::<Vec<_>>();
+        if cells.len() >= 7 {
+            let xid = xid_re.captures(tr_inner).map(|c| c[1].to_string());
+            rows.push(serde_json::json!({
+                "tanggal": cells[0],
+                "tanggal_iso": report_date_iso(&cells[0]),
+                "jadwal": cells[1], "loket": cells[2],
+                "nama": cells[3], "gen": cells[4], "part": cells[5],
+                "menu": cells[6], "status": cells.get(7).cloned().unwrap_or_default(),
+                "xid": xid
+            }));
+        }
+    }
+
+    rows
 }
 
 fn menu_name(
@@ -721,28 +785,7 @@ async fn order_history(gen_id: String, password: String, server: String, from: S
         .send().await.map_err(|e| e.to_string())?
         .text().await.map_err(|e| e.to_string())?;
 
-    // Parse table rows
-    let tr_re  = regex::Regex::new(r"(?s)<tr>(.*?)</tr>").unwrap();
-    let td_re  = regex::Regex::new(r"(?s)<td[^>]*>(.*?)</td>").unwrap();
-    let tag_re = regex::Regex::new(r"<[^>]+>").unwrap();
-    let xid_re = regex::Regex::new(r"xid=(\d+)").unwrap();
-    let mut rows = Vec::new();
-    for tr in tr_re.captures_iter(&text) {
-        let tr_inner = &tr[1];
-        let cells: Vec<String> = td_re.captures_iter(tr_inner)
-            .map(|c| tag_re.replace_all(&c[1], "").trim().to_string())
-            .collect();
-        if cells.len() >= 7 {
-            let xid = xid_re.captures(tr_inner).map(|c| c[1].to_string());
-            rows.push(serde_json::json!({
-                "tanggal": cells[0], "jadwal": cells[1], "loket": cells[2],
-                "nama": cells[3], "gen": cells[4], "part": cells[5],
-                "menu": cells[6], "status": cells.get(7).cloned().unwrap_or_default(),
-                "xid": xid
-            }));
-        }
-    }
-    Ok(serde_json::json!({ "success": true, "rows": rows }))
+    Ok(serde_json::json!({ "success": true, "rows": order_history_rows(&text) }))
 }
 
 #[tauri::command]
