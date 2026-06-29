@@ -104,14 +104,23 @@ class MainActivity : Activity() {
                     apply()
                 }
 
-                // Broadcast update
-                val intent = Intent(this@MainActivity, MersWidget::class.java)
-                intent.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-                val ids = AppWidgetManager.getInstance(application).getAppWidgetIds(
-                    ComponentName(application, MersWidget::class.java)
+                // Broadcast update to 4x2
+                val intent4x2 = Intent(this@MainActivity, MersWidget4x2::class.java)
+                intent4x2.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                val ids4x2 = AppWidgetManager.getInstance(application).getAppWidgetIds(
+                    ComponentName(application, MersWidget4x2::class.java)
                 )
-                intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
-                sendBroadcast(intent)
+                intent4x2.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids4x2)
+                sendBroadcast(intent4x2)
+
+                // Broadcast update to 2x2
+                val intent2x2 = Intent(this@MainActivity, MersWidget2x2::class.java)
+                intent2x2.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                val ids2x2 = AppWidgetManager.getInstance(application).getAppWidgetIds(
+                    ComponentName(application, MersWidget2x2::class.java)
+                )
+                intent2x2.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids2x2)
+                sendBroadcast(intent2x2)
 
                 Toast.makeText(this@MainActivity, "ID $genId dipin ke Widget!", Toast.LENGTH_SHORT).show()
             }

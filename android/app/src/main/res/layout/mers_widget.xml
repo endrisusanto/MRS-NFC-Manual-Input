@@ -24,6 +24,58 @@
         android:id="@+id/widget_carousel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:autoStart="true"
-        android:flipInterval="3000" />
+        android:autoStart="false">
+
+        <!-- Item 1 -->
+        <LinearLayout
+            android:id="@+id/item1_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/item1_menu"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:textColor="#38bdf8"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/item1_detail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:textColor="#94a3b8"
+                android:textSize="10sp"
+                android:layout_marginTop="1dp" />
+        </LinearLayout>
+
+        <!-- Item 2 -->
+        <LinearLayout
+            android:id="@+id/item2_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/item2_menu"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:textColor="#38bdf8"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/item2_detail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:textColor="#94a3b8"
+                android:textSize="10sp"
+                android:layout_marginTop="1dp" />
+        </LinearLayout>
+    </ViewFlipper>
 </LinearLayout>
