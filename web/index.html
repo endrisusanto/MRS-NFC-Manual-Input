@@ -1154,29 +1154,6 @@
       #order-modal label {
         color: #111;
       }
-      .order-tabs {
-        display: flex;
-        border-bottom: 1px solid var(--line);
-        gap: 0;
-        margin-bottom: 4px;
-      }
-      .order-tab {
-        flex: 1;
-        padding: 9px 4px;
-        font-size: 12px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: .06em;
-        background: transparent;
-        border: none;
-        border-bottom: 2px solid transparent;
-        color: var(--text);
-        cursor: pointer;
-        min-height: auto;
-        border-radius: 0;
-        transition: border-color .15s;
-      }
-      .order-tab.active { border-bottom-color: var(--primary); color: var(--primary); }
       .order-step { display: none; flex-direction: column; gap: 12px; }
       .order-step.active { display: flex; }
 
@@ -1194,8 +1171,10 @@
       }
       .menu-card:hover { border-color: #16a34a; background: rgba(22,163,74,.06); }
       .menu-card.selected { border-color: #16a34a; background: rgba(22,163,74,.12); }
+      .menu-card.ordered { border-color: #f59e0b; background: #fffbeb; cursor: default; }
       .menu-card input { width: 18px; height: 18px; accent-color: #16a34a; flex-shrink: 0; }
       .menu-card-name { flex: 1; font-size: 14px; font-weight: 700; }
+      .menu-card-name small { display:block; margin-top:4px; font-size:11px; font-weight:600; line-height:1.35; opacity:.7; }
       .menu-card-stock {
         font-size: 11px;
         font-weight: 700;
@@ -1211,26 +1190,6 @@
       .menu-day h4, .menu-meal h5 { margin: 0; }
       .menu-meal { display: flex; flex-direction: column; gap: 8px; }
 
-      .history-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-      .history-table th, .history-table td {
-        text-align: left;
-        padding: 6px 8px;
-        border-bottom: 1px solid var(--line);
-        vertical-align: middle;
-      }
-      .history-table th { font-size: 11px; font-weight: 700; color: var(--text); opacity: .7; text-transform: uppercase; }
-      .history-table .btn-batal {
-        padding: 4px 10px;
-        min-height: auto;
-        font-size: 11px;
-        background: #fee2e2;
-        color: #b91c1c;
-        border: 1px solid #fca5a5;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: 700;
-      }
-      .history-table .btn-batal:hover { background: #fecaca; }
       .order-loading { text-align: center; padding: 20px; color: var(--text); opacity: .6; font-size: 13px; }
 
 
@@ -1326,11 +1285,6 @@
       <div class="modal-form">
         <h3 style="margin-top:0; font-size:18px; font-weight:850; text-transform:uppercase; letter-spacing:.08em; color:var(--text); text-align:center;">🍽 Pesan Menu</h3>
 
-        <div class="order-tabs">
-          <button class="order-tab active" data-tab="pesan">Pesan</button>
-          <button class="order-tab" data-tab="riwayat">Riwayat</button>
-        </div>
-
         <!-- Step: Login -->
         <div class="order-step active" id="ostep-login">
           <p style="margin:0; font-size:13px; color:var(--text); opacity:.7;">Masukkan GEN ID dan password (tanggal lahir) untuk login ke MERS.</p>
@@ -1354,25 +1308,6 @@
           <div class="actions" style="margin-top:4px;">
             <button id="order-back-login" type="button">Logout</button>
             <button id="order-submit" type="button" class="primary" disabled style="grid-column: 1/-1;">Simpan Pesanan</button>
-          </div>
-        </div>
-
-        <!-- Tab: Riwayat -->
-        <div class="order-step" id="ostep-history">
-          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-            <div style="flex:1; min-width:110px;">
-              <label style="font-size:11px; font-weight:800; letter-spacing:.08em; display:block; margin-bottom:4px;">Dari</label>
-              <input id="history-from" type="date" style="width:100%;">
-            </div>
-            <div style="flex:1; min-width:110px;">
-              <label style="font-size:11px; font-weight:800; letter-spacing:.08em; display:block; margin-bottom:4px;">Sampai</label>
-              <input id="history-to" type="date" style="width:100%;">
-            </div>
-            <button id="history-load" type="button" class="primary" style="align-self:flex-end; min-height:50px; padding:0 16px;">Muat</button>
-          </div>
-          <div id="history-content" style="overflow-x:auto;"><div class="order-loading">Pilih rentang tanggal lalu klik Muat.</div></div>
-          <div class="actions" style="margin-top:4px;">
-            <button id="order-close-history" type="button" class="primary" style="grid-column:1/-1;">Tutup</button>
           </div>
         </div>
       </div>
@@ -1927,6 +1862,19 @@
         });
       }
 
+      function historyDate(value) {
+        const iso = String(value || '').match(/\d{4}-\d{2}-\d{2}/);
+        if (iso) return iso[0];
+        const match = String(value || '').match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
+        if (!match) return '';
+        const months = { january:'01', february:'02', march:'03', april:'04', may:'05', june:'06', july:'07', august:'08', september:'09', october:'10', november:'11', december:'12' };
+        return `${match[3]}-${months[match[2].toLowerCase()] || '01'}-${String(match[1]).padStart(2, '0')}`;
+      }
+
+      function historyMeal(value) {
+        return String(value || '').toLowerCase().includes('malam') ? '3' : '2';
+      }
+
       function orderWsRequest(payload) {
         return new Promise((resolve, reject) => {
           if (state.ws?.readyState !== WebSocket.OPEN) {
@@ -1986,24 +1934,6 @@
         $('ostep-' + step).classList.add('active');
       }
 
-      // Tab switching
-      document.querySelectorAll('.order-tab').forEach(btn => {
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('.order-tab').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          const tab = btn.dataset.tab;
-          if (tab === 'pesan') {
-            showOrderStep(orderCreds ? 'menu' : 'login');
-          } else {
-            showOrderStep('history');
-            if (!orderCreds) { showOrderStep('login'); return; }
-            const today = orderToday();
-            $('history-from').value = today;
-            $('history-to').value = today;
-          }
-        });
-      });
-
       $('pesan-menu-btn').addEventListener('click', openOrderModal);
 
       // Login flow
@@ -2047,6 +1977,7 @@
 
       async function loadMenuOptions() {
         if (!orderCreds) return;
+        const dates = orderDateRange(orderToday(), 4);
 
         const list = $('order-menu-list');
         list.innerHTML = '<div class="order-loading">Memuat menu...</div>';
@@ -2058,8 +1989,16 @@
             action: 'order_menu_range',
             genId: orderCreds.genId,
             password: orderCreds.password,
-            dates: orderDateRange(orderToday(), 4),
+            dates,
           });
+          const history = await orderWsRequest({
+            action: 'order_history',
+            genId: orderCreds.genId,
+            password: orderCreds.password,
+            from: dates[0],
+            to: dates[dates.length - 1],
+          }).catch(() => ({ rows: [] }));
+          const ordered = new Map((history.rows || []).map(row => [`${historyDate(row.tanggal)}|${historyMeal(row.jadwal)}`, row]));
 
           if (!data.success && !data.days?.some(day => day.meals?.some(meal => meal.menus?.length))) {
             throw new Error(data.message || data.errors?.[0]?.message || 'Menu tidak tersedia');
@@ -2081,11 +2020,12 @@
                     const cls = bal > 20 ? 'stock-ok' : bal > 0 ? 'stock-low' : 'stock-out';
                     const label = bal > 0 ? `${bal} sisa` : 'Habis';
                     const key = `${day.date}|${meal.meal_id}`;
+                    const existing = ordered.get(key);
                     return `
-                      <label class="menu-card" data-key="${esc(key)}" data-id="${esc(item.id)}" data-date="${esc(day.date)}" data-meal="${esc(meal.meal_id)}" ${bal === 0 ? 'style="opacity:.5;pointer-events:none"' : ''}>
-                        <input type="radio" name="order-${esc(key)}" ${bal === 0 ? 'disabled' : ''}>
-                        <span class="menu-card-name">${esc(item.name)}</span>
-                        <span class="menu-card-stock ${cls}">${label}</span>
+                      <label class="menu-card ${existing ? 'ordered' : ''}" data-key="${esc(key)}" data-id="${esc(item.id)}" data-date="${esc(day.date)}" data-meal="${esc(meal.meal_id)}" ${bal === 0 || existing ? 'style="opacity:.65;pointer-events:none"' : ''}>
+                        <input type="radio" name="order-${esc(key)}" ${bal === 0 || existing ? 'disabled' : ''}>
+                        <span class="menu-card-name">${esc(item.name)}${item.detail ? `<small>${esc(item.detail)}</small>` : ''}</span>
+                        <span class="menu-card-stock ${existing ? 'stock-low' : cls}">${existing ? 'Sudah pesan' : label}</span>
                       </label>`;
                   }).join('') : '<div class="order-loading">Tidak ada menu.</div>'}
                 </div>`).join('')}
@@ -2135,68 +2075,6 @@
         $('order-submit').textContent = 'Simpan Pesanan';
       });
 
-      // History tab
-      $('history-load').addEventListener('click', loadHistory);
-      $('order-close-history').addEventListener('click', () => $('order-modal').hidden = true);
-
-      async function loadHistory() {
-        if (!orderCreds) return;
-        const from = $('history-from').value;
-        const to   = $('history-to').value;
-        if (!from || !to) return;
-
-        $('history-content').innerHTML = '<div class="order-loading">Memuat riwayat...</div>';
-
-        const base = orderProxyBase();
-        const qs   = `genId=${orderCreds.genId}&password=${encodeURIComponent(orderCreds.password)}&from=${from}&to=${to}`;
-
-        try {
-          const data = await fetch(`${base}/mers-proxy/history?${qs}`).then(r => r.json());
-
-          if (!data.success || !data.rows?.length) {
-            $('history-content').innerHTML = '<div class="order-loading">Tidak ada pesanan di rentang tanggal ini.</div>';
-            return;
-          }
-
-          $('history-content').innerHTML = `
-            <table class="history-table">
-              <thead><tr><th>Tgl</th><th>Jadwal</th><th>Menu</th><th>Status</th><th></th></tr></thead>
-              <tbody>${data.rows.map(row => {
-                const isSudah = row.status.toLowerCase().includes('sudah');
-                const statusStyle = isSudah
-                  ? 'background:#dcfce7;color:#14532d;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700;'
-                  : 'background:#fee2e2;color:#7f1d1d;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700;';
-                return `<tr>
-                  <td>${row.tanggal.replace(/^(\d+) (\w+) \d+$/, '$1 $2')}</td>
-                  <td>${row.jadwal.replace('Makan ', '')}</td>
-                  <td style="font-weight:700">${row.menu}</td>
-                  <td><span style="${statusStyle}">${isSudah ? 'Sudah' : 'Belum'}</span></td>
-                  <td>${row.xid && !isSudah ? `<button class="btn-batal" data-xid="${row.xid}">Batal</button>` : ''}</td>
-                </tr>`;
-              }).join('')}</tbody>
-            </table>`;
-
-          // Attach cancel handlers
-          document.querySelectorAll('.btn-batal').forEach(btn => {
-            btn.addEventListener('click', async () => {
-              if (!confirm('Batalkan pesanan ini?')) return;
-              btn.disabled = true; btn.textContent = '...';
-              try {
-                const r = await fetch(orderProxyBase() + '/mers-proxy/cancel', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ genId: orderCreds.genId, password: orderCreds.password, xid: btn.dataset.xid }),
-                });
-                const data = await r.json();
-                if (data.success) { alert('✅ Pesanan dibatalkan.'); loadHistory(); }
-                else alert('❌ ' + (data.message || 'Gagal membatalkan'));
-              } catch (e) { alert('❌ Error: ' + e.message); }
-            });
-          });
-        } catch (e) {
-          $('history-content').innerHTML = `<div class="order-loading" style="color:#dc2626;">Gagal: ${e.message}</div>`;
-        }
-      }
     </script>
   </body>
 </html>

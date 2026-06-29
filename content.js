@@ -4,6 +4,7 @@
   const MAX_RECENT = 8;
   const STORAGE_KEY_RECENT = 'mrs_nfc_recent_v2';
   const STORAGE_KEY_PINNED = 'mrs_nfc_pinned_v2';
+  const STORAGE_KEY_MENU_LABELS = 'mrs_menu_labels_v1';
 
   // --- STORAGE UTILS (Using chrome.storage for sync) ---
   function getStorageData(key, callback) {
@@ -14,6 +15,39 @@
 
   function setStorageData(key, data, callback) {
     chrome.storage.local.set({ [key]: JSON.stringify(data) }, callback);
+  }
+
+  function text(el) {
+    return (el?.textContent || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function menuLabelFromCard(card) {
+    const title = text(card.querySelector?.('.menu-title,[class*="menu-title"],[id*="menu-title"]'));
+    const info = Array.from(card.querySelectorAll?.('.menu-item-name,[class*="menu-item-name"],.menu-info,[class*="menu-info"]') || [])
+      .map(text)
+      .filter(Boolean)
+      .join(' | ');
+    return [title, info].filter(Boolean).join(' — ') || text(card);
+  }
+
+  function collectMenuLabels(root = document) {
+    const labels = {};
+    root.querySelectorAll?.('option[value], input[name="menusaya"][value], .menu-card [value], .menu-card[data-id], .menu-card[data-menu-id], .menu-card[data-schedule-menu-id]').forEach(el => {
+      const id = el.value || el.dataset.id || el.dataset.menuId || el.dataset.scheduleMenuId;
+      if (!/^\d+$/.test(String(id || ''))) return;
+      const card = el.tagName === 'OPTION' ? el : (el.closest?.('label,.menu-card,.menu-item,tr,li,div') || el);
+      const label = menuLabelFromCard(card);
+      if (label && !/^menu\s*#?\d+$/i.test(label)) labels[id] = label;
+    });
+    return labels;
+  }
+
+  function saveMenuLabels() {
+    const labels = collectMenuLabels();
+    if (Object.keys(labels).length) {
+      setStorageData(STORAGE_KEY_MENU_LABELS, labels);
+    }
+    return labels;
   }
 
   function saveRecentID(uid) {
@@ -600,14 +634,20 @@
   }
 
   // Tunggu sampai DOM siap sebelum inject UI
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      injectUI();
-      startQuotaPolling();
-    });
-  } else {
+  window.mrsMenuLabels = saveMenuLabels;
+
+  function initContent() {
     injectUI();
     startQuotaPolling();
+    saveMenuLabels();
+    new MutationObserver(() => saveMenuLabels())
+      .observe(document.documentElement, { childList: true, subtree: true });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initContent);
+  } else {
+    initContent();
   }
 
   // Escucha cambios de almacenamiento para sincronizar en vivo

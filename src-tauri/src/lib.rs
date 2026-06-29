@@ -45,6 +45,8 @@ struct WsIncomingCommand {
     password: Option<String>,
     dates: Option<Vec<String>>,
     date: Option<String>,
+    from: Option<String>,
+    to: Option<String>,
     #[serde(rename = "mealId")]
     meal_id: Option<String>,
     #[serde(rename = "menuId")]
@@ -105,7 +107,7 @@ fn reverse_hex_bytes(hex: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{html_menu_names, menu_name, scanner_uid};
+    use super::{html_menu_labels, menu_name, scanner_uid, MenuLabel};
     use std::collections::HashMap;
 
     #[test]
@@ -117,7 +119,7 @@ mod tests {
 
     #[test]
     fn menu_name_prefers_main_name_then_html_name() {
-        let names = HashMap::from([("49959".to_string(), "Menu HTML".to_string())]);
+        let names = HashMap::from([("49959".to_string(), MenuLabel { name: "Menu HTML".to_string(), detail: String::new() })]);
         assert_eq!(menu_name(&serde_json::json!({"main_name": "AYAM"}), &names, "49959"), "AYAM");
         assert_eq!(menu_name(&serde_json::json!({}), &names, "49959"), "Menu HTML");
         assert_eq!(menu_name(&serde_json::json!({}), &names, "1"), "Menu #1");
@@ -125,8 +127,23 @@ mod tests {
 
     #[test]
     fn html_menu_names_reads_label_input() {
-        let names = html_menu_names(r#"<label><input name="menusaya" value="49959">Ayam Goreng</label>"#);
-        assert_eq!(names.get("49959").unwrap(), "Ayam Goreng");
+        let names = html_menu_labels(r#"<label><input name="menusaya" value="49959">Ayam Goreng</label>"#);
+        assert_eq!(names.get("49959").unwrap().name, "Ayam Goreng");
+    }
+
+    #[test]
+    fn html_menu_labels_reads_card_detail() {
+        let html = r#"
+          <div class="menu-card">
+            <input name="menusaya" value="50068">
+            <h3 class="menu-title">KAKAP BUMBU KEMANGI</h3>
+            <div class="menu-item-name">Nasi Putih</div>
+            <div class="menu-item-name">Tahu Bacem</div>
+          </div>
+        "#;
+        let label = html_menu_labels(html).get("50068").unwrap().clone();
+        assert_eq!(label.name, "KAKAP BUMBU KEMANGI");
+        assert_eq!(label.detail, "Nasi Putih | Tahu Bacem");
     }
 }
 
@@ -242,25 +259,55 @@ fn clean_html_text(value: &str) -> String {
         .join(" ")
 }
 
-fn html_menu_names(page: &str) -> HashMap<String, String> {
-    let mut names = HashMap::new();
-    for pattern in [
-        r#"(?is)<option[^>]+value\s*=\s*["'](\d+)["'][^>]*>(.*?)</option>"#,
-        r#"(?is)<label[^>]*>\s*<input[^>]+value\s*=\s*["'](\d+)["'][^>]*>(.*?)</label>"#,
-        r#"(?is)<(?:div|button|label)[^>]+data-[^=]*menu[^=]*=\s*["'](\d+)["'][^>]*>(.*?)</(?:div|button|label)>"#,
-    ] {
-        let re = regex::Regex::new(pattern).unwrap();
-        for cap in re.captures_iter(page) {
-            let name = clean_html_text(&cap[2]);
-            if !name.is_empty() && !name.chars().all(|c| c.is_ascii_digit()) {
-                names.entry(cap[1].to_string()).or_insert(name);
-            }
-        }
-    }
-    names
+#[derive(Clone, Debug, PartialEq)]
+struct MenuLabel {
+    name: String,
+    detail: String,
 }
 
-fn menu_name(item: &serde_json::Value, html_names: &HashMap<String, String>, id: &str) -> String {
+fn first_html_text(html: &str, pattern: &str) -> String {
+    regex::Regex::new(pattern).unwrap()
+        .captures(html)
+        .map(|cap| clean_html_text(&cap[1]))
+        .unwrap_or_default()
+}
+
+fn all_html_text(html: &str, pattern: &str) -> Vec<String> {
+    regex::Regex::new(pattern).unwrap()
+        .captures_iter(html)
+        .map(|cap| clean_html_text(&cap[1]))
+        .filter(|text| !text.is_empty())
+        .collect()
+}
+
+fn html_menu_labels(page: &str) -> HashMap<String, MenuLabel> {
+    let id_re = regex::Regex::new(r#"(?is)(?:value|data-id|data-menu-id|data-schedule-menu-id)\s*=\s*["'](\d+)["']"#).unwrap();
+    let card_re = regex::Regex::new(r#"(?is)<div[^>]+class\s*=\s*["'][^"']*menu-card[^"']*["']"#).unwrap();
+    let mut labels = HashMap::new();
+
+    for cap in id_re.captures_iter(page) {
+        let id = cap[1].to_string();
+        let Some(m) = cap.get(0) else { continue; };
+        let start = page[..m.start()].rfind("<label").or_else(|| page[..m.start()].rfind("<option")).or_else(|| page[..m.start()].rfind("<div")).unwrap_or(m.start());
+        let next_card = card_re.find(&page[m.end()..]).map(|hit| m.end() + hit.start()).unwrap_or((m.end() + 7000).min(page.len()));
+        let chunk = &page[start..next_card];
+
+        let title = first_html_text(chunk, r#"(?is)<[^>]+class\s*=\s*["'][^"']*menu-title[^"']*["'][^>]*>(.*?)</[^>]+>"#);
+        let fallback = first_html_text(chunk, r#"(?is)<option[^>]*>(.*?)</option>"#);
+        let name = if !title.is_empty() { title } else if !fallback.is_empty() { fallback } else { clean_html_text(chunk) };
+        if name.is_empty() || name.chars().all(|c| c.is_ascii_digit()) {
+            continue;
+        }
+
+        let detail = all_html_text(chunk, r#"(?is)<[^>]+class\s*=\s*["'][^"']*menu-item-name[^"']*["'][^>]*>(.*?)</[^>]+>"#)
+            .join(" | ");
+        labels.entry(id).or_insert(MenuLabel { name, detail });
+    }
+
+    labels
+}
+
+fn menu_name(item: &serde_json::Value, html_names: &HashMap<String, MenuLabel>, id: &str) -> String {
     [
         "main_name",
         "menu_detail_name",
@@ -274,8 +321,12 @@ fn menu_name(item: &serde_json::Value, html_names: &HashMap<String, String>, id:
     .map(str::trim)
     .find(|value| !value.is_empty())
     .map(str::to_string)
-    .or_else(|| html_names.get(id).cloned())
+    .or_else(|| html_names.get(id).map(|label| label.name.clone()))
     .unwrap_or_else(|| format!("Menu #{id}"))
+}
+
+fn menu_detail(html_names: &HashMap<String, MenuLabel>, id: &str) -> String {
+    html_names.get(id).map(|label| label.detail.clone()).unwrap_or_default()
 }
 
 // Helper functions for shared execution
@@ -386,7 +437,7 @@ async fn fetch_order_menu(
         .header("Cookie", cookie)
         .send().await.map_err(|e| e.to_string())?
         .text().await.map_err(|e| e.to_string())?;
-    let names = html_menu_names(&page_text);
+    let names = html_menu_labels(&page_text);
 
     let menus: Vec<serde_json::Value> = match stock["data"].as_array() {
         Some(items) => items.iter().map(|item| {
@@ -397,6 +448,7 @@ async fn fetch_order_menu(
         serde_json::json!({
             "id": id,
             "name": menu_name(item, &names, &id),
+            "detail": menu_detail(&names, &id),
             "qty_balance": item["qty_balance"].clone()
         })
         }).collect(),
@@ -511,8 +563,8 @@ async fn order_menu_names(gen_id: String, password: String, server: String, date
         .send().await.map_err(|e| e.to_string())?
         .text().await.map_err(|e| e.to_string())?;
 
-    let names = html_menu_names(&text).into_iter()
-        .map(|(k, v)| (k, serde_json::Value::String(v)))
+    let names = html_menu_labels(&text).into_iter()
+        .map(|(k, v)| (k, serde_json::Value::String(v.name)))
         .collect::<serde_json::Map<_, _>>();
     Ok(serde_json::json!({ "success": true, "names": names }))
 }
@@ -765,6 +817,17 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
                                                                 }
                                                             }
                                                             _ => serde_json::json!({ "success": false, "message": "GEN, password, tanggal, jadwal, dan menu wajib diisi" })
+                                                        }
+                                                    }
+                                                    "order_history" => {
+                                                        match (cmd.gen_id.clone(), cmd.password.clone(), cmd.from.clone(), cmd.to.clone()) {
+                                                            (Some(gen_id), Some(password), Some(from), Some(to)) => {
+                                                                match order_history(gen_id, password, server_url.clone(), from, to).await {
+                                                                    Ok(val) => val,
+                                                                    Err(err) => serde_json::json!({ "success": false, "message": err })
+                                                                }
+                                                            }
+                                                            _ => serde_json::json!({ "success": false, "message": "GEN, password, dan tanggal wajib diisi" })
                                                         }
                                                     }
                                                     _ => serde_json::json!({ "success": false, "message": "Command tidak dikenali" })
