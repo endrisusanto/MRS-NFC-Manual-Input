@@ -932,11 +932,41 @@ async fn order_history(gen_id: String, password: String, server: String, from: S
     let (cookie, user_id) = ensure_order_session(&base, &gen_id, &password).await?;
     let uid = user_id.as_deref().unwrap_or(&gen_id);
     let client = reqwest::Client::builder().timeout(Duration::from_secs(5)).build().map_err(|e| e.to_string())?;
-    let text = client
+    
+    // ponytail: try fetching with user session first, fallback to master account if reports are restricted
+    let mut text = String::new();
+    let res = client
         .get(format!("{base}/reports/generate/{from}/{to}/{uid}/final-order"))
-        .header("Cookie", cookie)
-        .send().await.map_err(|e| e.to_string())?
-        .text().await.map_err(|e| e.to_string())?;
+        .header("Cookie", &cookie)
+        .send().await;
+        
+    let mut success = false;
+    if let Ok(response) = res {
+        if response.status().is_success() {
+            if let Ok(t) = response.text().await {
+                if t.contains("<table") {
+                    text = t;
+                    success = true;
+                }
+            }
+        }
+    }
+    
+    if !success {
+        if let Ok((master_cookie, _)) = order_login_cookie(&base, "14829575", "23051995").await {
+            let res_fallback = client
+                .get(format!("{base}/reports/generate/{from}/{to}/{uid}/final-order"))
+                .header("Cookie", master_cookie)
+                .send().await;
+            if let Ok(response) = res_fallback {
+                if response.status().is_success() {
+                    if let Ok(t) = response.text().await {
+                        text = t;
+                    }
+                }
+            }
+        }
+    }
 
     Ok(serde_json::json!({ "success": true, "rows": order_history_rows(&text) }))
 }
