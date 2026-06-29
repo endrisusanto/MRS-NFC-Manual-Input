@@ -374,15 +374,20 @@ fn all_html_text(html: &str, pattern: &str) -> Vec<String> {
 
 fn html_menu_labels(page: &str) -> HashMap<String, MenuLabel> {
     let id_re = regex::Regex::new(r#"(?is)(?:value|data-id|data-menu-id|data-schedule-menu-id)\s*=\s*["'](\d+)["']"#).unwrap();
-    let card_re = regex::Regex::new(r#"(?is)<div[^>]+class\s*=\s*["'][^"']*menu-card[^"']*["']"#).unwrap();
     let mut labels = HashMap::new();
 
     for cap in id_re.captures_iter(page) {
         let id = cap[1].to_string();
         let Some(m) = cap.get(0) else { continue; };
-        let start = page[..m.start()].rfind("<label").or_else(|| page[..m.start()].rfind("<option")).or_else(|| page[..m.start()].rfind("<div")).unwrap_or(m.start());
-        let next_card = card_re.find(&page[m.end()..]).map(|hit| m.end() + hit.start()).unwrap_or((m.end() + 7000).min(page.len()));
-        let chunk = &page[start..next_card];
+        let start = page[..m.start()].rfind("<label").or_else(|| page[..m.start()].rfind("<option")).or_else(|| page[..m.start()].rfind("<div")).or_else(|| page[..m.start()].rfind("<tr")).unwrap_or(m.start());
+        
+        let next_start = page[m.end()..].find("name=\"menusaya\"")
+            .or_else(|| page[m.end()..].find("type=\"radio\""))
+            .or_else(|| page[m.end()..].find("<option"))
+            .map(|idx| m.end() + idx)
+            .unwrap_or(page.len());
+
+        let chunk = &page[start..next_start];
 
         // ponytail: simplify title extraction by cleaning out inputs and details first
         let mut clean_chunk = chunk.to_string();
@@ -749,10 +754,10 @@ async fn fetch_order_menu(
     Ok(value)
 }
 
-async fn fetch_report_menu_names(base: &str, cookie: &str, from: &str, to: &str) -> Result<HashMap<String, String>, String> {
+async fn fetch_report_menu_names(base: &str, cookie: &str, from: &str, to: &str, uid: &str) -> Result<HashMap<String, String>, String> {
     let client = reqwest::Client::builder().timeout(Duration::from_secs(5)).build().map_err(|e| e.to_string())?;
     let text = client
-        .get(format!("{base}/reports/generate/{from}/{to}/all/final-order"))
+        .get(format!("{base}/reports/generate/{from}/{to}/{uid}/final-order"))
         .header("Cookie", cookie)
         .send().await.map_err(|e| e.to_string())?
         .text().await.map_err(|e| e.to_string())?;
@@ -766,12 +771,13 @@ async fn run_order_menu_range(
     dates: &[String],
 ) -> Result<serde_json::Value, String> {
     let base = server_url(server);
-    let (cookie, _) = ensure_order_session(&base, gen_id, password).await?;
+    let (cookie, user_id) = ensure_order_session(&base, gen_id, password).await?;
+    let uid = user_id.as_deref().unwrap_or(gen_id);
     let mut days = Vec::new();
     let mut errors = Vec::new();
     let selected_dates = dates.iter().take(4).cloned().collect::<Vec<_>>();
     let report_names = match (selected_dates.first(), selected_dates.last()) {
-        (Some(from), Some(to)) => fetch_report_menu_names(&base, &cookie, from, to).await.unwrap_or_default(),
+        (Some(from), Some(to)) => fetch_report_menu_names(&base, &cookie, from, to, uid).await.unwrap_or_default(),
         _ => HashMap::new(),
     };
 
