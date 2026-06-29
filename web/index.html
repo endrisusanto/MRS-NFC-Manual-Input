@@ -1194,7 +1194,8 @@
       }
       .menu-card:hover { border-color: #16a34a; background: rgba(22,163,74,.06); }
       .menu-card.selected { border-color: #16a34a; background: rgba(22,163,74,.12); }
-      .menu-card-name { font-size: 14px; font-weight: 700; }
+      .menu-card input { width: 18px; height: 18px; accent-color: #16a34a; flex-shrink: 0; }
+      .menu-card-name { flex: 1; font-size: 14px; font-weight: 700; }
       .menu-card-stock {
         font-size: 11px;
         font-weight: 700;
@@ -1347,17 +1348,6 @@
         <!-- Step: Pilih Menu -->
         <div class="order-step" id="ostep-menu">
           <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-            <div style="flex:1; min-width:120px;">
-              <label style="font-size:11px; font-weight:800; letter-spacing:.08em; display:block; margin-bottom:4px;">Tanggal</label>
-              <input id="order-date" type="date" style="width:100%;">
-            </div>
-            <div style="flex:1; min-width:120px;">
-              <label style="font-size:11px; font-weight:800; letter-spacing:.08em; display:block; margin-bottom:4px;">Jadwal</label>
-              <select id="order-meal">
-                <option value="2">Makan Siang</option>
-                <option value="3">Makan Malam</option>
-              </select>
-            </div>
             <button id="order-load-menu" type="button" class="primary" style="align-self:flex-end; min-height:50px; padding:0 16px;">Cari</button>
           </div>
           <div id="order-menu-list" class="menu-cards"></div>
@@ -1897,7 +1887,7 @@
       // ── Fitur Pesan Menu ──────────────────────────────────────────────────
       const ORDER_KEY = 'mers_order_creds';
       let orderCreds = null; // { genId, password }
-      let selectedMenuId = null;
+      let selectedMenus = new Map();
       const orderRequests = new Map();
 
       function orderProxyBase() {
@@ -1953,13 +1943,38 @@
         });
       }
 
+      async function submitOrder(order) {
+        const data = await orderWsRequest({
+          action: 'order_submit',
+          genId: orderCreds.genId,
+          password: orderCreds.password,
+          date: order.date,
+          mealId: order.meal_id,
+          menuId: order.id,
+        });
+        if (data.success || !String(data.message || '').includes('Command tidak dikenali')) return data;
+
+        // ponytail: compatibility fallback for old PC agents until they are updated.
+        const r = await fetch(orderProxyBase() + '/mers-proxy/order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            genId: orderCreds.genId,
+            password: orderCreds.password,
+            xtanggal: order.date,
+            xjadwal: order.meal_id,
+            menusaya: order.id,
+          }),
+        });
+        return r.json();
+      }
+
       function openOrderModal() {
         $('order-modal').hidden = false;
         // Restore creds if saved
         try { orderCreds = JSON.parse(localStorage.getItem(ORDER_KEY)); } catch (_) {}
         if (orderCreds) {
           showOrderStep('menu');
-          $('order-date').value = orderToday();
           loadMenuOptions();
         } else {
           showOrderStep('login');
@@ -2008,7 +2023,6 @@
           orderCreds = { genId, password };
           localStorage.setItem(ORDER_KEY, JSON.stringify(orderCreds));
           showOrderStep('menu');
-          $('order-date').value = orderToday();
           await loadMenuOptions();
         } catch (e) {
           orderCreds = null;
@@ -2033,13 +2047,10 @@
 
       async function loadMenuOptions() {
         if (!orderCreds) return;
-        const date    = $('order-date').value;
-        const meal_id = $('order-meal').value;
-        if (!date) return;
 
         const list = $('order-menu-list');
         list.innerHTML = '<div class="order-loading">Memuat menu...</div>';
-        selectedMenuId = null;
+        selectedMenus = new Map();
         $('order-submit').disabled = true;
 
         try {
@@ -2047,7 +2058,7 @@
             action: 'order_menu_range',
             genId: orderCreds.genId,
             password: orderCreds.password,
-            dates: orderDateRange(date, 4),
+            dates: orderDateRange(orderToday(), 4),
           });
 
           if (!data.success && !data.days?.some(day => day.meals?.some(meal => meal.menus?.length))) {
@@ -2069,20 +2080,24 @@
                     const bal = parseInt(item.qty_balance, 10) || 0;
                     const cls = bal > 20 ? 'stock-ok' : bal > 0 ? 'stock-low' : 'stock-out';
                     const label = bal > 0 ? `${bal} sisa` : 'Habis';
+                    const key = `${day.date}|${meal.meal_id}`;
                     return `
-                      <div class="menu-card" data-id="${esc(item.id)}" data-date="${esc(day.date)}" data-meal="${esc(meal.meal_id)}" ${bal === 0 ? 'style="opacity:.5;pointer-events:none"' : ''}>
+                      <label class="menu-card" data-key="${esc(key)}" data-id="${esc(item.id)}" data-date="${esc(day.date)}" data-meal="${esc(meal.meal_id)}" ${bal === 0 ? 'style="opacity:.5;pointer-events:none"' : ''}>
+                        <input type="radio" name="order-${esc(key)}" ${bal === 0 ? 'disabled' : ''}>
                         <span class="menu-card-name">${esc(item.name)}</span>
                         <span class="menu-card-stock ${cls}">${label}</span>
-                      </div>`;
+                      </label>`;
                   }).join('') : '<div class="order-loading">Tidak ada menu.</div>'}
                 </div>`).join('')}
             </div>`).join('');
 
           document.querySelectorAll('.menu-card').forEach(card => {
-            card.addEventListener('click', () => {
-              document.querySelectorAll('.menu-card').forEach(c => c.classList.remove('selected'));
+            card.querySelector('input')?.addEventListener('change', () => {
+              document.querySelectorAll('.menu-card').forEach(c => {
+                if (c.dataset.key === card.dataset.key) c.classList.remove('selected');
+              });
               card.classList.add('selected');
-              selectedMenuId = { id: card.dataset.id, date: card.dataset.date, meal_id: card.dataset.meal };
+              selectedMenus.set(card.dataset.key, { id: card.dataset.id, date: card.dataset.date, meal_id: card.dataset.meal });
               $('order-submit').disabled = false;
             });
           });
@@ -2093,34 +2108,25 @@
 
       // Submit order
       $('order-submit').addEventListener('click', async () => {
-        if (!orderCreds || !selectedMenuId) return;
-        const date    = selectedMenuId.date;
-        const meal_id = selectedMenuId.meal_id;
-        const jadwal  = meal_id === '2' ? 'Makan Siang' : 'Makan Malam';
+        if (!orderCreds || !selectedMenus.size) return;
+        const orders = [...selectedMenus.values()];
 
-        if (!confirm(`Pesan untuk ${jadwal} tanggal ${date}?`)) return;
+        if (!confirm(`Simpan ${orders.length} pesanan terpilih?`)) return;
 
         $('order-submit').disabled = true;
         $('order-submit').textContent = 'Menyimpan...';
 
         try {
-          const r = await fetch(orderProxyBase() + '/mers-proxy/order', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              genId: orderCreds.genId,
-              password: orderCreds.password,
-              xtanggal: date,
-              xjadwal: meal_id,
-              menusaya: selectedMenuId.id,
-            }),
-          });
-          const data = await r.json();
-          if (data.success) {
+          const results = [];
+          for (const order of orders) {
+            results.push(await submitOrder(order));
+          }
+          const failed = results.filter(item => !item.success);
+          if (!failed.length) {
             alert('✅ Pesanan berhasil disimpan!');
             $('order-modal').hidden = true;
           } else {
-            alert('❌ Gagal: ' + (data.message || 'Error tidak diketahui'));
+            alert('❌ Gagal: ' + (failed[0].message || 'Sebagian pesanan gagal'));
           }
         } catch (e) {
           alert('❌ Error: ' + e.message);

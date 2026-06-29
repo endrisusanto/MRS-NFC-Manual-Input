@@ -44,6 +44,11 @@ struct WsIncomingCommand {
     gen_id: Option<String>,
     password: Option<String>,
     dates: Option<Vec<String>>,
+    date: Option<String>,
+    #[serde(rename = "mealId")]
+    meal_id: Option<String>,
+    #[serde(rename = "menuId")]
+    menu_id: Option<String>,
 }
 
 fn server_url(server: &str) -> String {
@@ -100,13 +105,22 @@ fn reverse_hex_bytes(hex: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::scanner_uid;
+    use super::{menu_name, scanner_uid};
+    use std::collections::HashMap;
 
     #[test]
     fn scanner_uid_matches_extension_byte_order() {
         assert_eq!(scanner_uid("2A:DA:1A:65"), "651ADA2A");
         assert_eq!(scanner_uid("~2ADA1A65"), "651ADA2A");
         assert_eq!(scanner_uid("#2ADA1A65"), "2ADA1A65");
+    }
+
+    #[test]
+    fn menu_name_prefers_main_name_then_html_name() {
+        let names = HashMap::from([("49959".to_string(), "Menu HTML".to_string())]);
+        assert_eq!(menu_name(&serde_json::json!({"main_name": "AYAM"}), &names, "49959"), "AYAM");
+        assert_eq!(menu_name(&serde_json::json!({}), &names, "49959"), "Menu HTML");
+        assert_eq!(menu_name(&serde_json::json!({}), &names, "1"), "Menu #1");
     }
 }
 
@@ -210,6 +224,24 @@ async fn ensure_order_session(base_url: &str, gen_id: &str, password: &str) -> R
 
 fn response_body(text: String) -> serde_json::Value {
     serde_json::from_str(&text).unwrap_or_else(|_| serde_json::json!({ "raw": text }))
+}
+
+fn menu_name(item: &serde_json::Value, html_names: &HashMap<String, String>, id: &str) -> String {
+    [
+        "main_name",
+        "menu_detail_name",
+        "menu_name",
+        "name",
+        "menu_main",
+        "main",
+    ]
+    .iter()
+    .filter_map(|key| item[*key].as_str())
+    .map(str::trim)
+    .find(|value| !value.is_empty())
+    .map(str::to_string)
+    .or_else(|| html_names.get(id).cloned())
+    .unwrap_or_else(|| format!("Menu #{id}"))
 }
 
 // Helper functions for shared execution
@@ -334,7 +366,7 @@ async fn fetch_order_menu(
             .unwrap_or_default();
         serde_json::json!({
             "id": id,
-            "name": names.get(&id).cloned().unwrap_or_else(|| format!("Menu #{id}")),
+            "name": menu_name(item, &names, &id),
             "qty_balance": item["qty_balance"].clone()
         })
         }).collect(),
@@ -695,6 +727,17 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
                                                                 }
                                                             }
                                                             _ => serde_json::json!({ "type": "order_menu_range_result", "success": false, "message": "GEN, password, dan tanggal wajib diisi" })
+                                                        }
+                                                    }
+                                                    "order_submit" => {
+                                                        match (cmd.gen_id.clone(), cmd.password.clone(), cmd.date.clone(), cmd.meal_id.clone(), cmd.menu_id.clone()) {
+                                                            (Some(gen_id), Some(password), Some(date), Some(meal_id), Some(menu_id)) => {
+                                                                match order_submit(gen_id, password, server_url.clone(), date, meal_id, menu_id).await {
+                                                                    Ok(val) => val,
+                                                                    Err(err) => serde_json::json!({ "success": false, "message": err })
+                                                                }
+                                                            }
+                                                            _ => serde_json::json!({ "success": false, "message": "GEN, password, tanggal, jadwal, dan menu wajib diisi" })
                                                         }
                                                     }
                                                     _ => serde_json::json!({ "success": false, "message": "Command tidak dikenali" })
