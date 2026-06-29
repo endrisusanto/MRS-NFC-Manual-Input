@@ -1965,8 +1965,9 @@
 
       // ── Fitur Pesan Menu ──────────────────────────────────────────────────
       const ORDER_KEY = 'mers_order_creds';
-      let orderCreds = null; // { genId, password }
+      let orderCreds = null;
       let selectedMenus = new Map();
+      let initialOrders = new Set();
       let canceledXids = new Set();
       const orderRequests = new Map();
 
@@ -2201,8 +2202,11 @@
             </div>
           `).join('');
 
+          initialOrders.clear();
+          
           document.querySelectorAll('.menu-card').forEach(card => {
             if (card.classList.contains('selected')) {
+              initialOrders.add(card.dataset.key);
               selectedMenus.set(card.dataset.key, { id: card.dataset.id, date: card.dataset.date, meal_id: card.dataset.meal });
             }
 
@@ -2299,7 +2303,11 @@
       // Submit order
       $('order-submit').addEventListener('click', async () => {
         if (!orderCreds) return;
-        const orders = [...selectedMenus.values()];
+        
+        // Only submit orders that were NOT already selected initially
+        const orders = [...selectedMenus.values()].filter(
+          menu => !initialOrders.has(`${menu.date}_${menu.meal_id}`)
+        );
         const cancels = [...canceledXids];
 
         if (!orders.length && !cancels.length) return;

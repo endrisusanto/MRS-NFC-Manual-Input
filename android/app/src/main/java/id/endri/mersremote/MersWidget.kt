@@ -59,7 +59,8 @@ open class MersWidget : AppWidgetProvider() {
 
             if (name.isEmpty()) {
                 views.setTextViewText(R.id.widget_title, "Belum ada ID dipin")
-                views.setTextViewText(R.id.item_menu, "Tidak ada pesanan")
+                views.setViewVisibility(R.id.item_menu, View.GONE)
+                views.setViewVisibility(R.id.item_menu_empty, View.VISIBLE)
                 views.setViewVisibility(R.id.widget_badge_container, View.GONE)
                 views.setViewVisibility(R.id.widget_next_btn, View.GONE)
             } else {
@@ -75,10 +76,13 @@ open class MersWidget : AppWidgetProvider() {
                         }
                     }
                     if (ordersArray.length() == 0) {
-                        views.setTextViewText(R.id.item_menu, "Tidak ada pesanan")
+                        views.setViewVisibility(R.id.item_menu, View.GONE)
+                        views.setViewVisibility(R.id.item_menu_empty, View.VISIBLE)
                         views.setViewVisibility(R.id.widget_badge_container, View.GONE)
                         views.setViewVisibility(R.id.widget_next_btn, View.GONE)
                     } else {
+                        views.setViewVisibility(R.id.item_menu, View.VISIBLE)
+                        views.setViewVisibility(R.id.item_menu_empty, View.GONE)
                         val currentIndex = prefs.getInt("widget_slide_index_$appWidgetId", 0) % ordersArray.length()
                         val order = ordersArray.getJSONObject(currentIndex)
 

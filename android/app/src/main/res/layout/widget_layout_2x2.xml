@@ -59,6 +59,17 @@
             android:textSize="16sp"
             android:textStyle="bold" />
 
+        <!-- Empty State text (Centered with Emoji) -->
+        <TextView
+            android:id="@+id/item_menu_empty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="#94a3b8"
+            android:textSize="13sp"
+            android:visibility="gone"
+            android:text="🤷‍♂️\nBelum ada pesanan nih~" />
+
         <!-- Bottom Row: Dynamic Colored Badges (Vertical Stack for 2x2 layout to prevent wrapping) -->
         <LinearLayout
             android:id="@+id/widget_badge_container"
