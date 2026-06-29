@@ -105,7 +105,7 @@ fn reverse_hex_bytes(hex: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{menu_name, scanner_uid};
+    use super::{html_menu_names, menu_name, scanner_uid};
     use std::collections::HashMap;
 
     #[test]
@@ -121,6 +121,12 @@ mod tests {
         assert_eq!(menu_name(&serde_json::json!({"main_name": "AYAM"}), &names, "49959"), "AYAM");
         assert_eq!(menu_name(&serde_json::json!({}), &names, "49959"), "Menu HTML");
         assert_eq!(menu_name(&serde_json::json!({}), &names, "1"), "Menu #1");
+    }
+
+    #[test]
+    fn html_menu_names_reads_label_input() {
+        let names = html_menu_names(r#"<label><input name="menusaya" value="49959">Ayam Goreng</label>"#);
+        assert_eq!(names.get("49959").unwrap(), "Ayam Goreng");
     }
 }
 
@@ -224,6 +230,34 @@ async fn ensure_order_session(base_url: &str, gen_id: &str, password: &str) -> R
 
 fn response_body(text: String) -> serde_json::Value {
     serde_json::from_str(&text).unwrap_or_else(|_| serde_json::json!({ "raw": text }))
+}
+
+fn clean_html_text(value: &str) -> String {
+    regex::Regex::new(r"(?is)<[^>]+>").unwrap()
+        .replace_all(value, " ")
+        .replace("&nbsp;", " ")
+        .replace("&amp;", "&")
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn html_menu_names(page: &str) -> HashMap<String, String> {
+    let mut names = HashMap::new();
+    for pattern in [
+        r#"(?is)<option[^>]+value\s*=\s*["'](\d+)["'][^>]*>(.*?)</option>"#,
+        r#"(?is)<label[^>]*>\s*<input[^>]+value\s*=\s*["'](\d+)["'][^>]*>(.*?)</label>"#,
+        r#"(?is)<(?:div|button|label)[^>]+data-[^=]*menu[^=]*=\s*["'](\d+)["'][^>]*>(.*?)</(?:div|button|label)>"#,
+    ] {
+        let re = regex::Regex::new(pattern).unwrap();
+        for cap in re.captures_iter(page) {
+            let name = clean_html_text(&cap[2]);
+            if !name.is_empty() && !name.chars().all(|c| c.is_ascii_digit()) {
+                names.entry(cap[1].to_string()).or_insert(name);
+            }
+        }
+    }
+    names
 }
 
 fn menu_name(item: &serde_json::Value, html_names: &HashMap<String, String>, id: &str) -> String {
@@ -352,11 +386,7 @@ async fn fetch_order_menu(
         .header("Cookie", cookie)
         .send().await.map_err(|e| e.to_string())?
         .text().await.map_err(|e| e.to_string())?;
-    let re = regex::Regex::new(r#"<option[^>]+value="(\d+)"[^>]*>\s*([^<]+?)\s*</option>"#).unwrap();
-    let mut names = HashMap::new();
-    for cap in re.captures_iter(&page_text) {
-        names.insert(cap[1].to_string(), cap[2].trim().to_string());
-    }
+    let names = html_menu_names(&page_text);
 
     let menus: Vec<serde_json::Value> = match stock["data"].as_array() {
         Some(items) => items.iter().map(|item| {
@@ -481,12 +511,9 @@ async fn order_menu_names(gen_id: String, password: String, server: String, date
         .send().await.map_err(|e| e.to_string())?
         .text().await.map_err(|e| e.to_string())?;
 
-    // Parse <option value="ID">NAME</option>
-    let re = regex::Regex::new(r#"<option[^>]+value="(\d+)"[^>]*>\s*([^<]+?)\s*</option>"#).unwrap();
-    let mut names = serde_json::Map::new();
-    for cap in re.captures_iter(&text) {
-        names.insert(cap[1].to_string(), serde_json::Value::String(cap[2].trim().to_string()));
-    }
+    let names = html_menu_names(&text).into_iter()
+        .map(|(k, v)| (k, serde_json::Value::String(v)))
+        .collect::<serde_json::Map<_, _>>();
     Ok(serde_json::json!({ "success": true, "names": names }))
 }
 
