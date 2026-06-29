@@ -760,10 +760,10 @@ async fn fetch_order_menu(
     Ok(value)
 }
 
-async fn fetch_report_menu_names(base: &str, cookie: &str, from: &str, to: &str, uid: &str) -> Result<HashMap<String, String>, String> {
+async fn fetch_report_menu_names(base: &str, cookie: &str, from: &str, to: &str) -> Result<HashMap<String, String>, String> {
     let client = reqwest::Client::builder().timeout(Duration::from_secs(5)).build().map_err(|e| e.to_string())?;
     let text = client
-        .get(format!("{base}/reports/generate/{from}/{to}/{uid}/final-order"))
+        .get(format!("{base}/reports/generate/{from}/{to}/all/final-order"))
         .header("Cookie", cookie)
         .send().await.map_err(|e| e.to_string())?
         .text().await.map_err(|e| e.to_string())?;
@@ -777,13 +777,12 @@ async fn run_order_menu_range(
     dates: &[String],
 ) -> Result<serde_json::Value, String> {
     let base = server_url(server);
-    let (cookie, user_id) = ensure_order_session(&base, gen_id, password).await?;
-    let uid = user_id.as_deref().unwrap_or(gen_id);
+    let (cookie, _) = ensure_order_session(&base, gen_id, password).await?;
     let mut days = Vec::new();
     let mut errors = Vec::new();
     let selected_dates = dates.iter().take(4).cloned().collect::<Vec<_>>();
     let report_names = match (selected_dates.first(), selected_dates.last()) {
-        (Some(from), Some(to)) => fetch_report_menu_names(&base, &cookie, from, to, uid).await.unwrap_or_default(),
+        (Some(from), Some(to)) => fetch_report_menu_names(&base, &cookie, from, to).await.unwrap_or_default(),
         _ => HashMap::new(),
     };
 
