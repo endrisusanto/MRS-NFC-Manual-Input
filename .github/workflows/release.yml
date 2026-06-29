@@ -63,7 +63,7 @@ jobs:
           npm config set fetch-retry-maxtimeout 120000
           npm ci
 
-      - name: Build NSIS
+      - name: Build MSI
         shell: powershell
         run: |
           $ErrorActionPreference = "Stop"
@@ -81,7 +81,7 @@ jobs:
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force dist | Out-Null
-          Copy-Item src-tauri/target/release/bundle/nsis/*.exe dist/
+          Copy-Item src-tauri/target/release/bundle/msi/*.msi dist/
           Compress-Archive -Path manifest.json,bridge.js,content.css,content.js,help.html,popup.html,popup.js,icons -DestinationPath "dist/mers-nfc-tauri-extension-${{ github.ref_name }}.zip" -Force
 
       - name: Upload Windows artifact
