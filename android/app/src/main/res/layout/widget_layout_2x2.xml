@@ -115,7 +115,24 @@
                 android:paddingRight="10dp"
                 android:paddingTop="4dp"
                 android:paddingBottom="4dp"
+                android:layout_marginBottom="4dp"
                 android:text="Tanggal" />
+
+            <!-- Status Badge -->
+            <TextView
+                android:id="@+id/badge_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:background="@drawable/badge_status"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:paddingLeft="10dp"
+                android:paddingRight="10dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:text="Status" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

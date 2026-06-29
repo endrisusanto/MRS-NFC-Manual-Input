@@ -86,6 +86,7 @@ open class MersWidget : AppWidgetProvider() {
                         val menu = order.optString("menu", "")
                         val tanggal = order.optString("tanggal", "")
                         val loket = order.optString("loket", "")
+                        val status = order.optString("status", "Belum Diambil")
 
                         views.setTextViewText(R.id.item_menu, menu)
                         views.setViewVisibility(R.id.widget_badge_container, View.VISIBLE)
@@ -94,6 +95,7 @@ open class MersWidget : AppWidgetProvider() {
                         views.setTextViewText(R.id.badge_meal, meal)
                         views.setTextViewText(R.id.badge_loket, "Loket $loket")
                         views.setTextViewText(R.id.badge_date, tanggal)
+                        views.setTextViewText(R.id.badge_status, status)
 
                         // Set dynamic meal badge color background
                         val isSiang = meal.contains("Siang", ignoreCase = true)
