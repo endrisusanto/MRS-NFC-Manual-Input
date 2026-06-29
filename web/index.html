@@ -1209,10 +1209,12 @@
       .menu-card-stock {
         font-size: 11px;
         font-weight: 700;
-        padding: 3px 9px;
+        padding: 4px 9px;
         border-radius: 20px;
-        white-space: nowrap;
-        flex-shrink: 0;
+        flex-shrink: 1;
+        text-align: right;
+        line-height: 1.2;
+        word-break: break-word;
       }
       .stock-ok  { background: #dcfce7; color: #14532d; }
       .stock-low { background: #fef9c3; color: #713f12; }
@@ -2178,7 +2180,7 @@
                         let labelText = label;
                         if (isOrdered) {
                           const status = existing ? (existing.status || 'Belum Diambil') : 'Belum Diambil';
-                          labelText = `Sudah pesan (${status})`;
+                          labelText = `✔️ ${status}`;
                           badgeCls = status.toLowerCase().includes('sudah') ? 'stock-ok' : 'stock-low';
                         }
                         const isDisabled = bal === 0;
