@@ -1,9 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    <solid android:color="#0f172a" />
-    <corners android:radius="16dp" />
-    <stroke
-        android:width="1.5dp"
-        android:color="#1e293b" />
-</shape>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Item 1: Main Rounded Background -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#0f172a" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+
+    <!-- Item 2: Decorative Top-Right Glowing Circle -->
+    <item
+        android:gravity="top|end"
+        android:width="120dp"
+        android:height="120dp"
+        android:top="-30dp"
+        android:right="-30dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="60dp"
+                android:startColor="#1a38bdf8"
+                android:endColor="#00000000" />
+        </shape>
+    </item>
+
+    <!-- Item 3: Decorative Bottom-Left Glowing Circle -->
+    <item
+        android:gravity="bottom|start"
+        android:width="150dp"
+        android:height="150dp"
+        android:bottom="-50dp"
+        android:left="-50dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="75dp"
+                android:startColor="#1a6366f1"
+                android:endColor="#00000000" />
+        </shape>
+    </item>
+</layer-list>

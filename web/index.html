@@ -28,10 +28,24 @@
         margin: 0;
         min-height: 100%;
         background-color: var(--bg-dark);
-        background-image: var(--bg-radial);
         color: var(--text-color);
         font-family: var(--font-sans);
         overflow-x: hidden;
+      }
+      
+      .animated-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: -10;
+        overflow: hidden;
+        pointer-events: none;
+      }
+      .animated-bg svg {
+        width: 100%;
+        height: 100%;
       }
       
       body {
@@ -1259,6 +1273,27 @@
     </style>
   </head>
   <body>
+    <div class="animated-bg">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 800" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id="bg_grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#0f172a" />
+            <stop offset="100%" stop-color="#020617" />
+          </linearGradient>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#bg_grad)" />
+        <g>
+          <circle cx="200" cy="200" r="250" fill="#38bdf8" opacity="0.08" filter="blur(70px)">
+            <animate attributeName="cx" values="200;1200;200" dur="20s" repeatCount="indefinite" />
+            <animate attributeName="cy" values="200;600;200" dur="20s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="1200" cy="600" r="300" fill="#6366f1" opacity="0.08" filter="blur(80px)">
+            <animate attributeName="cx" values="1200;200;1200" dur="25s" repeatCount="indefinite" />
+            <animate attributeName="cy" values="600;200;600" dur="25s" repeatCount="indefinite" />
+          </circle>
+        </g>
+      </svg>
+    </div>
     <main>
       <div class="top">
         <h1>MeRS Remote</h1>
@@ -1668,6 +1703,10 @@
           state.ws.onerror = () => setConn('offline');
           state.ws.onmessage = event => {
             const data = JSON.parse(event.data);
+            if (data.type === 'status') {
+              setStatus(data.message, data.status === 'online' ? 'ok' : 'bad');
+              return;
+            }
             if (data.requestId && orderRequests.has(data.requestId)) {
               const pending = orderRequests.get(data.requestId);
               clearTimeout(pending.timer);
@@ -1825,7 +1864,8 @@
             meal: o.schedule_meal_name || '',
             menu: o.menu_name || '',
             tanggal: o.schedule_date || '',
-            loket: o.loket_name || o.order_loket || ''
+            loket: o.loket_name || o.order_loket || '',
+            ambil: !!o.order_ambil
           }));
         } else {
           const order = data?.order || data?.schedule?.data?.schedules?.[0] || {};
@@ -1834,7 +1874,8 @@
             meal: order.schedule_meal_name || tap.menu_info || '',
             menu: order.menu_name || tap.menu_info || '',
             tanggal: order.schedule_date || '',
-            loket: order.loket_name || order.order_loket || ''
+            loket: order.loket_name || order.order_loket || '',
+            ambil: !!(order.order_ambil || tap.order_ambil || data?.order_ambil || data?.data?.order_ambil)
           });
         }
         window.AndroidNfc.pinId(genId, name, JSON.stringify(orders));

@@ -10,70 +10,125 @@ import android.widget.RemoteViews
 import org.json.JSONArray
 
 open class MersWidget : AppWidgetProvider() {
+    open val layoutId: Int = R.layout.widget_layout_4x2
+
+    companion object {
+        private const val ACTION_TOGGLE_SLIDE = "id.endri.mersremote.action.TOGGLE_SLIDE"
+    }
+
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        if (intent.action == ACTION_TOGGLE_SLIDE) {
+            val appWidgetId = intent.getIntExtra(
+                AppWidgetManager.EXTRA_APPWIDGET_ID,
+                AppWidgetManager.INVALID_APPWIDGET_ID
+            )
+            if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                val prefs = context.getSharedPreferences("mers_widget_prefs", Context.MODE_PRIVATE)
+                val ordersJson = prefs.getString("pinned_orders", "[]") ?: "[]"
+                try {
+                    val rawArray = JSONArray(ordersJson)
+                    val ordersArray = JSONArray()
+                    for (i in 0 until rawArray.length()) {
+                        val o = rawArray.getJSONObject(i)
+                        if (!o.optBoolean("ambil", false)) {
+                            ordersArray.put(o)
+                        }
+                    }
+                    if (ordersArray.length() > 1) {
+                        val currentIndex = prefs.getInt("widget_slide_index_$appWidgetId", 0)
+                        val nextIndex = (currentIndex + 1) % ordersArray.length()
+                        prefs.edit().putInt("widget_slide_index_$appWidgetId", nextIndex).apply()
+
+                        // Update this widget instance!
+                        val appWidgetManager = AppWidgetManager.getInstance(context)
+                        onUpdate(context, appWidgetManager, intArrayOf(appWidgetId))
+                    }
+                } catch (e: Exception) {}
+            }
+        }
+    }
+
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         val prefs = context.getSharedPreferences("mers_widget_prefs", Context.MODE_PRIVATE)
         val name = prefs.getString("pinned_name", "") ?: ""
         val ordersJson = prefs.getString("pinned_orders", "[]") ?: "[]"
 
         for (appWidgetId in appWidgetIds) {
-            val views = RemoteViews(context.packageName, R.layout.mers_widget)
+            val views = RemoteViews(context.packageName, layoutId)
 
             if (name.isEmpty()) {
                 views.setTextViewText(R.id.widget_title, "Belum ada ID dipin")
-                views.setViewVisibility(R.id.widget_carousel, View.GONE)
+                views.setTextViewText(R.id.item_menu, "Tidak ada pesanan")
+                views.setViewVisibility(R.id.widget_badge_container, View.GONE)
+                views.setViewVisibility(R.id.widget_next_btn, View.GONE)
             } else {
-                views.setTextViewText(R.id.widget_title, name)
+                views.setTextViewText(R.id.widget_title, "👤 $name")
                 
                 try {
-                    val ordersArray = JSONArray(ordersJson)
+                    val rawArray = JSONArray(ordersJson)
+                    val ordersArray = JSONArray()
+                    for (i in 0 until rawArray.length()) {
+                        val o = rawArray.getJSONObject(i)
+                        if (!o.optBoolean("ambil", false)) {
+                            ordersArray.put(o)
+                        }
+                    }
                     if (ordersArray.length() == 0) {
-                        views.setViewVisibility(R.id.widget_carousel, View.VISIBLE)
-                        views.setViewVisibility(R.id.item1_container, View.VISIBLE)
-                        views.setViewVisibility(R.id.item2_container, View.GONE)
-                        
-                        views.setTextViewText(R.id.item1_menu, "Tidak ada pesanan")
-                        views.setTextViewText(R.id.item1_detail, "")
-                        
-                        views.setBoolean(R.id.widget_carousel, "setAutoStart", false)
+                        views.setTextViewText(R.id.item_menu, "Tidak ada pesanan")
+                        views.setViewVisibility(R.id.widget_badge_container, View.GONE)
+                        views.setViewVisibility(R.id.widget_next_btn, View.GONE)
                     } else {
-                        views.setViewVisibility(R.id.widget_carousel, View.VISIBLE)
+                        val currentIndex = prefs.getInt("widget_slide_index_$appWidgetId", 0) % ordersArray.length()
+                        val order = ordersArray.getJSONObject(currentIndex)
+
+                        val meal = order.optString("meal", "")
+                        val menu = order.optString("menu", "")
+                        val tanggal = order.optString("tanggal", "")
+                        val loket = order.optString("loket", "")
+
+                        views.setTextViewText(R.id.item_menu, menu)
+                        views.setViewVisibility(R.id.widget_badge_container, View.VISIBLE)
                         
-                        // Populate Item 1
-                        val order1 = ordersArray.getJSONObject(0)
-                        views.setViewVisibility(R.id.item1_container, View.VISIBLE)
-                        views.setTextViewText(R.id.item1_menu, order1.optString("menu", ""))
-                        views.setTextViewText(
-                            R.id.item1_detail, 
-                            "${order1.optString("meal", "")} | Loket ${order1.optString("loket", "")} | ${order1.optString("tanggal", "")}"
-                        )
-                        
-                        // Populate Item 2 if it exists
+                        // Set badge texts
+                        views.setTextViewText(R.id.badge_meal, meal)
+                        views.setTextViewText(R.id.badge_loket, "Loket $loket")
+                        views.setTextViewText(R.id.badge_date, tanggal)
+
+                        // Set dynamic meal badge color background
+                        val isSiang = meal.contains("Siang", ignoreCase = true)
+                        val mealBg = if (isSiang) R.drawable.badge_meal_siang else R.drawable.badge_meal_malam
+                        views.setInt(R.id.badge_meal, "setBackgroundResource", mealBg)
+
                         if (ordersArray.length() > 1) {
-                            val order2 = ordersArray.getJSONObject(1)
-                            views.setViewVisibility(R.id.item2_container, View.VISIBLE)
-                            views.setTextViewText(R.id.item2_menu, order2.optString("menu", ""))
-                            views.setTextViewText(
-                                R.id.item2_detail, 
-                                "${order2.optString("meal", "")} | Loket ${order2.optString("loket", "")} | ${order2.optString("tanggal", "")}"
+                            views.setViewVisibility(R.id.widget_next_btn, View.VISIBLE)
+
+                            // Create toggle PendingIntent targetting concrete class
+                            val toggleIntent = Intent(context, javaClass).apply {
+                                action = ACTION_TOGGLE_SLIDE
+                                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+                            }
+                            val toggleFlags = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+                            } else {
+                                PendingIntent.FLAG_UPDATE_CURRENT
+                            }
+                            val togglePendingIntent = PendingIntent.getBroadcast(
+                                context, appWidgetId, toggleIntent, toggleFlags
                             )
-                            
-                            // Enable auto flip for 2 items
-                            views.setBoolean(R.id.widget_carousel, "setAutoStart", true)
-                            views.setInt(R.id.widget_carousel, "setFlipInterval", 3000)
+                            views.setOnClickPendingIntent(R.id.widget_next_btn, togglePendingIntent)
                         } else {
-                            views.setViewVisibility(R.id.item2_container, View.GONE)
-                            views.setBoolean(R.id.widget_carousel, "setAutoStart", false)
+                            views.setViewVisibility(R.id.widget_next_btn, View.GONE)
                         }
                     }
                 } catch (e: Exception) {
-                    views.setViewVisibility(R.id.widget_carousel, View.VISIBLE)
-                    views.setViewVisibility(R.id.item1_container, View.VISIBLE)
-                    views.setViewVisibility(R.id.item2_container, View.GONE)
-                    views.setTextViewText(R.id.item1_menu, "Error data")
-                    views.setTextViewText(R.id.item1_detail, e.message ?: "")
+                    views.setTextViewText(R.id.item_menu, "Error data")
+                    views.setViewVisibility(R.id.widget_badge_container, View.GONE)
+                    views.setViewVisibility(R.id.widget_next_btn, View.GONE)
                 }
             }
 
+            // Click container to launch App
             val intent = Intent(context, MainActivity::class.java)
             val flags = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -88,5 +143,10 @@ open class MersWidget : AppWidgetProvider() {
     }
 }
 
-class MersWidget4x2 : MersWidget()
-class MersWidget2x2 : MersWidget()
+class MersWidget4x2 : MersWidget() {
+    override val layoutId: Int = R.layout.widget_layout_4x2
+}
+
+class MersWidget2x2 : MersWidget() {
+    override val layoutId: Int = R.layout.widget_layout_2x2
+}

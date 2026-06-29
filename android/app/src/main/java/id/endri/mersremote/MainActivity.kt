@@ -31,7 +31,11 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            try {
+                WebView.setDataDirectorySuffix("mersremote")
+            } catch (e: Exception) {}
+        }
         webView = WebView(this)
         webView.webViewClient = WebViewClient()
         webView.webChromeClient = WebChromeClient()
