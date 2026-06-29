@@ -384,9 +384,30 @@ fn html_menu_labels(page: &str) -> HashMap<String, MenuLabel> {
         let next_card = card_re.find(&page[m.end()..]).map(|hit| m.end() + hit.start()).unwrap_or((m.end() + 7000).min(page.len()));
         let chunk = &page[start..next_card];
 
-        let title = first_html_text(chunk, r#"(?is)<[^>]+(?:class|id)\s*=\s*["'][^"']*menu-title[^"']*["'][^>]*>(.*?)</[^>]+>"#);
+        // ponytail: simplify title extraction by cleaning out inputs and details first
+        let mut clean_chunk = chunk.to_string();
+        if let Ok(re) = regex::Regex::new(r#"(?is)<input[^>]*>"#) {
+            clean_chunk = re.replace_all(&clean_chunk, "").to_string();
+        }
+        if let Ok(re) = regex::Regex::new(r#"(?is)<[^>]+(?:class|id)\s*=\s*["'][^"']*(?:menu-item-name|menu-info|detail)[^"']*["'][^>]*>.*?</[^>]+>"#) {
+            clean_chunk = re.replace_all(&clean_chunk, "").to_string();
+        }
+        if let Ok(re) = regex::Regex::new(r#"(?is)<[^>]+(?:class|id)\s*=\s*["'][^"']*(?:qty|stock|balance)[^"']*["'][^>]*>.*?</[^>]+>"#) {
+            clean_chunk = re.replace_all(&clean_chunk, "").to_string();
+        }
+
+        let mut title = first_html_text(chunk, r#"(?is)<[^>]+(?:class|id)\s*=\s*["'][^"']*(?:menu-title|menu-name|item-title)[^"']*["'][^>]*>(.*?)</[^>]+>"#);
+        if title.is_empty() {
+            title = first_html_text(chunk, r#"(?is)<h[2-5][^>]*>(.*?)</h[2-5]>"#);
+        }
+        if title.is_empty() {
+            title = first_html_text(chunk, r#"(?is)<strong[^>]*>(.*?)</strong>"#);
+        }
+        if title.is_empty() {
+            title = first_html_text(chunk, r#"(?is)<b[^>]*>(.*?)</b>"#);
+        }
         let fallback = first_html_text(chunk, r#"(?is)<option[^>]*>(.*?)</option>"#);
-        let name = if !title.is_empty() { title } else if !fallback.is_empty() { fallback } else { clean_html_text(chunk) };
+        let name = if !title.is_empty() { title } else if !fallback.is_empty() { fallback } else { clean_html_text(&clean_chunk) };
         if name.is_empty() || name.chars().all(|c| c.is_ascii_digit()) {
             continue;
         }

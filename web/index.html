@@ -1304,10 +1304,10 @@
           <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
             <button id="order-load-menu" type="button" class="primary" style="align-self:flex-end; min-height:50px; padding:0 16px;">Cari</button>
           </div>
-          <div id="order-menu-list" class="menu-cards"></div>
-          <div class="actions" style="margin-top:4px;">
-            <button id="order-back-login" type="button">Logout</button>
-            <button id="order-submit" type="button" class="primary" disabled style="grid-column: 1/-1;">Simpan Pesanan</button>
+        <div id="order-menu-list" class="menu-cards"></div>
+        <div class="actions" style="margin-top:4px;">
+            <button id="order-back-login" type="button" style="width:100%;">Logout</button>
+            <button id="order-submit" type="button" class="primary" disabled style="width:100%;">Simpan Pesanan</button>
           </div>
         </div>
       </div>
@@ -1972,6 +1972,13 @@
         showOrderStep('login');
       });
 
+      function isMenuMatch(itemName, orderedMenuName) {
+        if (!itemName || !orderedMenuName) return false;
+        const cleanItem = itemName.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+        const cleanOrdered = orderedMenuName.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+        return cleanItem === cleanOrdered || cleanItem.includes(cleanOrdered) || cleanOrdered.includes(cleanItem);
+      }
+
       // Load menu
       $('order-load-menu').addEventListener('click', loadMenuOptions);
 
@@ -2021,17 +2028,25 @@
                     const label = bal > 0 ? `${bal} sisa` : 'Habis';
                     const key = `${day.date}|${meal.meal_id}`;
                     const existing = ordered.get(key);
+                    const isOrdered = existing && isMenuMatch(item.name, existing.menu);
+                    const cardCls = isOrdered ? 'menu-card selected' : 'menu-card';
+                    const labelText = isOrdered ? 'Sudah pesan' : label;
+                    const badgeCls = isOrdered ? 'stock-low' : cls;
+                    const isDisabled = bal === 0;
                     return `
-                      <label class="menu-card ${existing ? 'ordered' : ''}" data-key="${esc(key)}" data-id="${esc(item.id)}" data-date="${esc(day.date)}" data-meal="${esc(meal.meal_id)}" ${bal === 0 || existing ? 'style="opacity:.65;pointer-events:none"' : ''}>
-                        <input type="radio" name="order-${esc(key)}" ${bal === 0 || existing ? 'disabled' : ''}>
+                      <label class="${cardCls}" data-key="${esc(key)}" data-id="${esc(item.id)}" data-date="${esc(day.date)}" data-meal="${esc(meal.meal_id)}" ${isDisabled ? 'style="opacity:.4;pointer-events:none"' : ''}>
+                        <input type="radio" name="order-${esc(key)}" ${isOrdered ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}>
                         <span class="menu-card-name">${esc(item.name)}${item.detail ? `<small>${esc(item.detail)}</small>` : ''}</span>
-                        <span class="menu-card-stock ${existing ? 'stock-low' : cls}">${existing ? 'Sudah pesan' : label}</span>
+                        <span class="menu-card-stock ${badgeCls}">${labelText}</span>
                       </label>`;
                   }).join('') : '<div class="order-loading">Tidak ada menu.</div>'}
                 </div>`).join('')}
             </div>`).join('');
 
           document.querySelectorAll('.menu-card').forEach(card => {
+            if (card.classList.contains('selected')) {
+              selectedMenus.set(card.dataset.key, { id: card.dataset.id, date: card.dataset.date, meal_id: card.dataset.meal });
+            }
             card.querySelector('input')?.addEventListener('change', () => {
               document.querySelectorAll('.menu-card').forEach(c => {
                 if (c.dataset.key === card.dataset.key) c.classList.remove('selected');
