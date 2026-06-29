@@ -871,6 +871,8 @@
       }
       .menu-card:hover { border-color: #16a34a; background: rgba(22,163,74,.06); }
       .menu-card.selected { border-color: #16a34a; background: rgba(22,163,74,.12); }
+      .menu-card-name { display: flex; flex-direction: column; gap: 3px; text-align: left; }
+      .menu-card-name small { font-size: 12px; font-weight: 500; opacity: .78; }
       .menu-stock {
         font-size: 11px; font-weight: 700; padding: 3px 9px;
         border-radius: 20px; white-space: nowrap; flex-shrink: 0;
@@ -1407,20 +1409,16 @@
         selectedMenuId = null;
         document.getElementById('o-submit').disabled = true;
         try {
-          const [stock, names] = await Promise.all([
-            invoke('order_stock',      { genId: orderCreds.genId, password: orderCreds.password, server: serverUrl(), date, mealId: meal_id }),
-            invoke('order_menu_names', { genId: orderCreds.genId, password: orderCreds.password, server: serverUrl(), date, mealId: meal_id }),
-          ]);
-          if (!stock.success || !stock.data?.length) {
+          const data = await invoke('order_menu_range', { genId: orderCreds.genId, password: orderCreds.password, server: serverUrl(), dates: [date] });
+          const menus = data.days?.[0]?.meals?.find(meal => String(meal.meal_id) === meal_id)?.menus || [];
+          if (!menus.length) {
             list.innerHTML = '<div class="order-loading">Tidak ada menu tersedia.</div>'; return;
           }
-          const ns = names.names || {};
-          list.innerHTML = stock.data.map(item => {
-            const name  = ns[item.schedule_menu_id] || ('Menu #' + item.schedule_menu_id);
+          list.innerHTML = menus.map(item => {
             const bal   = parseInt(item.qty_balance, 10);
             const cls   = bal > 20 ? 'stock-ok' : bal > 0 ? 'stock-low' : 'stock-out';
-            return `<button class="menu-card" data-id="${item.schedule_menu_id}" ${bal === 0 ? 'disabled style="opacity:.4"' : ''}>
-              <span>${name}</span>
+            return `<button class="menu-card" data-id="${esc(item.id)}" ${bal === 0 ? 'disabled style="opacity:.4"' : ''}>
+              <span class="menu-card-name">${esc(item.name)}${item.detail ? `<small>${esc(item.detail)}</small>` : ''}</span>
               <span class="menu-stock ${cls}">${bal > 0 ? bal + ' sisa' : 'Habis'}</span>
             </button>`;
           }).join('');

@@ -145,6 +145,20 @@ mod tests {
         assert_eq!(label.name, "KAKAP BUMBU KEMANGI");
         assert_eq!(label.detail, "Nasi Putih | Tahu Bacem");
     }
+
+    #[test]
+    fn html_menu_labels_reads_id_title_and_menu_info() {
+        let html = r#"
+          <label>
+            <input name="menusaya" value="49959">
+            <h3 id="menu-title-49959">AYAM BAKAR</h3>
+            <p class="menu-info">Nasi | Sayur Asem | Buah</p>
+          </label>
+        "#;
+        let label = html_menu_labels(html).get("49959").unwrap().clone();
+        assert_eq!(label.name, "AYAM BAKAR");
+        assert_eq!(label.detail, "Nasi | Sayur Asem | Buah");
+    }
 }
 
 async fn login_cookie(base_url: &str) -> Result<String, String> {
@@ -292,14 +306,14 @@ fn html_menu_labels(page: &str) -> HashMap<String, MenuLabel> {
         let next_card = card_re.find(&page[m.end()..]).map(|hit| m.end() + hit.start()).unwrap_or((m.end() + 7000).min(page.len()));
         let chunk = &page[start..next_card];
 
-        let title = first_html_text(chunk, r#"(?is)<[^>]+class\s*=\s*["'][^"']*menu-title[^"']*["'][^>]*>(.*?)</[^>]+>"#);
+        let title = first_html_text(chunk, r#"(?is)<[^>]+(?:class|id)\s*=\s*["'][^"']*menu-title[^"']*["'][^>]*>(.*?)</[^>]+>"#);
         let fallback = first_html_text(chunk, r#"(?is)<option[^>]*>(.*?)</option>"#);
         let name = if !title.is_empty() { title } else if !fallback.is_empty() { fallback } else { clean_html_text(chunk) };
         if name.is_empty() || name.chars().all(|c| c.is_ascii_digit()) {
             continue;
         }
 
-        let detail = all_html_text(chunk, r#"(?is)<[^>]+class\s*=\s*["'][^"']*menu-item-name[^"']*["'][^>]*>(.*?)</[^>]+>"#)
+        let detail = all_html_text(chunk, r#"(?is)<[^>]+(?:class|id)\s*=\s*["'][^"']*(?:menu-item-name|menu-info)[^"']*["'][^>]*>(.*?)</[^>]+>"#)
             .join(" | ");
         labels.entry(id).or_insert(MenuLabel { name, detail });
     }
