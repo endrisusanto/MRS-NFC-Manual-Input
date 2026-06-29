@@ -209,7 +209,8 @@ if ($GenId -and $Password) {
             $bodyPre = $reportPage.body.Substring(0, $matchIdx)
             $trStart = $bodyPre.LastIndexOf("<tr")
             if ($trStart -ge 0) {
-                $rowHtml = $reportPage.body.Substring($trStart, $matchIdx + 500 - $trStart)
+                $len = [Math]::Min($matchIdx + 500 - $trStart, $reportPage.body.Length - $trStart)
+                $rowHtml = $reportPage.body.Substring($trStart, $len)
                 $cells = @()
                 foreach ($cellMatch in [regex]::Matches($rowHtml, '(?is)<td[^>]*>(.*?)</td>')) {
                     $cells += ([regex]::Replace($cellMatch.Groups[1].Value, '<[^>]+>', ' ') -replace '\s+', ' ').Trim()
