@@ -205,7 +205,7 @@ mod tests {
             <td><span class="badge bg-warning"><i class="ti"></i>Belum Diambil</span></td>
           </tr>
         "#;
-        let rows = order_history_rows(html);
+        let rows = order_history_rows(html, None);
         assert_eq!(rows[0]["tanggal_iso"], "2026-07-02");
         assert_eq!(rows[0]["jadwal"], "Makan Malam");
         assert_eq!(rows[0]["menu"], "TELUR BALADO");
@@ -471,7 +471,7 @@ fn report_date_iso(value: &str) -> String {
     format!("{}-{}-{:0>2}", &cap[3], month, &cap[1])
 }
 
-fn order_history_rows(page: &str) -> Vec<serde_json::Value> {
+fn order_history_rows(page: &str, target_gen: Option<&str>) -> Vec<serde_json::Value> {
     let tr_re = regex::Regex::new(r"(?is)<tr[^>]*>(.*?)</tr>").unwrap();
     let td_re = regex::Regex::new(r"(?is)<td[^>]*>(.*?)</td>").unwrap();
     let xid_re = regex::Regex::new(r"xid=(\d+)").unwrap();
@@ -483,6 +483,12 @@ fn order_history_rows(page: &str) -> Vec<serde_json::Value> {
             .map(|c| clean_html_text(&c[1]))
             .collect::<Vec<_>>();
         if cells.len() >= 7 {
+            let row_gen = &cells[4];
+            if let Some(target) = target_gen {
+                if row_gen != target {
+                    continue;
+                }
+            }
             let xid = xid_re.captures(tr_inner).map(|c| c[1].to_string());
             rows.push(serde_json::json!({
                 "tanggal": cells[0],
@@ -933,42 +939,44 @@ async fn order_history(gen_id: String, password: String, server: String, from: S
     let uid = user_id.as_deref().unwrap_or(&gen_id);
     let client = reqwest::Client::builder().timeout(Duration::from_secs(5)).build().map_err(|e| e.to_string())?;
     
-    // ponytail: try fetching with user session first, fallback to master account if reports are restricted
     let mut text = String::new();
-    let res = client
-        .get(format!("{base}/reports/generate/{from}/{to}/{uid}/final-order"))
-        .header("Cookie", &cookie)
-        .send().await;
-        
     let mut success = false;
-    if let Ok(response) = res {
-        if response.status().is_success() {
-            if let Ok(t) = response.text().await {
-                if t.contains("<table") {
-                    text = t;
-                    success = true;
-                }
-            }
-        }
-    }
     
-    if !success {
-        if let Ok((master_cookie, _)) = order_login_cookie(&base, "14829575", "23051995").await {
-            let res_fallback = client
-                .get(format!("{base}/reports/generate/{from}/{to}/{uid}/final-order"))
-                .header("Cookie", master_cookie)
-                .send().await;
-            if let Ok(response) = res_fallback {
-                if response.status().is_success() {
-                    if let Ok(t) = response.text().await {
+    // As requested: use the untaken widget algorithm. 
+    // Fetch /all/final-order using the Master Account, then filter by gen_id.
+    if let Ok((master_cookie, _)) = order_login_cookie(&base, "14829575", "23051995").await {
+        let res_fallback = client
+            .get(format!("{base}/reports/generate/{from}/{to}/all/final-order"))
+            .header("Cookie", master_cookie)
+            .send().await;
+        if let Ok(response) = res_fallback {
+            if response.status().is_success() {
+                if let Ok(t) = response.text().await {
+                    if t.contains("<table") {
                         text = t;
+                        success = true;
                     }
                 }
             }
         }
     }
+    
+    // If master account fails (e.g. offline or changed), fallback to standard user request
+    if !success {
+        let res = client
+            .get(format!("{base}/reports/generate/{from}/{to}/{uid}/final-order"))
+            .header("Cookie", &cookie)
+            .send().await;
+        if let Ok(response) = res {
+            if response.status().is_success() {
+                if let Ok(t) = response.text().await {
+                    text = t;
+                }
+            }
+        }
+    }
 
-    Ok(serde_json::json!({ "success": true, "rows": order_history_rows(&text) }))
+    Ok(serde_json::json!({ "success": true, "rows": order_history_rows(&text, Some(&gen_id)) }))
 }
 
 #[tauri::command]
