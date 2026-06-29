@@ -1337,8 +1337,9 @@
       <form style="width: min(500px, 100%); max-height: 85vh; overflow-y: auto; display: flex; flex-direction: column; gap: 14px;">
         <h3 style="margin-top: 0; font-size: 18px; font-weight: 850; text-transform: uppercase; letter-spacing: .08em; color: var(--text); text-align: center;" id="modal-result-title">Detail Pesanan</h3>
         <div id="modal-result-content" style="display: flex; flex-direction: column; gap: 14px;"></div>
-        <div class="actions" style="margin-top: 10px;">
-          <button id="modal-result-close" type="button" class="primary" style="width: 100%; grid-column: 1 / -1;">Tutup</button>
+        <div class="actions" style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+          <button id="modal-result-pin" type="button" class="mode-button" style="background: #2563eb; color: #fff; width: 100%;" hidden>📌 Pin ke Widget</button>
+          <button id="modal-result-close" type="button" class="primary" style="width: 100%;">Tutup</button>
         </div>
       </form>
     </div>
@@ -1407,7 +1408,7 @@
         reconnectTimer: null,
         retryMs: 2500,
         loket: '1',
-        inputMode: 'manual',
+        inputMode: 'nfc',
         action: localStorage.mersAction || 'cek_pesanan',
         config: {
           url: localStorage.mersWsUrl || defaultWsUrl,
@@ -1584,6 +1585,7 @@
       }
 
       function renderResponse(data) {
+        state.lastData = data;
         const text = responseText(data);
         const lower = text.toLowerCase();
         const kind = lower.includes('tidak pesan') || lower.includes('unplan') ? 'warn' : data?.success === false ? 'bad' : 'ok';
@@ -1596,6 +1598,13 @@
         $('modal-result-title').textContent = text;
         currentSlide = 0;
         $('modal-result-content').innerHTML = detailHtml(data, false);
+
+        if (window.AndroidNfc) {
+          $('modal-result-pin').hidden = false;
+        } else {
+          $('modal-result-pin').hidden = true;
+        }
+
         $('result-modal').hidden = false;
       }
 
@@ -1804,6 +1813,32 @@
       $('modal-result-close').addEventListener('click', () => {
         $('result-modal').hidden = true;
       });
+      $('modal-result-pin').addEventListener('click', () => {
+        if (!window.AndroidNfc || !state.lastData) return;
+        const data = state.lastData;
+        const name = data?.data?.orders?.[0]?.first_name || data?.order?.first_name || data?.tap?.data?.employee_name || data?.first_name || '';
+        const genId = data?.data?.orders?.[0]?.no_kartu || data?.order?.no_kartu || data?.tap?.data?.uid || $('uid').value || '';
+        
+        let orders = [];
+        if (Array.isArray(data?.data?.orders)) {
+          orders = data.data.orders.map(o => ({
+            meal: o.schedule_meal_name || '',
+            menu: o.menu_name || '',
+            tanggal: o.schedule_date || '',
+            loket: o.loket_name || o.order_loket || ''
+          }));
+        } else {
+          const order = data?.order || data?.schedule?.data?.schedules?.[0] || {};
+          const tap = data?.tap?.data || data?.data || {};
+          orders.push({
+            meal: order.schedule_meal_name || tap.menu_info || '',
+            menu: order.menu_name || tap.menu_info || '',
+            tanggal: order.schedule_date || '',
+            loket: order.loket_name || order.order_loket || ''
+          });
+        }
+        window.AndroidNfc.pinId(genId, name, JSON.stringify(orders));
+      });
 
       function openSettings() {
         $('ws').value = localStorage.mersWsUrl || (location.protocol.startsWith('http') ? location.origin + '/' : DEFAULT_URL);
@@ -1878,6 +1913,7 @@
       
       autoSelectLoket();
       updateModeUI();
+      setInputMode('nfc');
 
       if (state.config.url) connect();
       else setStatus('WebSocket belum diatur. Buka Server untuk mengaktifkan.', 'warn');

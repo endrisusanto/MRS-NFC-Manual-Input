@@ -3,6 +3,8 @@ package id.endri.mersremote
 import android.Manifest
 import android.app.Activity
 import android.app.PendingIntent
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
@@ -88,6 +90,30 @@ class MainActivity : Activity() {
                         setWebStatus("Tempelkan kartu NFC.", "warn")
                     }
                 }
+            }
+        }
+
+        @JavascriptInterface
+        fun pinId(genId: String, name: String, ordersJson: String) {
+            runOnUiThread {
+                val prefs = getSharedPreferences("mers_widget_prefs", MODE_PRIVATE)
+                prefs.edit().apply {
+                    putString("pinned_gen_id", genId)
+                    putString("pinned_name", name)
+                    putString("pinned_orders", ordersJson)
+                    apply()
+                }
+
+                // Broadcast update
+                val intent = Intent(this@MainActivity, MersWidget::class.java)
+                intent.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                val ids = AppWidgetManager.getInstance(application).getAppWidgetIds(
+                    ComponentName(application, MersWidget::class.java)
+                )
+                intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
+                sendBroadcast(intent)
+
+                Toast.makeText(this@MainActivity, "ID $genId dipin ke Widget!", Toast.LENGTH_SHORT).show()
             }
         }
     }
