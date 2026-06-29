@@ -63,15 +63,61 @@ function Short-Body($Text, [int]$Max = 1200) {
 
 function Menu-Names-From-Html($Html) {
     $out = @()
-    foreach ($m in [regex]::Matches($Html, '(?is)<option[^>]+value=["'']?(\d+)["'']?[^>]*>(.*?)</option>')) {
-        $name = (($m.Groups[2].Value -replace '<[^>]+>', ' ') -replace '\s+', ' ').Trim()
-        if ($name) { $out += [PSCustomObject]@{ id = $m.Groups[1].Value; name = $name } }
+    $matches = [regex]::Matches($Html, '(?is)(?:value|data-id|data-menu-id|data-schedule-menu-id)\s*=\s*["'']?(\d+)["'']?')
+    foreach ($m in $matches) {
+        $id = $m.Groups[1].Value
+        $matchIdx = $m.Index
+        
+        $bodyPre = $Html.Substring(0, $matchIdx)
+        $startIdx = $matchIdx
+        $tags = @("<label", "<option", "<div", "<tr")
+        foreach ($tag in $tags) {
+            $lastTagIdx = $bodyPre.LastIndexOf($tag)
+            if ($lastTagIdx -ge 0 -and $lastTagIdx -lt $startIdx) {
+                $startIdx = $lastTagIdx
+            }
+        }
+        
+        $afterMatch = $Html.Substring($matchIdx + $m.Length)
+        $nextIdx = -1
+        $nextRe = [regex]::Match($afterMatch, '(?i)name=["'']?menusaya["'']?|type=["'']?radio["'']?|<option')
+        if ($nextRe.Success) {
+            $nextIdx = $matchIdx + $m.Length + $nextRe.Index
+        } else {
+            $nextIdx = $Html.Length
+        }
+        
+        $chunk = $Html.Substring($startIdx, $nextIdx - $startIdx)
+        
+        $cleanChunk = [regex]::Replace($chunk, '(?is)<input[^>]*>', '')
+        $cleanChunk = [regex]::Replace($cleanChunk, '(?is)<[^>]+(?:class|id)\s*=\s*["'']?[^"'']*(?:menu-item-name|menu-info|detail|qty|stock|balance)[^"'']*["'']?[^>]*>.*?<\/[^>]+>', '')
+        
+        $name = ""
+        $titleRe = [regex]::Match($chunk, '(?is)<[^>]+(?:class|id)\s*=\s*["'']?[^"'']*(?:menu-title|menu-name|item-title)[^"'']*["'']?[^>]*>(.*?)</[^>]+>')
+        if (-not $titleRe.Success) {
+            $titleRe = [regex]::Match($chunk, '(?is)<h[2-5][^>]*>(.*?)</h[2-5]>')
+        }
+        if (-not $titleRe.Success) {
+            $titleRe = [regex]::Match($chunk, '(?is)<strong[^>]*>(.*?)</strong>')
+        }
+        if (-not $titleRe.Success) {
+            $titleRe = [regex]::Match($chunk, '(?is)<b[^>]*>(.*?)</b>')
+        }
+        if (-not $titleRe.Success) {
+            $titleRe = [regex]::Match($chunk, '(?is)<option[^>]*>(.*?)</option>')
+        }
+        
+        if ($titleRe.Success) {
+            $name = ([regex]::Replace($titleRe.Groups[1].Value, '<[^>]+>', ' ') -replace '\s+', ' ').Trim()
+        } else {
+            $name = ([regex]::Replace($cleanChunk, '<[^>]+>', ' ') -replace '\s+', ' ').Trim()
+        }
+        
+        if ($name -and -not ($name -match '^\d+$')) {
+            $out += [PSCustomObject]@{ id = $id; name = $name }
+        }
     }
-    foreach ($m in [regex]::Matches($Html, '(?is)(?:value|data-id|data-menu-id|data-schedule-menu-id)\s*=\s*["'']?(\d+)["'']?[\s\S]{0,800}?(?:class|id)\s*=\s*["''][^"'']*menu-title[^"'']*["''][^>]*>(.*?)</[^>]+>')) {
-        $name = (($m.Groups[2].Value -replace '<[^>]+>', ' ') -replace '\s+', ' ').Trim()
-        if ($name) { $out += [PSCustomObject]@{ id = $m.Groups[1].Value; name = $name } }
-    }
-    $out | Select-Object -First 20
+    $out | Group-Object id | ForEach-Object { $_.Group[0] }
 }
 
 $uri = [Uri]$BaseUrl
