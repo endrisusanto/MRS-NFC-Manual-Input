@@ -11,6 +11,10 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
+import java.time.Duration
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 
 class WidgetSyncWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
@@ -18,42 +22,75 @@ class WidgetSyncWorker(context: Context, params: WorkerParameters) : Worker(cont
     companion object {
         private const val WORK_NAME = "mers_widget_sync"
         private const val SYNC_NOW_WORK_NAME = "mers_widget_sync_now"
+        private const val KEY_FORCE_SYNC = "force_sync"
         private const val SERVER_URL = "https://makan.endrisusanto.my.id"
+        private val ZONE = ZoneId.of("Asia/Jakarta")
+        private val LUNCH_START = LocalTime.of(11, 30)
+        private val LUNCH_END = LocalTime.of(12, 15)
+        private val DINNER_START = LocalTime.of(17, 30)
+        private val DINNER_END = LocalTime.of(18, 30)
 
         fun schedule(context: Context) {
+            enqueueNext(context, ExistingWorkPolicy.REPLACE)
+        }
+
+        fun syncNow(context: Context) {
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build()
 
-            val request = PeriodicWorkRequestBuilder<WidgetSyncWorker>(30, TimeUnit.MINUTES)
+            val request = OneTimeWorkRequestBuilder<WidgetSyncWorker>()
                 .setConstraints(constraints)
-                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 5, TimeUnit.MINUTES)
+                .setInputData(workDataOf(KEY_FORCE_SYNC to true))
                 .build()
 
             WorkManager.getInstance(context)
-                .enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, request)
+                .enqueueUniqueWork(SYNC_NOW_WORK_NAME, ExistingWorkPolicy.REPLACE, request)
+        }
 
-            val syncNow = OneTimeWorkRequestBuilder<WidgetSyncWorker>()
+        private fun enqueueNext(context: Context, policy: ExistingWorkPolicy) {
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build()
+
+            val request = OneTimeWorkRequestBuilder<WidgetSyncWorker>()
                 .setConstraints(constraints)
+                .setInitialDelay(nextDelayMillis(), TimeUnit.MILLISECONDS)
                 .build()
 
             WorkManager.getInstance(context)
-                .enqueueUniqueWork(SYNC_NOW_WORK_NAME, ExistingWorkPolicy.REPLACE, syncNow)
+                .enqueueUniqueWork(WORK_NAME, policy, request)
         }
 
         fun cancel(context: Context) {
             WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
             WorkManager.getInstance(context).cancelUniqueWork(SYNC_NOW_WORK_NAME)
         }
+
+        private fun nextDelayMillis(now: LocalDateTime = LocalDateTime.now(ZONE)): Long {
+            val time = now.toLocalTime()
+            val nextStart = when {
+                isMealTime(time) -> now.plusMinutes(1)
+                time.isBefore(LUNCH_START) -> now.toLocalDate().atTime(LUNCH_START)
+                time.isBefore(DINNER_START) -> now.toLocalDate().atTime(DINNER_START)
+                else -> now.toLocalDate().plusDays(1).atTime(LUNCH_START)
+            }
+            return Duration.between(now, nextStart).toMillis().coerceAtLeast(0)
+        }
+
+        private fun isMealTime(time: LocalTime): Boolean =
+            (!time.isBefore(LUNCH_START) && time.isBefore(LUNCH_END)) ||
+                (!time.isBefore(DINNER_START) && time.isBefore(DINNER_END))
     }
 
     override fun doWork(): Result {
         val prefs = applicationContext.getSharedPreferences("mers_widget_prefs", Context.MODE_PRIVATE)
         val genId = prefs.getString("pinned_gen_id", "") ?: ""
-
-        if (genId.isEmpty()) return Result.success()
+        val forceSync = inputData.getBoolean(KEY_FORCE_SYNC, false)
 
         return try {
+            if (genId.isEmpty() || (!forceSync && !isMealTime(LocalTime.now(ZONE)))) return Result.success()
+
             val url = URL("$SERVER_URL/mers-proxy/widget-sync?genId=$genId")
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "GET"
@@ -64,7 +101,7 @@ class WidgetSyncWorker(context: Context, params: WorkerParameters) : Worker(cont
             if (responseCode != 200) {
                 prefs.edit().putString("last_sync_error", "Sync gagal HTTP $responseCode").apply()
                 refreshWidgets()
-                return Result.retry()
+                return Result.success()
             }
 
             val reader = BufferedReader(InputStreamReader(conn.inputStream))
@@ -76,7 +113,7 @@ class WidgetSyncWorker(context: Context, params: WorkerParameters) : Worker(cont
             if (!json.optBoolean("success", false)) {
                 prefs.edit().putString("last_sync_error", json.optString("message", "Sync gagal")).apply()
                 refreshWidgets()
-                return Result.retry()
+                return Result.success()
             }
 
             val name = json.optString("name", genId)
@@ -98,7 +135,9 @@ class WidgetSyncWorker(context: Context, params: WorkerParameters) : Worker(cont
         } catch (e: Exception) {
             prefs.edit().putString("last_sync_error", "Sync gagal: ${e.message}").apply()
             refreshWidgets()
-            Result.retry()
+            Result.success()
+        } finally {
+            enqueueNext(applicationContext, ExistingWorkPolicy.APPEND_OR_REPLACE)
         }
     }
 

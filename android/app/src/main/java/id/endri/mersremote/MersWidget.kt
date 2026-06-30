@@ -5,6 +5,7 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.view.View
 import android.widget.RemoteViews
 import org.json.JSONArray
@@ -123,10 +124,11 @@ open class MersWidget : AppWidgetProvider() {
                         val isSiang = meal.contains("Siang", ignoreCase = true)
                         val mealBg = if (isSiang) R.drawable.badge_meal_siang else R.drawable.badge_meal_malam
                         views.setInt(R.id.badge_meal, "setBackgroundResource", mealBg)
+                        views.setTextColor(R.id.badge_meal, Color.parseColor(if (isSiang) "#111827" else "#F8FAFC"))
 
                         // Set dynamic status badge color
                         val isSudah = status.contains("Sudah", ignoreCase = true)
-                        val statusBg = if (isSudah) R.drawable.badge_meal_siang else R.drawable.badge_status
+                        val statusBg = if (isSudah) R.drawable.badge_status_sudah else R.drawable.badge_status
                         views.setInt(R.id.badge_status, "setBackgroundResource", statusBg)
 
                         if (ordersArray.length() > 1) {

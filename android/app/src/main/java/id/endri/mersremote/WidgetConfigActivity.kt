@@ -157,6 +157,7 @@ class WidgetConfigActivity : Activity() {
 
         // Start periodic background sync
         WidgetSyncWorker.schedule(this)
+        WidgetSyncWorker.syncNow(this)
 
         Toast.makeText(this, "ID $genId berhasil dipin! 📌", Toast.LENGTH_SHORT).show()
 
@@ -175,6 +176,7 @@ class WidgetConfigActivity : Activity() {
         savePinnedGenId(genId)
         updateWidgets()
         WidgetSyncWorker.schedule(this)
+        WidgetSyncWorker.syncNow(this)
         Toast.makeText(this, "Refresh pesanan dimulai", Toast.LENGTH_SHORT).show()
     }
 
