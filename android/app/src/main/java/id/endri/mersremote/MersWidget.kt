@@ -14,7 +14,6 @@ open class MersWidget : AppWidgetProvider() {
 
     companion object {
         private const val ACTION_TOGGLE_SLIDE = "id.endri.mersremote.action.TOGGLE_SLIDE"
-        private const val ACTION_REFRESH = "id.endri.mersremote.action.REFRESH"
     }
 
     override fun onEnabled(context: Context) {
@@ -55,8 +54,6 @@ open class MersWidget : AppWidgetProvider() {
                     }
                 } catch (e: Exception) {}
             }
-        } else if (intent.action == ACTION_REFRESH) {
-            WidgetSyncWorker.schedule(context)
         }
     }
 
@@ -64,19 +61,10 @@ open class MersWidget : AppWidgetProvider() {
         val prefs = context.getSharedPreferences("mers_widget_prefs", Context.MODE_PRIVATE)
         val name = prefs.getString("pinned_name", "") ?: ""
         val ordersJson = prefs.getString("pinned_orders", "[]") ?: "[]"
+        val syncError = prefs.getString("last_sync_error", "") ?: ""
 
         for (appWidgetId in appWidgetIds) {
             val views = RemoteViews(context.packageName, layoutId)
-            val refreshFlags = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            } else {
-                PendingIntent.FLAG_UPDATE_CURRENT
-            }
-            val refreshIntent = Intent(context, javaClass).apply { action = ACTION_REFRESH }
-            views.setOnClickPendingIntent(
-                R.id.widget_refresh_btn,
-                PendingIntent.getBroadcast(context, appWidgetId + 10000, refreshIntent, refreshFlags)
-            )
 
             if (name.isEmpty()) {
                 // No ID pinned — show empty state with config prompt
@@ -106,7 +94,7 @@ open class MersWidget : AppWidgetProvider() {
                     if (ordersArray.length() == 0) {
                         views.setViewVisibility(R.id.item_menu, View.GONE)
                         views.setViewVisibility(R.id.item_menu_empty, View.VISIBLE)
-                        views.setTextViewText(R.id.item_menu_empty, "🤷‍♂️\nBelum ada pesanan nih~")
+                        views.setTextViewText(R.id.item_menu_empty, if (syncError.isNotEmpty()) "⚠️\n$syncError" else "🤷‍♂️\nBelum ada pesanan nih~")
                         views.setViewVisibility(R.id.widget_badge_container, View.GONE)
                         views.setViewVisibility(R.id.widget_next_btn, View.GONE)
                     } else {

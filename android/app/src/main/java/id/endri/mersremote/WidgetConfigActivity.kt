@@ -114,6 +114,23 @@ class WidgetConfigActivity : Activity() {
         root.addView(btn, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply { bottomMargin = 16 })
+
+        val refreshBtn = Button(this).apply {
+            text = "↻ Refresh Data Pesanan"
+            textSize = 15f
+            setTextColor(Color.WHITE)
+            isAllCaps = false
+            setPadding(32, 20, 32, 20)
+            background = GradientDrawable().apply {
+                setColor(Color.parseColor("#0f766e"))
+                cornerRadius = 24f
+            }
+            setOnClickListener { refreshOrders(input.text.toString().trim()) }
+        }
+        root.addView(refreshBtn, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
         ))
 
         // Handle Enter key
@@ -133,14 +150,7 @@ class WidgetConfigActivity : Activity() {
             return
         }
 
-        // Save to shared prefs
-        val prefs = getSharedPreferences("mers_widget_prefs", Context.MODE_PRIVATE)
-        prefs.edit().apply {
-            putString("pinned_gen_id", genId)
-            putString("pinned_name", genId)
-            putString("pinned_orders", "[]")
-            apply()
-        }
+        savePinnedGenId(genId)
 
         // Update all widgets
         updateWidgets()
@@ -154,6 +164,28 @@ class WidgetConfigActivity : Activity() {
         val resultValue = Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
         setResult(RESULT_OK, resultValue)
         finish()
+    }
+
+    private fun refreshOrders(genId: String) {
+        if (genId.isEmpty()) {
+            Toast.makeText(this, "ID tidak boleh kosong", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        savePinnedGenId(genId)
+        updateWidgets()
+        WidgetSyncWorker.schedule(this)
+        Toast.makeText(this, "Refresh pesanan dimulai", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun savePinnedGenId(genId: String) {
+        getSharedPreferences("mers_widget_prefs", Context.MODE_PRIVATE).edit().apply {
+            putString("pinned_gen_id", genId)
+            putString("pinned_name", genId)
+            putString("pinned_orders", "[]")
+            putString("last_sync_error", "")
+            apply()
+        }
     }
 
     private fun updateWidgets() {
