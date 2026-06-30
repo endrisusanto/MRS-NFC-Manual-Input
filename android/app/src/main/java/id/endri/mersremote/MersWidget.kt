@@ -87,7 +87,7 @@ open class MersWidget : AppWidgetProvider() {
                 val configPending = PendingIntent.getActivity(context, appWidgetId + 5000, configIntent, configFlags)
                 views.setOnClickPendingIntent(R.id.widget_container, configPending)
             } else {
-                views.setTextViewText(R.id.widget_title, "👤 $name")
+                views.setTextViewText(R.id.widget_title, name)
 
                 try {
                     // Show ALL orders (including Sudah Diambil)
@@ -120,11 +120,16 @@ open class MersWidget : AppWidgetProvider() {
                         views.setTextViewText(R.id.badge_date, tanggal)
                         views.setTextViewText(R.id.badge_status, status)
 
-                        // Set dynamic meal badge color background
+                        // Set dynamic badge color background
                         val isSiang = meal.contains("Siang", ignoreCase = true)
                         val mealBg = if (isSiang) R.drawable.badge_meal_siang else R.drawable.badge_meal_malam
                         views.setInt(R.id.badge_meal, "setBackgroundResource", mealBg)
-                        views.setTextColor(R.id.badge_meal, Color.parseColor(if (isSiang) "#111827" else "#F8FAFC"))
+                        views.setInt(R.id.badge_loket, "setBackgroundResource", mealBg)
+                        views.setInt(R.id.badge_date, "setBackgroundResource", mealBg)
+                        val badgeTextColor = Color.parseColor(if (isSiang) "#111827" else "#F8FAFC")
+                        views.setTextColor(R.id.badge_meal, badgeTextColor)
+                        views.setTextColor(R.id.badge_loket, badgeTextColor)
+                        views.setTextColor(R.id.badge_date, badgeTextColor)
 
                         // Set dynamic status badge color
                         val isSudah = status.contains("Sudah", ignoreCase = true)

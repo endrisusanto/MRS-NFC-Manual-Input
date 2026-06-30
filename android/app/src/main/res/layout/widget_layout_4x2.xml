@@ -28,7 +28,7 @@
                 android:layout_centerInParent="true"
                 android:ellipsize="end"
                 android:singleLine="true"
-                android:text="👤 MeRS Remote"
+                android:text="MeRS Remote"
                 android:textColor="#FFFFFF"
                 android:textSize="16sp"
                 android:textStyle="bold" />
