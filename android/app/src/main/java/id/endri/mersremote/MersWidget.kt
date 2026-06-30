@@ -27,20 +27,12 @@ open class MersWidget : AppWidgetProvider() {
                 val prefs = context.getSharedPreferences("mers_widget_prefs", Context.MODE_PRIVATE)
                 val ordersJson = prefs.getString("pinned_orders", "[]") ?: "[]"
                 try {
-                    val rawArray = JSONArray(ordersJson)
-                    val ordersArray = JSONArray()
-                    for (i in 0 until rawArray.length()) {
-                        val o = rawArray.getJSONObject(i)
-                        if (!o.optBoolean("ambil", false)) {
-                            ordersArray.put(o)
-                        }
-                    }
+                    val ordersArray = JSONArray(ordersJson)
                     if (ordersArray.length() > 1) {
                         val currentIndex = prefs.getInt("widget_slide_index_$appWidgetId", 0)
                         val nextIndex = (currentIndex + 1) % ordersArray.length()
                         prefs.edit().putInt("widget_slide_index_$appWidgetId", nextIndex).apply()
 
-                        // Update this widget instance!
                         val appWidgetManager = AppWidgetManager.getInstance(context)
                         onUpdate(context, appWidgetManager, intArrayOf(appWidgetId))
                     }
@@ -58,26 +50,34 @@ open class MersWidget : AppWidgetProvider() {
             val views = RemoteViews(context.packageName, layoutId)
 
             if (name.isEmpty()) {
-                views.setTextViewText(R.id.widget_title, "Belum ada ID dipin")
+                // No ID pinned — show empty state with config prompt
+                views.setTextViewText(R.id.widget_title, "📌 Ketuk untuk setup")
                 views.setViewVisibility(R.id.item_menu, View.GONE)
                 views.setViewVisibility(R.id.item_menu_empty, View.VISIBLE)
+                views.setTextViewText(R.id.item_menu_empty, "🤷‍♂️\nBelum ada ID dipin\nKetuk di sini untuk input GEN ID")
                 views.setViewVisibility(R.id.widget_badge_container, View.GONE)
                 views.setViewVisibility(R.id.widget_next_btn, View.GONE)
+
+                // Click opens config activity
+                val configIntent = Intent(context, WidgetConfigActivity::class.java)
+                val configFlags = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                } else {
+                    PendingIntent.FLAG_UPDATE_CURRENT
+                }
+                val configPending = PendingIntent.getActivity(context, appWidgetId + 5000, configIntent, configFlags)
+                views.setOnClickPendingIntent(R.id.widget_container, configPending)
             } else {
                 views.setTextViewText(R.id.widget_title, "👤 $name")
-                
+
                 try {
-                    val rawArray = JSONArray(ordersJson)
-                    val ordersArray = JSONArray()
-                    for (i in 0 until rawArray.length()) {
-                        val o = rawArray.getJSONObject(i)
-                        if (!o.optBoolean("ambil", false)) {
-                            ordersArray.put(o)
-                        }
-                    }
+                    // Show ALL orders (including Sudah Diambil)
+                    val ordersArray = JSONArray(ordersJson)
+
                     if (ordersArray.length() == 0) {
                         views.setViewVisibility(R.id.item_menu, View.GONE)
                         views.setViewVisibility(R.id.item_menu_empty, View.VISIBLE)
+                        views.setTextViewText(R.id.item_menu_empty, "🤷‍♂️\nBelum ada pesanan nih~")
                         views.setViewVisibility(R.id.widget_badge_container, View.GONE)
                         views.setViewVisibility(R.id.widget_next_btn, View.GONE)
                     } else {
@@ -94,7 +94,7 @@ open class MersWidget : AppWidgetProvider() {
 
                         views.setTextViewText(R.id.item_menu, menu)
                         views.setViewVisibility(R.id.widget_badge_container, View.VISIBLE)
-                        
+
                         // Set badge texts
                         views.setTextViewText(R.id.badge_meal, meal)
                         views.setTextViewText(R.id.badge_loket, "Loket $loket")
@@ -106,10 +106,14 @@ open class MersWidget : AppWidgetProvider() {
                         val mealBg = if (isSiang) R.drawable.badge_meal_siang else R.drawable.badge_meal_malam
                         views.setInt(R.id.badge_meal, "setBackgroundResource", mealBg)
 
+                        // Set dynamic status badge color
+                        val isSudah = status.contains("Sudah", ignoreCase = true)
+                        val statusBg = if (isSudah) R.drawable.badge_meal_siang else R.drawable.badge_status
+                        views.setInt(R.id.badge_status, "setBackgroundResource", statusBg)
+
                         if (ordersArray.length() > 1) {
                             views.setViewVisibility(R.id.widget_next_btn, View.VISIBLE)
 
-                            // Create toggle PendingIntent targetting concrete class
                             val toggleIntent = Intent(context, javaClass).apply {
                                 action = ACTION_TOGGLE_SLIDE
                                 putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
@@ -128,21 +132,23 @@ open class MersWidget : AppWidgetProvider() {
                         }
                     }
                 } catch (e: Exception) {
-                    views.setTextViewText(R.id.item_menu, "Error data")
+                    views.setViewVisibility(R.id.item_menu, View.GONE)
+                    views.setViewVisibility(R.id.item_menu_empty, View.VISIBLE)
+                    views.setTextViewText(R.id.item_menu_empty, "😵\nError data")
                     views.setViewVisibility(R.id.widget_badge_container, View.GONE)
                     views.setViewVisibility(R.id.widget_next_btn, View.GONE)
                 }
-            }
 
-            // Click container to launch App
-            val intent = Intent(context, MainActivity::class.java)
-            val flags = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            } else {
-                PendingIntent.FLAG_UPDATE_CURRENT
+                // Click container opens main app when ID is set
+                val intent = Intent(context, MainActivity::class.java)
+                val flags = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                } else {
+                    PendingIntent.FLAG_UPDATE_CURRENT
+                }
+                val pendingIntent = PendingIntent.getActivity(context, 0, intent, flags)
+                views.setOnClickPendingIntent(R.id.widget_container, pendingIntent)
             }
-            val pendingIntent = PendingIntent.getActivity(context, 0, intent, flags)
-            views.setOnClickPendingIntent(R.id.widget_container, pendingIntent)
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
