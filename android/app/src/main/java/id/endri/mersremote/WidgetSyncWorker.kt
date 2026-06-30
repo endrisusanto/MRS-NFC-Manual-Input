@@ -17,6 +17,7 @@ class WidgetSyncWorker(context: Context, params: WorkerParameters) : Worker(cont
 
     companion object {
         private const val WORK_NAME = "mers_widget_sync"
+        private const val SYNC_NOW_WORK_NAME = "mers_widget_sync_now"
         private const val SERVER_URL = "https://makan.endrisusanto.my.id"
 
         fun schedule(context: Context) {
@@ -31,10 +32,18 @@ class WidgetSyncWorker(context: Context, params: WorkerParameters) : Worker(cont
 
             WorkManager.getInstance(context)
                 .enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, request)
+
+            val syncNow = OneTimeWorkRequestBuilder<WidgetSyncWorker>()
+                .setConstraints(constraints)
+                .build()
+
+            WorkManager.getInstance(context)
+                .enqueueUniqueWork(SYNC_NOW_WORK_NAME, ExistingWorkPolicy.REPLACE, syncNow)
         }
 
         fun cancel(context: Context) {
             WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+            WorkManager.getInstance(context).cancelUniqueWork(SYNC_NOW_WORK_NAME)
         }
     }
 
