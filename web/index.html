@@ -1658,7 +1658,7 @@
         try {
           const controller = new AbortController();
           timer = setTimeout(() => controller.abort(), 3500);
-          const res = await fetch('/mers-ping', { method: 'HEAD', cache: 'no-store', signal: controller.signal });
+          const res = await fetch(orderProxyBase() + '/mers-ping', { cache: 'no-store', signal: controller.signal });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           setBadge('mers-status', 'mers online', 'ok');
         } catch {
