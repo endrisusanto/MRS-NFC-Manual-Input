@@ -27,8 +27,6 @@ fn order_menu_cache() -> std::sync::MutexGuard<'static, Option<HashMap<String, (
 const MERS_BASE_URL: &str = "http://107.102.8.148/MERS";
 const LOGIN_IDENTITY: &str = "16756586";
 const LOGIN_PASSWORD: &str = "27051994";
-const WIDGET_MASTER_GEN_ID: &str = "14829575";
-const WIDGET_MASTER_PASSWORD: &str = "23051995";
 
 static RECONNECT_REQUESTED: AtomicBool = AtomicBool::new(false);
 static WS_STATUS: AtomicU8 = AtomicU8::new(0); // 0 = offline, 1 = connecting, 2 = online
@@ -999,27 +997,20 @@ async fn order_history(gen_id: String, password: String, server: String, from: S
     Ok(serde_json::json!({ "success": true, "rows": order_history_rows(&text, Some(&gen_id)) }))
 }
 
-async fn widget_sync(gen_id: String, server: String, from: String, to: String) -> Result<serde_json::Value, String> {
-    let base = server_url(&server);
-    let (cookie, _) = order_login_cookie(&base, WIDGET_MASTER_GEN_ID, WIDGET_MASTER_PASSWORD).await?;
-    let client = reqwest::Client::builder().timeout(Duration::from_secs(15)).build().map_err(|e| e.to_string())?;
-    let text = client
-        .get(format!("{base}/reports/generate/{from}/{to}/all/final-order"))
-        .header("Cookie", cookie)
-        .send().await.map_err(|e| e.to_string())?
-        .text().await.map_err(|e| e.to_string())?;
-    let rows = order_history_rows(&text, Some(&gen_id));
-    let name = rows.first()
-        .and_then(|row| row.get("nama"))
+async fn widget_sync(uid: String, server: String) -> Result<serde_json::Value, String> {
+    let data = run_cek_pesanan(&uid, &server).await?;
+    let source_orders = data["data"]["orders"].as_array().cloned().unwrap_or_default();
+    let name = source_orders.first()
+        .and_then(|row| row.get("first_name"))
         .and_then(|v| v.as_str())
         .unwrap_or("")
         .to_string();
-    let orders = rows.into_iter().map(|row| serde_json::json!({
-        "meal": row.get("jadwal").cloned().unwrap_or_default(),
-        "menu": row.get("menu").cloned().unwrap_or_default(),
-        "tanggal": row.get("tanggal").cloned().unwrap_or_default(),
-        "loket": row.get("loket").cloned().unwrap_or_default(),
-        "status": if row.get("status").and_then(|v| v.as_str()).unwrap_or("").contains("Sudah") { "Sudah Diambil" } else { "Belum Diambil" },
+    let orders = source_orders.into_iter().map(|row| serde_json::json!({
+        "meal": row.get("schedule_meal_name").cloned().unwrap_or_default(),
+        "menu": row.get("menu_name").cloned().unwrap_or_default(),
+        "tanggal": row.get("schedule_date").cloned().unwrap_or_default(),
+        "loket": row.get("loket_name").or_else(|| row.get("order_loket")).cloned().unwrap_or_default(),
+        "status": if row.get("order_ambil").and_then(|v| v.as_bool()).unwrap_or(false) { "Sudah Diambil" } else { "Belum Diambil" },
     })).collect::<Vec<_>>();
 
     Ok(serde_json::json!({ "success": true, "name": name, "orders": orders }))
@@ -1215,14 +1206,14 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
                                                         }
                                                     }
                                                     "widget_sync" => {
-                                                        match (cmd.gen_id.clone(), cmd.from.clone(), cmd.to.clone()) {
-                                                            (Some(gen_id), Some(from), Some(to)) => {
-                                                                match widget_sync(gen_id, server_url.clone(), from, to).await {
+                                                        match cmd.uid.clone() {
+                                                            Some(uid) => {
+                                                                match widget_sync(uid, server_url.clone()).await {
                                                                     Ok(val) => val,
                                                                     Err(err) => serde_json::json!({ "success": false, "message": err, "orders": [] })
                                                                 }
                                                             }
-                                                            _ => serde_json::json!({ "success": false, "message": "GEN dan tanggal wajib diisi", "orders": [] })
+                                                            _ => serde_json::json!({ "success": false, "message": "UID wajib diisi", "orders": [] })
                                                         }
                                                     }
                                                     _ => serde_json::json!({ "success": false, "message": "Command tidak dikenali" })
