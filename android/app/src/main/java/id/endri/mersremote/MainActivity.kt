@@ -3,8 +3,6 @@ package id.endri.mersremote
 import android.Manifest
 import android.app.Activity
 import android.app.PendingIntent
-import android.appwidget.AppWidgetManager
-import android.content.ComponentName
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
@@ -94,39 +92,6 @@ class MainActivity : Activity() {
                         setWebStatus("Tempelkan kartu NFC.", "warn")
                     }
                 }
-            }
-        }
-
-        @JavascriptInterface
-        fun pinId(genId: String, name: String, ordersJson: String) {
-            runOnUiThread {
-                val prefs = getSharedPreferences("mers_widget_prefs", MODE_PRIVATE)
-                prefs.edit().apply {
-                    putString("pinned_gen_id", genId)
-                    putString("pinned_name", name)
-                    putString("pinned_orders", ordersJson)
-                    apply()
-                }
-
-                // Broadcast update to 4x2
-                val intent4x2 = Intent(this@MainActivity, MersWidget4x2::class.java)
-                intent4x2.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-                val ids4x2 = AppWidgetManager.getInstance(application).getAppWidgetIds(
-                    ComponentName(application, MersWidget4x2::class.java)
-                )
-                intent4x2.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids4x2)
-                sendBroadcast(intent4x2)
-
-                // Broadcast update to 2x2
-                val intent2x2 = Intent(this@MainActivity, MersWidget2x2::class.java)
-                intent2x2.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-                val ids2x2 = AppWidgetManager.getInstance(application).getAppWidgetIds(
-                    ComponentName(application, MersWidget2x2::class.java)
-                )
-                intent2x2.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids2x2)
-                sendBroadcast(intent2x2)
-
-                Toast.makeText(this@MainActivity, "ID $genId dipin ke Widget!", Toast.LENGTH_SHORT).show()
             }
         }
     }

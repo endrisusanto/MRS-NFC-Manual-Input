@@ -14,8 +14,19 @@ import android.widget.*
 
 class WidgetConfigActivity : Activity() {
 
+    private var appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Set CANCELED as default — if user backs out, widget won't be added
+        setResult(RESULT_CANCELED)
+
+        // Get widget ID from intent (passed when adding new widget or reconfiguring)
+        appWidgetId = intent?.extras?.getInt(
+            AppWidgetManager.EXTRA_APPWIDGET_ID,
+            AppWidgetManager.INVALID_APPWIDGET_ID
+        ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -98,34 +109,14 @@ class WidgetConfigActivity : Activity() {
                 setColor(Color.parseColor("#2563eb"))
                 cornerRadius = 24f
             }
-            setOnClickListener {
-                val genId = input.text.toString().trim()
-                if (genId.isEmpty()) {
-                    Toast.makeText(this@WidgetConfigActivity, "ID tidak boleh kosong", Toast.LENGTH_SHORT).show()
-                    return@setOnClickListener
-                }
-
-                // Save to shared prefs (name will be updated when data syncs)
-                prefs.edit().apply {
-                    putString("pinned_gen_id", genId)
-                    putString("pinned_name", genId)  // placeholder until real sync
-                    putString("pinned_orders", "[]")
-                    apply()
-                }
-
-                // Trigger widget update for both sizes
-                updateWidgets()
-
-                Toast.makeText(this@WidgetConfigActivity, "ID $genId berhasil dipin! 📌", Toast.LENGTH_SHORT).show()
-                finish()
-            }
+            setOnClickListener { saveAndFinish(input.text.toString().trim()) }
         }
         root.addView(btn, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         ))
 
-        // Handle Enter key on input
+        // Handle Enter key
         input.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
                 btn.performClick()
@@ -134,6 +125,32 @@ class WidgetConfigActivity : Activity() {
         }
 
         setContentView(root)
+    }
+
+    private fun saveAndFinish(genId: String) {
+        if (genId.isEmpty()) {
+            Toast.makeText(this, "ID tidak boleh kosong", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Save to shared prefs
+        val prefs = getSharedPreferences("mers_widget_prefs", Context.MODE_PRIVATE)
+        prefs.edit().apply {
+            putString("pinned_gen_id", genId)
+            putString("pinned_name", genId)
+            putString("pinned_orders", "[]")
+            apply()
+        }
+
+        // Update all widgets
+        updateWidgets()
+
+        Toast.makeText(this, "ID $genId berhasil dipin! 📌", Toast.LENGTH_SHORT).show()
+
+        // Return RESULT_OK so the widget is confirmed/added
+        val resultValue = Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+        setResult(RESULT_OK, resultValue)
+        finish()
     }
 
     private fun updateWidgets() {
