@@ -16,6 +16,22 @@ open class MersWidget : AppWidgetProvider() {
         private const val ACTION_TOGGLE_SLIDE = "id.endri.mersremote.action.TOGGLE_SLIDE"
     }
 
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+        WidgetSyncWorker.schedule(context)
+    }
+
+    override fun onDisabled(context: Context) {
+        super.onDisabled(context)
+        // Only cancel if no widgets of either size remain
+        val mgr = AppWidgetManager.getInstance(context)
+        val ids4x2 = mgr.getAppWidgetIds(android.content.ComponentName(context, MersWidget4x2::class.java))
+        val ids2x2 = mgr.getAppWidgetIds(android.content.ComponentName(context, MersWidget2x2::class.java))
+        if (ids4x2.isEmpty() && ids2x2.isEmpty()) {
+            WidgetSyncWorker.cancel(context)
+        }
+    }
+
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
         if (intent.action == ACTION_TOGGLE_SLIDE) {

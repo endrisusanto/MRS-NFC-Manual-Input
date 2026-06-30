@@ -145,6 +145,9 @@ class WidgetConfigActivity : Activity() {
         // Update all widgets
         updateWidgets()
 
+        // Start periodic background sync
+        WidgetSyncWorker.schedule(this)
+
         Toast.makeText(this, "ID $genId berhasil dipin! 📌", Toast.LENGTH_SHORT).show()
 
         // Return RESULT_OK so the widget is confirmed/added

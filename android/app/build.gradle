@@ -28,3 +28,7 @@ android {
         main.assets.srcDirs += '../../web'
     }
 }
+
+dependencies {
+    implementation 'androidx.work:work-runtime-ktx:2.9.1'
+}
