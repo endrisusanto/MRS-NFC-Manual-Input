@@ -2029,6 +2029,24 @@
         return r.json();
       }
 
+      async function cancelOrder(xid) {
+        const data = await orderWsRequest({
+          action: 'order_cancel',
+          genId: orderCreds.genId,
+          password: orderCreds.password,
+          xid,
+        });
+        if (data.success || !String(data.message || '').includes('Command tidak dikenali')) return data;
+
+        // ponytail: compatibility fallback for old PC agents until they are updated.
+        const r = await fetch(orderProxyBase() + '/mers-proxy/cancel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ genId: orderCreds.genId, password: orderCreds.password, xid }),
+        });
+        return r.json();
+      }
+
       function openOrderModal() {
         $('order-modal').hidden = false;
         // Restore creds if saved
@@ -2063,6 +2081,13 @@
 
         try {
           orderCreds = { genId, password };
+          const loginRes = await fetch(orderProxyBase() + '/mers-proxy/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            cache: 'no-store',
+            body: JSON.stringify(orderCreds),
+          }).then(r => r.json());
+          if (!loginRes.success) throw new Error(loginRes.message || 'Login gagal');
           localStorage.setItem(ORDER_KEY, JSON.stringify(orderCreds));
           showOrderStep('menu');
           await loadMenuOptions();
@@ -2147,12 +2172,13 @@
                         // ponytail: show taken status (Sudah/Belum Diambil) with appropriate badge colors
                         let badgeCls = cls;
                         let labelText = label;
+                        const status = existing ? (existing.status || 'Belum Diambil') : '';
+                        const isTaken = isOrdered && status.toLowerCase().includes('sudah');
                         if (isOrdered) {
-                          const status = existing ? (existing.status || 'Belum Diambil') : 'Belum Diambil';
                           labelText = `✔️ ${status}`;
                           badgeCls = status.toLowerCase().includes('sudah') ? 'stock-ok' : 'stock-low';
                         }
-                        const isDisabled = bal === 0;
+                        const isDisabled = (!isOrdered && bal === 0) || isTaken;
                         const xidAttr = existing && existing.xid ? `data-xid="${esc(existing.xid)}"` : '';
                         return `
                           <label class="${cardCls}" data-key="${esc(key)}" data-id="${esc(item.id)}" data-date="${esc(day.date)}" data-meal="${esc(meal.meal_id)}" ${xidAttr} ${isDisabled ? 'style="opacity:.4;pointer-events:none"' : ''}>
@@ -2272,7 +2298,7 @@
         
         // Only submit orders that were NOT already selected initially
         const orders = [...selectedMenus.values()].filter(
-          menu => !initialOrders.has(`${menu.date}_${menu.meal_id}`)
+          menu => !initialOrders.has(`${menu.date}|${menu.meal_id}`)
         );
         const cancels = [...canceledXids];
 
@@ -2289,13 +2315,7 @@
             results.push(await submitOrder(order));
           }
           for (const xid of cancels) {
-            const data = await orderWsRequest({
-              action: 'order_cancel',
-              genId: orderCreds.genId,
-              password: orderCreds.password,
-              xid,
-            });
-            results.push(data);
+            results.push(await cancelOrder(xid));
           }
           const failed = results.filter(item => !item.success);
           if (!failed.length) {

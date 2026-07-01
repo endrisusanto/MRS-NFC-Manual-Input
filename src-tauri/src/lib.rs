@@ -202,6 +202,7 @@ mod tests {
             <td>02 Juli 2026</td><td>Makan Malam</td><td>4</td><td>Endri Susanto</td>
             <td>16756586</td><td>PE</td><td>TELUR BALADO</td>
             <td><span class="badge bg-warning"><i class="ti"></i>Belum Diambil</span></td>
+            <td><a href="/order/hapusPesanan?xid=12345">Batal</a></td>
           </tr>
         "#;
         let rows = order_history_rows(html, None);
@@ -209,6 +210,7 @@ mod tests {
         assert_eq!(rows[0]["jadwal"], "Makan Malam");
         assert_eq!(rows[0]["menu"], "TELUR BALADO");
         assert_eq!(rows[0]["status"], "Belum Diambil");
+        assert_eq!(rows[0]["xid"], "12345");
     }
 
     #[test]
@@ -462,7 +464,7 @@ fn report_date_iso(value: &str) -> String {
 fn order_history_rows(page: &str, target_gen: Option<&str>) -> Vec<serde_json::Value> {
     let tr_re = regex::Regex::new(r"(?is)<tr[^>]*>(.*?)</tr>").unwrap();
     let td_re = regex::Regex::new(r"(?is)<td[^>]*>(.*?)</td>").unwrap();
-    let xid_re = regex::Regex::new(r"xid=(\d+)").unwrap();
+    let xid_re = regex::Regex::new(r#"(?i)(?:xid=|data-xid=["']?|hapusPesanan[/?])(\d+)"#).unwrap();
     let mut rows = Vec::new();
 
     for tr in tr_re.captures_iter(page) {

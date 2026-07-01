@@ -1466,12 +1466,14 @@
             // ponytail: show taken status (Sudah/Belum Diambil) with appropriate badge colors
             let badgeCls = cls;
             let labelText = bal > 0 ? bal + ' sisa' : 'Habis';
+            const status = orderedRow ? (orderedRow.status || 'Belum Diambil') : '';
+            const isTaken = isOrdered && status.toLowerCase().includes('sudah');
             if (isOrdered) {
-              const status = orderedRow.status || 'Belum Diambil';
               labelText = `✔️ ${status}`;
               badgeCls = status.toLowerCase().includes('sudah') ? 'stock-ok' : 'stock-low';
             }
-            return `<button class="menu-card ${isOrdered ? 'selected' : ''}" data-id="${esc(item.id)}" ${bal === 0 ? 'disabled style="opacity:.4"' : ''}>
+            const isDisabled = (!isOrdered && bal === 0) || isTaken;
+            return `<button class="menu-card ${isOrdered ? 'selected' : ''}" data-id="${esc(item.id)}" ${isDisabled ? 'disabled style="opacity:.4"' : ''}>
               <span class="menu-card-name">${isOrdered ? '✅ ' : ''}${esc(item.name)}${item.detail ? `<small>${esc(item.detail)}</small>` : ''}</span>
               <span class="menu-stock ${badgeCls}">${labelText}</span>
             </button>`;
