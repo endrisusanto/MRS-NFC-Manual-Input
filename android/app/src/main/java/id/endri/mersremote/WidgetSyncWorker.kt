@@ -139,6 +139,7 @@ class WidgetSyncWorker(context: Context, params: WorkerParameters) : Worker(cont
 
         val intent4x2 = Intent(context, MersWidget4x2::class.java).apply {
             action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+            putExtra(MersWidget.EXTRA_RENDER_ONLY, true)
             putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,
                 mgr.getAppWidgetIds(ComponentName(context, MersWidget4x2::class.java)))
         }
@@ -146,6 +147,7 @@ class WidgetSyncWorker(context: Context, params: WorkerParameters) : Worker(cont
 
         val intent2x2 = Intent(context, MersWidget2x2::class.java).apply {
             action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+            putExtra(MersWidget.EXTRA_RENDER_ONLY, true)
             putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,
                 mgr.getAppWidgetIds(ComponentName(context, MersWidget2x2::class.java)))
         }

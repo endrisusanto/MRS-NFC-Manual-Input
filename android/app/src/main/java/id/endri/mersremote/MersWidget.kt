@@ -15,6 +15,8 @@ open class MersWidget : AppWidgetProvider() {
 
     companion object {
         private const val ACTION_TOGGLE_SLIDE = "id.endri.mersremote.action.TOGGLE_SLIDE"
+        private const val ACTION_REFRESH = "id.endri.mersremote.action.REFRESH"
+        const val EXTRA_RENDER_ONLY = "id.endri.mersremote.extra.RENDER_ONLY"
     }
 
     override fun onEnabled(context: Context) {
@@ -35,6 +37,16 @@ open class MersWidget : AppWidgetProvider() {
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
+        if (intent.action == ACTION_REFRESH) {
+            WidgetSyncWorker.syncNow(context)
+            return
+        }
+        if (intent.action == AppWidgetManager.ACTION_APPWIDGET_UPDATE &&
+            !intent.getBooleanExtra(EXTRA_RENDER_ONLY, false)
+        ) {
+            WidgetSyncWorker.schedule(context)
+            WidgetSyncWorker.syncNow(context)
+        }
         if (intent.action == ACTION_TOGGLE_SLIDE) {
             val appWidgetId = intent.getIntExtra(
                 AppWidgetManager.EXTRA_APPWIDGET_ID,
@@ -75,6 +87,7 @@ open class MersWidget : AppWidgetProvider() {
                 views.setViewVisibility(R.id.item_menu_empty, View.VISIBLE)
                 views.setTextViewText(R.id.item_menu_empty, "🤷‍♂️\nBelum ada ID dipin\nKetuk di sini untuk input GEN ID")
                 views.setViewVisibility(R.id.widget_badge_container, View.GONE)
+                views.setViewVisibility(R.id.widget_refresh_btn, View.GONE)
                 views.setViewVisibility(R.id.widget_next_btn, View.GONE)
 
                 // Click opens config activity
@@ -88,6 +101,18 @@ open class MersWidget : AppWidgetProvider() {
                 views.setOnClickPendingIntent(R.id.widget_container, configPending)
             } else {
                 views.setTextViewText(R.id.widget_title, name)
+                views.setViewVisibility(R.id.widget_refresh_btn, View.VISIBLE)
+
+                val refreshIntent = Intent(context, javaClass).apply { action = ACTION_REFRESH }
+                val refreshFlags = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                } else {
+                    PendingIntent.FLAG_UPDATE_CURRENT
+                }
+                val refreshPendingIntent = PendingIntent.getBroadcast(
+                    context, appWidgetId + 10000, refreshIntent, refreshFlags
+                )
+                views.setOnClickPendingIntent(R.id.widget_refresh_btn, refreshPendingIntent)
 
                 try {
                     // Show ALL orders (including Sudah Diambil)
