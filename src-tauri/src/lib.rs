@@ -99,7 +99,7 @@ fn reverse_hex_bytes(hex: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{apply_report_menu_names, enrich_order_from_schedule, html_menu_labels, menu_detail, menu_name, order_history_rows, report_menu_names, scanner_uid, MenuLabel};
+    use super::{apply_report_menu_names, enrich_order_from_schedule, html_menu_labels, menu_detail, menu_name, order_history_rows, order_loket, report_menu_names, scanner_uid, MenuLabel};
     use std::collections::HashMap;
 
     #[test]
@@ -220,6 +220,13 @@ mod tests {
         let mut other = serde_json::json!({ "menu_name": "AYAM KECAP" });
         enrich_order_from_schedule(&mut other, &schedule);
         assert!(other["carbo_name"].is_null());
+    }
+
+    #[test]
+    fn order_loket_prefers_order_loket_and_accepts_label() {
+        assert_eq!(order_loket(&serde_json::json!({ "order_loket": "5", "loket_name": "Loket 1" })), "5");
+        assert_eq!(order_loket(&serde_json::json!({ "order_loket": "1,2" })), "1");
+        assert_eq!(order_loket(&serde_json::json!({ "loket_name": "Loket 6" })), "6");
     }
 
     #[test]
@@ -562,6 +569,18 @@ fn json_text<'a>(value: &'a serde_json::Value, key: &str) -> &'a str {
     value[key].as_str().map(str::trim).unwrap_or_default()
 }
 
+fn order_loket(order: &serde_json::Value) -> String {
+    for key in ["order_loket", "loket_name"] {
+        if let Some(loket) = json_text(order, key)
+            .split(|c: char| !c.is_ascii_digit())
+            .find(|value| !value.is_empty())
+        {
+            return loket.to_string();
+        }
+    }
+    String::new()
+}
+
 fn copy_if_missing(order: &mut serde_json::Value, schedule: &serde_json::Value, key: &str) {
     let missing = order[key].is_null() || json_text(order, key).is_empty();
     if missing && !schedule[key].is_null() {
@@ -621,13 +640,7 @@ async fn run_cek_pesanan(uid: &str, server: &str) -> Result<serde_json::Value, S
     let mut schedules = HashMap::new();
     if let Some(orders) = data["data"]["orders"].as_array_mut() {
         for order in orders {
-            let loket = json_text(order, "loket_name")
-                .split(',')
-                .next()
-                .filter(|value| !value.is_empty())
-                .or_else(|| json_text(order, "order_loket").split(',').next())
-                .unwrap_or_default()
-                .to_string();
+            let loket = order_loket(order);
             if loket.is_empty() {
                 continue;
             }
@@ -671,13 +684,30 @@ async fn loket_schedule(
 async fn run_tap_in(uid: &str, loket: &str, server: &str) -> Result<serde_json::Value, String> {
     let base_url = server_url(server);
     let cookie = login_cookie(&base_url).await?;
-    let schedule = loket_schedule(&base_url, &cookie, loket).await?;
-    let payload = format!("{}:{}", scanner_uid(uid), loket.trim());
-
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(3)) // ponytail: avoid hanging
         .build()
         .map_err(|e| e.to_string())?;
+
+    let order_text = client
+        .get(format!(
+            "{base_url}/cekorder.php?check_order={}",
+            uid.trim()
+        ))
+        .header("Cookie", &cookie)
+        .send()
+        .await
+        .map_err(|e| format!("Cek pesanan gagal: {e}"))?
+        .text()
+        .await
+        .map_err(|e| e.to_string())?;
+    let ordered_loket = response_body(order_text)["data"]["orders"]
+        .as_array()
+        .and_then(|orders| orders.iter().map(order_loket).find(|value| !value.is_empty()))
+        .unwrap_or_else(|| loket.trim().to_string());
+    let effective_loket = ordered_loket.trim();
+    let schedule = loket_schedule(&base_url, &cookie, effective_loket).await?;
+    let payload = format!("{}:{}", scanner_uid(uid), effective_loket);
 
     let text = client
         .post(format!("{base_url}/cekorder.php"))
@@ -692,6 +722,7 @@ async fn run_tap_in(uid: &str, loket: &str, server: &str) -> Result<serde_json::
 
     Ok(serde_json::json!({
         "schedule": schedule,
+        "loket": effective_loket,
         "tap": response_body(text),
     }))
 }
