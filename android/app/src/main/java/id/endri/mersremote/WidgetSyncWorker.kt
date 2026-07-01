@@ -22,7 +22,6 @@ class WidgetSyncWorker(context: Context, params: WorkerParameters) : Worker(cont
     companion object {
         private const val WORK_NAME = "mers_widget_sync"
         private const val SYNC_NOW_WORK_NAME = "mers_widget_sync_now"
-        private const val KEY_FORCE_SYNC = "force_sync"
         private const val SERVER_URL = "https://makan.endrisusanto.my.id"
         private val ZONE = ZoneId.of("Asia/Jakarta")
         private val LUNCH_START = LocalTime.of(11, 30)
@@ -41,7 +40,6 @@ class WidgetSyncWorker(context: Context, params: WorkerParameters) : Worker(cont
 
             val request = OneTimeWorkRequestBuilder<WidgetSyncWorker>()
                 .setConstraints(constraints)
-                .setInputData(workDataOf(KEY_FORCE_SYNC to true))
                 .build()
 
             WorkManager.getInstance(context)
@@ -69,12 +67,7 @@ class WidgetSyncWorker(context: Context, params: WorkerParameters) : Worker(cont
 
         private fun nextDelayMillis(now: LocalDateTime = LocalDateTime.now(ZONE)): Long {
             val time = now.toLocalTime()
-            val nextStart = when {
-                isMealTime(time) -> now.plusMinutes(1)
-                time.isBefore(LUNCH_START) -> now.toLocalDate().atTime(LUNCH_START)
-                time.isBefore(DINNER_START) -> now.toLocalDate().atTime(DINNER_START)
-                else -> now.toLocalDate().plusDays(1).atTime(LUNCH_START)
-            }
+            val nextStart = if (isMealTime(time)) now.plusMinutes(1) else now.plusHours(1)
             return Duration.between(now, nextStart).toMillis().coerceAtLeast(0)
         }
 
@@ -86,10 +79,9 @@ class WidgetSyncWorker(context: Context, params: WorkerParameters) : Worker(cont
     override fun doWork(): Result {
         val prefs = applicationContext.getSharedPreferences("mers_widget_prefs", Context.MODE_PRIVATE)
         val genId = prefs.getString("pinned_gen_id", "") ?: ""
-        val forceSync = inputData.getBoolean(KEY_FORCE_SYNC, false)
 
         return try {
-            if (genId.isEmpty() || (!forceSync && !isMealTime(LocalTime.now(ZONE)))) return Result.success()
+            if (genId.isEmpty()) return Result.success()
 
             val url = URL("$SERVER_URL/mers-proxy/widget-sync?genId=$genId")
             val conn = url.openConnection() as HttpURLConnection

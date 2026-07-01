@@ -7,16 +7,8 @@ use std::time::{Duration, Instant};
 use tauri::{Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
-// ponytail: simple in-memory session cache — genId → cookie
-static ORDER_SESSIONS: Mutex<Option<HashMap<String, (String, Option<String>)>>> = Mutex::new(None);
 // ponytail: menu stock changes slowly enough; 60s cache avoids hammering MERS.
 static ORDER_MENU_CACHE: Mutex<Option<HashMap<String, (Instant, serde_json::Value)>>> = Mutex::new(None);
-
-fn order_sessions() -> std::sync::MutexGuard<'static, Option<HashMap<String, (String, Option<String>)>>> {
-    let mut g = ORDER_SESSIONS.lock().unwrap();
-    if g.is_none() { *g = Some(HashMap::new()); }
-    g
-}
 
 fn order_menu_cache() -> std::sync::MutexGuard<'static, Option<HashMap<String, (Instant, serde_json::Value)>>> {
     let mut g = ORDER_MENU_CACHE.lock().unwrap();
@@ -322,25 +314,7 @@ async fn order_login_cookie(base_url: &str, gen_id: &str, password: &str) -> Res
 }
 
 async fn ensure_order_session(base_url: &str, gen_id: &str, password: &str) -> Result<(String, Option<String>), String> {
-    let key = format!("{gen_id}:{password}");
-    // Check cache
-    {
-        let sessions = order_sessions();
-        if let Some(map) = sessions.as_ref() {
-            if let Some(entry) = map.get(&key) {
-                return Ok(entry.clone());
-            }
-        }
-    }
-    // Login and cache
-    let entry = order_login_cookie(base_url, gen_id, password).await?;
-    {
-        let mut sessions = order_sessions();
-        if let Some(map) = sessions.as_mut() {
-            map.insert(key, entry.clone());
-        }
-    }
-    Ok(entry)
+    order_login_cookie(base_url, gen_id, password).await
 }
 
 fn response_body(text: String) -> serde_json::Value {
@@ -875,8 +849,6 @@ async fn tap_in(uid: String, loket: String, server: String) -> Result<serde_json
 #[tauri::command]
 async fn order_login(gen_id: String, password: String, server: String) -> Result<serde_json::Value, String> {
     let base = server_url(&server);
-    // Force refresh session
-    { let mut s = order_sessions(); if let Some(m) = s.as_mut() { m.remove(&format!("{gen_id}:{password}")); } }
     let (_, user_id) = ensure_order_session(&base, &gen_id, &password).await?;
     Ok(serde_json::json!({ "success": true, "userId": user_id }))
 }
