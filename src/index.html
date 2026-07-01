@@ -1339,13 +1339,19 @@
         document.getElementById('ostep-' + step).classList.add('active');
       }
 
+      function showOrderMenu() {
+        showOStep('menu');
+        document.getElementById('o-date').value ||= oTomorrow();
+        loadOrderMenu();
+      }
+
       document.querySelectorAll('.order-tab').forEach(btn => {
         btn.addEventListener('click', () => {
           document.querySelectorAll('.order-tab').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
           const tab = btn.dataset.tab;
           if (tab === 'pesan') {
-            showOStep(orderCreds ? 'menu' : 'login');
+            orderCreds ? showOrderMenu() : showOStep('login');
           } else {
             if (!orderCreds) { showOStep('login'); return; }
             showOStep('history');
@@ -1359,8 +1365,7 @@
         try { orderCreds = JSON.parse(localStorage.getItem(ORDER_KEY)); } catch(_) {}
         document.getElementById('order-modal').hidden = false;
         if (orderCreds) {
-          showOStep('menu');
-          document.getElementById('o-date').value = oTomorrow();
+          showOrderMenu();
         } else {
           showOStep('login');
         }
@@ -1383,8 +1388,7 @@
           if (res.success) {
             orderCreds = { genId, password };
             localStorage.setItem(ORDER_KEY, JSON.stringify(orderCreds));
-            showOStep('menu');
-            document.getElementById('o-date').value = oTomorrow();
+            showOrderMenu();
           } else {
             msg.textContent = res.message || 'Login gagal';
             msg.hidden = false;
