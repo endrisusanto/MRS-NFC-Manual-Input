@@ -16,6 +16,12 @@ fn order_menu_cache() -> std::sync::MutexGuard<'static, Option<HashMap<String, (
     g
 }
 
+fn clear_order_menu_cache() {
+    if let Some(map) = ORDER_MENU_CACHE.lock().unwrap().as_mut() {
+        map.clear();
+    }
+}
+
 const MERS_BASE_URL: &str = "http://107.102.8.148/MERS";
 const LOGIN_IDENTITY: &str = "16756586";
 const LOGIN_PASSWORD: &str = "27051994";
@@ -43,6 +49,7 @@ struct WsIncomingCommand {
     meal_id: Option<String>,
     #[serde(rename = "menuId")]
     menu_id: Option<String>,
+    xid: Option<String>,
 }
 
 fn server_url(server: &str) -> String {
@@ -936,6 +943,9 @@ async fn order_submit(gen_id: String, password: String, server: String, date: St
         ])
         .send().await.map_err(|e| e.to_string())?;
     let success = res.status().as_u16() == 302 || res.status().is_success();
+    if success {
+        clear_order_menu_cache();
+    }
     Ok(serde_json::json!({ "success": success, "status": res.status().as_u16(), "message": if success { "Pesanan berhasil disimpan" } else { "Gagal menyimpan pesanan" } }))
 }
 
@@ -952,6 +962,9 @@ async fn order_cancel(gen_id: String, password: String, server: String, xid: Str
         .form(&[("xid", xid.as_str())])
         .send().await.map_err(|e| e.to_string())?;
     let success = res.status().as_u16() == 302 || res.status().is_success();
+    if success {
+        clear_order_menu_cache();
+    }
     Ok(serde_json::json!({ "success": success, "message": if success { "Pesanan berhasil dibatalkan" } else { "Gagal membatalkan" } }))
 }
 
@@ -1195,6 +1208,17 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
                                                                 }
                                                             }
                                                             _ => serde_json::json!({ "success": false, "message": "GEN, password, tanggal, jadwal, dan menu wajib diisi" })
+                                                        }
+                                                    }
+                                                    "order_cancel" => {
+                                                        match (cmd.gen_id.clone(), cmd.password.clone(), cmd.xid.clone()) {
+                                                            (Some(gen_id), Some(password), Some(xid)) => {
+                                                                match order_cancel(gen_id, password, server_url.clone(), xid).await {
+                                                                    Ok(val) => val,
+                                                                    Err(err) => serde_json::json!({ "success": false, "message": err })
+                                                                }
+                                                            }
+                                                            _ => serde_json::json!({ "success": false, "message": "GEN, password, dan XID wajib diisi" })
                                                         }
                                                     }
                                                     "order_history" => {
