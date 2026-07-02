@@ -2064,15 +2064,6 @@
       }
 
       async function submitOrder(order) {
-        if (window.AndroidNfc?.postJson) {
-          return orderPostJson('/mers-proxy/order', {
-            genId: orderCreds.genId,
-            password: orderCreds.password,
-            xtanggal: order.date,
-            xjadwal: order.meal_id,
-            menusaya: order.id,
-          });
-        }
         const data = await orderWsRequest({
           action: 'order_submit',
           genId: orderCreds.genId,
@@ -2080,42 +2071,53 @@
           date: order.date,
           mealId: order.meal_id,
           menuId: order.id,
-        }).catch(() => null);
-        if (data && (data.success || !String(data.message || '').includes('Command tidak dikenali'))) return data;
+        });
+        if (data.success || !String(data.message || '').includes('Command tidak dikenali')) return data;
 
         // ponytail: compatibility fallback for old PC agents until they are updated.
-        return orderPostJson('/mers-proxy/order', {
-          genId: orderCreds.genId,
-          password: orderCreds.password,
-          xtanggal: order.date,
-          xjadwal: order.meal_id,
-          menusaya: order.id,
+        const r = await fetch(orderProxyBase() + '/mers-proxy/order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            genId: orderCreds.genId,
+            password: orderCreds.password,
+            xtanggal: order.date,
+            xjadwal: order.meal_id,
+            menusaya: order.id,
+          }),
         });
+        return r.json();
       }
 
       async function cancelOrder(xid) {
-        if (window.AndroidNfc?.postJson) {
-          return orderPostJson('/mers-proxy/cancel', { genId: orderCreds.genId, password: orderCreds.password, xid });
-        }
         const data = await orderWsRequest({
           action: 'order_cancel',
           genId: orderCreds.genId,
           password: orderCreds.password,
           xid,
-        }).catch(() => null);
-        if (data && (data.success || !String(data.message || '').includes('Command tidak dikenali'))) return data;
+        });
+        if (data.success || !String(data.message || '').includes('Command tidak dikenali')) return data;
 
         // ponytail: compatibility fallback for old PC agents until they are updated.
-        return orderPostJson('/mers-proxy/cancel', { genId: orderCreds.genId, password: orderCreds.password, xid });
+        const r = await fetch(orderProxyBase() + '/mers-proxy/cancel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            genId: orderCreds.genId,
+            password: orderCreds.password,
+            xid,
+          }),
+        });
+        return r.json();
       }
 
       function openOrderModal() {
-        console.log('openOrderModal');
         $('order-modal').hidden = false;
         // Restore creds if saved
         try { orderCreds = JSON.parse(localStorage.getItem(ORDER_KEY)); } catch (_) {}
         if (orderCreds) {
-          showOrderMenu();
+          showOrderStep('menu');
+          loadMenuOptions();
         } else {
           showOrderStep('login');
         }
@@ -2124,17 +2126,6 @@
       function showOrderStep(step) {
         document.querySelectorAll('.order-step').forEach(s => s.classList.remove('active'));
         $('ostep-' + step).classList.add('active');
-      }
-
-      function showOrderMenu() {
-        showOrderStep('menu');
-        if (window.AndroidNfc?.getJson) {
-          $('order-menu-list').innerHTML = '<div class="order-loading">Tekan Cari untuk memuat menu.</div>';
-          selectedMenus = new Map();
-          $('order-submit').disabled = true;
-          return;
-        }
-        loadMenuOptions();
       }
 
       $('pesan-menu-btn').addEventListener('click', openOrderModal);
@@ -2154,10 +2145,9 @@
 
         try {
           orderCreds = { genId, password };
-          // ponytail: YAGNI. Validating login explicitly adds a slow roundtrip that causes timeouts. 
-          // Just save locally. Invalid logins will naturally fail when fetching the menu anyway.
           localStorage.setItem(ORDER_KEY, JSON.stringify(orderCreds));
-          showOrderMenu();
+          showOrderStep('menu');
+          await loadMenuOptions();
         } catch (e) {
           orderCreds = null;
           localStorage.removeItem(ORDER_KEY);
@@ -2196,18 +2186,13 @@
         $('order-submit').disabled = true;
 
         try {
-          const data = window.AndroidNfc?.getJson ? await orderMenuRangeProxy(dates) : await orderWsRequest({
+          const data = await orderWsRequest({
             action: 'order_menu_range',
             genId: orderCreds.genId,
             password: orderCreds.password,
             dates,
           });
-          const history = window.AndroidNfc?.getJson ? await orderGetJson('/mers-proxy/history', {
-            genId: orderCreds.genId,
-            password: orderCreds.password,
-            from: dates[0],
-            to: dates[dates.length - 1],
-          }).catch(() => ({ rows: [] })) : await orderWsRequest({
+          const history = await orderWsRequest({
             action: 'order_history',
             genId: orderCreds.genId,
             password: orderCreds.password,
