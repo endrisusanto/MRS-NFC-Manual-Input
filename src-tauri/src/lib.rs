@@ -256,7 +256,7 @@ mod tests {
 async fn login_cookie(base_url: &str) -> Result<String, String> {
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
-        .timeout(Duration::from_secs(3)) // ponytail: avoid hanging
+        .timeout(Duration::from_secs(30)) // ponytail: avoid hanging
         .build()
         .map_err(|e| e.to_string())?;
 
@@ -284,7 +284,7 @@ async fn login_cookie(base_url: &str) -> Result<String, String> {
 async fn order_login_cookie(base_url: &str, gen_id: &str, password: &str) -> Result<(String, Option<String>), String> {
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
-        .timeout(Duration::from_secs(5))
+        .timeout(Duration::from_secs(30))
         .build()
         .map_err(|e| e.to_string())?;
 
@@ -628,7 +628,7 @@ async fn run_cek_pesanan(uid: &str, server: &str) -> Result<serde_json::Value, S
     let base_url = server_url(server);
     let cookie = login_cookie(&base_url).await?;
     let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(3)) // ponytail: avoid hanging
+        .timeout(Duration::from_secs(30)) // ponytail: avoid hanging
         .build()
         .map_err(|e| e.to_string())?;
 
@@ -673,7 +673,7 @@ async fn loket_schedule(
     loket: &str,
 ) -> Result<serde_json::Value, String> {
     let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(3)) // ponytail: avoid hanging
+        .timeout(Duration::from_secs(30)) // ponytail: avoid hanging
         .build()
         .map_err(|e| e.to_string())?;
 
@@ -694,7 +694,7 @@ async fn run_tap_in(uid: &str, loket: &str, server: &str) -> Result<serde_json::
     let base_url = server_url(server);
     let cookie = login_cookie(&base_url).await?;
     let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(3)) // ponytail: avoid hanging
+        .timeout(Duration::from_secs(30)) // ponytail: avoid hanging
         .build()
         .map_err(|e| e.to_string())?;
 
@@ -758,7 +758,7 @@ async fn fetch_order_menu(
         }
     }
 
-    let client = reqwest::Client::builder().timeout(Duration::from_secs(5)).build().map_err(|e| e.to_string())?;
+    let client = reqwest::Client::builder().timeout(Duration::from_secs(30)).build().map_err(|e| e.to_string())?;
     let stock_text = client
         .get(format!("{base}/order/get_stock_data?date={date}&schedule_meal_id={meal_id}"))
         .header("Cookie", cookie)
@@ -902,7 +902,7 @@ async fn order_menu_range(gen_id: String, password: String, server: String, date
 async fn order_stock(gen_id: String, password: String, server: String, date: String, meal_id: String) -> Result<serde_json::Value, String> {
     let base = server_url(&server);
     let (cookie, _) = ensure_order_session(&base, &gen_id, &password).await?;
-    let client = reqwest::Client::builder().timeout(Duration::from_secs(5)).build().map_err(|e| e.to_string())?;
+    let client = reqwest::Client::builder().timeout(Duration::from_secs(30)).build().map_err(|e| e.to_string())?;
     let text = client
         .get(format!("{base}/order/get_stock_data?date={date}&schedule_meal_id={meal_id}"))
         .header("Cookie", cookie)
@@ -915,7 +915,7 @@ async fn order_stock(gen_id: String, password: String, server: String, date: Str
 async fn order_menu_names(gen_id: String, password: String, server: String, date: String, meal_id: String) -> Result<serde_json::Value, String> {
     let base = server_url(&server);
     let (cookie, _) = ensure_order_session(&base, &gen_id, &password).await?;
-    let client = reqwest::Client::builder().timeout(Duration::from_secs(5)).build().map_err(|e| e.to_string())?;
+    let client = reqwest::Client::builder().timeout(Duration::from_secs(30)).build().map_err(|e| e.to_string())?;
     let text = client
         .get(format!("{base}/order/pilihmenu?xtanggal={date}&xjadwal={meal_id}&xfor_date={date}&xjm={meal_id}"))
         .header("Cookie", cookie)
@@ -934,7 +934,7 @@ async fn order_submit(gen_id: String, password: String, server: String, date: St
     let (cookie, _) = ensure_order_session(&base, &gen_id, &password).await?;
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
-        .timeout(Duration::from_secs(5)).build().map_err(|e| e.to_string())?;
+        .timeout(Duration::from_secs(30)).build().map_err(|e| e.to_string())?;
     let res = client
         .post(format!("{base}/order/pilihmenu"))
         .header("Cookie", cookie)

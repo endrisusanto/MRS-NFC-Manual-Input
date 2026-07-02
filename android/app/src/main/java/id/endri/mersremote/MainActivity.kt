@@ -12,6 +12,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.Gravity
+import android.webkit.ConsoleMessage
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebSettings
@@ -38,7 +39,12 @@ class MainActivity : Activity() {
         }
         webView = WebView(this)
         webView.webViewClient = WebViewClient()
-        webView.webChromeClient = WebChromeClient()
+        webView.webChromeClient = object : WebChromeClient() {
+            override fun onConsoleMessage(message: ConsoleMessage): Boolean {
+                android.util.Log.d("MeRSWeb", "${message.message()} (${message.sourceId()}:${message.lineNumber()})")
+                return true
+            }
+        }
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
         webView.settings.allowFileAccess = true
@@ -116,8 +122,8 @@ class MainActivity : Activity() {
             return try {
                 val conn = URL(url).openConnection() as HttpURLConnection
                 conn.requestMethod = "GET"
-                conn.connectTimeout = 15000
-                conn.readTimeout = 15000
+                conn.connectTimeout = 30000
+                conn.readTimeout = 30000
                 conn.useCaches = false
                 conn.setRequestProperty("Accept", "application/json")
                 val stream = if (conn.responseCode in 200..399) conn.inputStream else conn.errorStream
@@ -133,8 +139,8 @@ class MainActivity : Activity() {
                 val body = json.toByteArray(Charsets.UTF_8)
                 val conn = URL(url).openConnection() as HttpURLConnection
                 conn.requestMethod = "POST"
-                conn.connectTimeout = 15000
-                conn.readTimeout = 15000
+                conn.connectTimeout = 30000
+                conn.readTimeout = 30000
                 conn.doOutput = true
                 conn.useCaches = false
                 conn.setRequestProperty("Content-Type", "application/json")

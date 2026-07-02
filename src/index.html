@@ -1384,15 +1384,11 @@
         const btn = document.getElementById('o-login');
         btn.disabled = true; btn.textContent = 'Masuk...';
         try {
-          const res = await invoke('order_login', { genId, password, server: serverUrl() });
-          if (res.success) {
-            orderCreds = { genId, password };
-            localStorage.setItem(ORDER_KEY, JSON.stringify(orderCreds));
-            showOrderMenu();
-          } else {
-            msg.textContent = res.message || 'Login gagal';
-            msg.hidden = false;
-          }
+          orderCreds = { genId, password };
+          // ponytail: YAGNI. Validating login explicitly adds a slow roundtrip that causes timeouts. 
+          // Just save locally. Invalid logins will naturally fail when fetching the menu anyway.
+          localStorage.setItem(ORDER_KEY, JSON.stringify(orderCreds));
+          showOrderMenu();
         } catch(e) {
           msg.textContent = String(e);
           msg.hidden = false;

@@ -2110,12 +2110,12 @@
       }
 
       function openOrderModal() {
+        console.log('openOrderModal');
         $('order-modal').hidden = false;
         // Restore creds if saved
         try { orderCreds = JSON.parse(localStorage.getItem(ORDER_KEY)); } catch (_) {}
         if (orderCreds) {
-          showOrderStep('menu');
-          loadMenuOptions();
+          showOrderMenu();
         } else {
           showOrderStep('login');
         }
@@ -2124,6 +2124,17 @@
       function showOrderStep(step) {
         document.querySelectorAll('.order-step').forEach(s => s.classList.remove('active'));
         $('ostep-' + step).classList.add('active');
+      }
+
+      function showOrderMenu() {
+        showOrderStep('menu');
+        if (window.AndroidNfc?.getJson) {
+          $('order-menu-list').innerHTML = '<div class="order-loading">Tekan Cari untuk memuat menu.</div>';
+          selectedMenus = new Map();
+          $('order-submit').disabled = true;
+          return;
+        }
+        loadMenuOptions();
       }
 
       $('pesan-menu-btn').addEventListener('click', openOrderModal);
@@ -2143,11 +2154,10 @@
 
         try {
           orderCreds = { genId, password };
-          const loginRes = await orderPostJson('/mers-proxy/login', orderCreds);
-          if (!loginRes.success) throw new Error(loginRes.message || 'Login gagal');
+          // ponytail: YAGNI. Validating login explicitly adds a slow roundtrip that causes timeouts. 
+          // Just save locally. Invalid logins will naturally fail when fetching the menu anyway.
           localStorage.setItem(ORDER_KEY, JSON.stringify(orderCreds));
-          showOrderStep('menu');
-          await loadMenuOptions();
+          showOrderMenu();
         } catch (e) {
           orderCreds = null;
           localStorage.removeItem(ORDER_KEY);
