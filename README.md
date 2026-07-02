@@ -51,6 +51,8 @@ npm install
 npm run dev
 ```
 
+Frontend desktop ada di `src/` dan dipaketkan oleh Tauri lewat `src-tauri/tauri.conf.json` (`frontendDist: "../src"`). File `src/index.html` memakai bridge Tauri/Rust (`window.__TAURI__`) untuk command desktop, jadi tidak sama fungsinya dengan web PWA.
+
 UI desktop memiliki input GEN 8 digit atau ID kartu 10 digit, shortcut **Tap In Scanner**, shortcut **Cek Menu Pesanan**, dan pilihan 6 loket untuk Tap In.
 
 Desktop app memanggil backend `http://107.102.8.148/MERS` langsung dari PC tempat app dijalankan. Build bisa dibuat dari jaringan mana pun, tetapi fitur cek pesanan dan tap in hanya bisa dites/berjalan di PC yang punya akses intranet ke alamat tersebut.
@@ -76,6 +78,8 @@ npm run web:dev
 ```
 
 Web app ada di `web/`. Fiturnya mobile-first, installable sebagai PWA, input manual 8-10 digit, Web NFC jika browser mendukung, pilihan cek pesanan/tap in, pilihan loket, dan WebSocket gateway. Web NFC butuh Android Chrome pada secure context (`https://` atau localhost).
+
+Folder `web/` juga dipakai Docker/nginx dan Android WebView (`android/app/build.gradle` menambahkan `../../web` sebagai assets). Walau mirip dengan `src/index.html`, entrypoint ini jalan sebagai PWA/Android dan memakai `fetch`/`WebSocket`, bukan command Tauri desktop.
 
 Preset awal server memakai `https://makan.endrisusanto.my.id/` dan otomatis dipakai sebagai WebSocket `wss://makan.endrisusanto.my.id/ws`. Ubah dari tombol **Server** jika gateway berbeda.
 

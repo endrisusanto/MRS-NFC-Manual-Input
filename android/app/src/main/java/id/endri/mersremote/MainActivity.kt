@@ -20,6 +20,8 @@ import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.widget.Toast
 import java.math.BigInteger
+import java.net.HttpURLConnection
+import java.net.URL
 
 class MainActivity : Activity() {
     private lateinit var webView: WebView
@@ -92,6 +94,56 @@ class MainActivity : Activity() {
                         setWebStatus("Tempelkan kartu NFC.", "warn")
                     }
                 }
+            }
+        }
+
+        @JavascriptInterface
+        fun pingMers(url: String): Boolean {
+            return try {
+                val conn = URL(url).openConnection() as HttpURLConnection
+                conn.requestMethod = "GET"
+                conn.connectTimeout = 3500
+                conn.readTimeout = 3500
+                conn.useCaches = false
+                conn.responseCode in 200..399
+            } catch (e: Exception) {
+                false
+            }
+        }
+
+        @JavascriptInterface
+        fun getJson(url: String): String {
+            return try {
+                val conn = URL(url).openConnection() as HttpURLConnection
+                conn.requestMethod = "GET"
+                conn.connectTimeout = 15000
+                conn.readTimeout = 15000
+                conn.useCaches = false
+                conn.setRequestProperty("Accept", "application/json")
+                val stream = if (conn.responseCode in 200..399) conn.inputStream else conn.errorStream
+                stream?.bufferedReader()?.use { it.readText() } ?: "{}"
+            } catch (e: Exception) {
+                """{"success":false,"message":${(e.message ?: "HTTP request gagal").js()}}"""
+            }
+        }
+
+        @JavascriptInterface
+        fun postJson(url: String, json: String): String {
+            return try {
+                val body = json.toByteArray(Charsets.UTF_8)
+                val conn = URL(url).openConnection() as HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.connectTimeout = 15000
+                conn.readTimeout = 15000
+                conn.doOutput = true
+                conn.useCaches = false
+                conn.setRequestProperty("Content-Type", "application/json")
+                conn.setRequestProperty("Accept", "application/json")
+                conn.outputStream.use { it.write(body) }
+                val stream = if (conn.responseCode in 200..399) conn.inputStream else conn.errorStream
+                stream?.bufferedReader()?.use { it.readText() } ?: "{}"
+            } catch (e: Exception) {
+                """{"success":false,"message":${(e.message ?: "HTTP request gagal").js()}}"""
             }
         }
     }

@@ -1656,6 +1656,11 @@
         setBadge('bridge-status', window.AndroidNfc ? 'bridge android' : window.__TAURI__ ? 'bridge tauri' : 'bridge web', window.AndroidNfc || window.__TAURI__ ? 'ok' : 'warn');
         let timer;
         try {
+          if (window.AndroidNfc?.pingMers) {
+            if (!window.AndroidNfc.pingMers(orderProxyBase() + '/mers-ping')) throw new Error('MERS offline');
+            setBadge('mers-status', 'mers online', 'ok');
+            return;
+          }
           const controller = new AbortController();
           timer = setTimeout(() => controller.abort(), 3500);
           const res = await fetch(orderProxyBase() + '/mers-ping', { cache: 'no-store', signal: controller.signal });
@@ -2003,7 +2008,71 @@
         });
       }
 
+      async function orderPostJson(path, payload) {
+        const url = orderProxyBase() + path;
+        if (window.AndroidNfc?.postJson) return JSON.parse(window.AndroidNfc.postJson(url, JSON.stringify(payload)));
+        const r = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store',
+          body: JSON.stringify(payload),
+        });
+        return r.json();
+      }
+
+      async function orderGetJson(path, params) {
+        const query = new URLSearchParams(params).toString();
+        const url = orderProxyBase() + path + (query ? `?${query}` : '');
+        if (window.AndroidNfc?.getJson) return JSON.parse(window.AndroidNfc.getJson(url));
+        const r = await fetch(url, { cache: 'no-store' });
+        return r.json();
+      }
+
+      async function orderMenuRangeProxy(dates) {
+        const days = [];
+        const errors = [];
+        for (const date of dates) {
+          const meals = [];
+          for (const [meal_id, meal_name] of [['2', 'Makan Siang'], ['3', 'Makan Malam']]) {
+            try {
+              const params = { genId: orderCreds.genId, password: orderCreds.password, date, meal_id };
+              const [stock, names] = await Promise.all([
+                orderGetJson('/mers-proxy/stock', params),
+                orderGetJson('/mers-proxy/menu-names', params),
+              ]);
+              const menuNames = names.names || {};
+              meals.push({
+                meal_id,
+                meal_name,
+                menus: (stock.data || []).map(item => {
+                  const id = String(item.schedule_menu_id || item.id || '');
+                  return {
+                    id,
+                    name: menuNames[id] || item.menu_name || item.name || id,
+                    detail: item.detail || item.description || '',
+                    qty_balance: item.qty_balance,
+                  };
+                }),
+              });
+            } catch (e) {
+              errors.push({ date, meal_id, message: e.message });
+            }
+          }
+          days.push({ date, meals });
+        }
+        return { success: !errors.length, days, errors };
+      }
+
       async function submitOrder(order) {
+        if (window.AndroidNfc?.postJson) {
+          return orderPostJson('/mers-proxy/order', {
+            genId: orderCreds.genId,
+            password: orderCreds.password,
+            xtanggal: order.date,
+            xjadwal: order.meal_id,
+            menusaya: order.id,
+          });
+        }
         const data = await orderWsRequest({
           action: 'order_submit',
           genId: orderCreds.genId,
@@ -2011,40 +2080,33 @@
           date: order.date,
           mealId: order.meal_id,
           menuId: order.id,
-        });
-        if (data.success || !String(data.message || '').includes('Command tidak dikenali')) return data;
+        }).catch(() => null);
+        if (data && (data.success || !String(data.message || '').includes('Command tidak dikenali'))) return data;
 
         // ponytail: compatibility fallback for old PC agents until they are updated.
-        const r = await fetch(orderProxyBase() + '/mers-proxy/order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            genId: orderCreds.genId,
-            password: orderCreds.password,
-            xtanggal: order.date,
-            xjadwal: order.meal_id,
-            menusaya: order.id,
-          }),
+        return orderPostJson('/mers-proxy/order', {
+          genId: orderCreds.genId,
+          password: orderCreds.password,
+          xtanggal: order.date,
+          xjadwal: order.meal_id,
+          menusaya: order.id,
         });
-        return r.json();
       }
 
       async function cancelOrder(xid) {
+        if (window.AndroidNfc?.postJson) {
+          return orderPostJson('/mers-proxy/cancel', { genId: orderCreds.genId, password: orderCreds.password, xid });
+        }
         const data = await orderWsRequest({
           action: 'order_cancel',
           genId: orderCreds.genId,
           password: orderCreds.password,
           xid,
-        });
-        if (data.success || !String(data.message || '').includes('Command tidak dikenali')) return data;
+        }).catch(() => null);
+        if (data && (data.success || !String(data.message || '').includes('Command tidak dikenali'))) return data;
 
         // ponytail: compatibility fallback for old PC agents until they are updated.
-        const r = await fetch(orderProxyBase() + '/mers-proxy/cancel', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ genId: orderCreds.genId, password: orderCreds.password, xid }),
-        });
-        return r.json();
+        return orderPostJson('/mers-proxy/cancel', { genId: orderCreds.genId, password: orderCreds.password, xid });
       }
 
       function openOrderModal() {
@@ -2081,12 +2143,7 @@
 
         try {
           orderCreds = { genId, password };
-          const loginRes = await fetch(orderProxyBase() + '/mers-proxy/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            cache: 'no-store',
-            body: JSON.stringify(orderCreds),
-          }).then(r => r.json());
+          const loginRes = await orderPostJson('/mers-proxy/login', orderCreds);
           if (!loginRes.success) throw new Error(loginRes.message || 'Login gagal');
           localStorage.setItem(ORDER_KEY, JSON.stringify(orderCreds));
           showOrderStep('menu');
@@ -2129,13 +2186,18 @@
         $('order-submit').disabled = true;
 
         try {
-          const data = await orderWsRequest({
+          const data = window.AndroidNfc?.getJson ? await orderMenuRangeProxy(dates) : await orderWsRequest({
             action: 'order_menu_range',
             genId: orderCreds.genId,
             password: orderCreds.password,
             dates,
           });
-          const history = await orderWsRequest({
+          const history = window.AndroidNfc?.getJson ? await orderGetJson('/mers-proxy/history', {
+            genId: orderCreds.genId,
+            password: orderCreds.password,
+            from: dates[0],
+            to: dates[dates.length - 1],
+          }).catch(() => ({ rows: [] })) : await orderWsRequest({
             action: 'order_history',
             genId: orderCreds.genId,
             password: orderCreds.password,
