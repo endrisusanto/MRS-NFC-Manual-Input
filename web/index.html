@@ -1574,9 +1574,9 @@
         const menu = order.menu_name || tap.menu_info || order.schedule_meal_name;
         const parts = [
           table('Data Diri', [
-            row('Nama', order.first_name || tap.employee_name || data?.first_name),
-            row('Dept', order.dept || tap.dept || data?.dept),
-            row('UID', order.no_kartu || tap.uid || $('uid').value),
+            row('Nama', tap.employee_name || tap.first_name || order.first_name || data?.first_name),
+            row('Dept', tap.dept || order.dept || data?.dept),
+            row('UID', tap.uid || order.no_kartu || $('uid').value),
             row('UID Hex', tap.uid_hex),
           ]),
           table('Pesanan Makan', [
