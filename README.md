@@ -1,127 +1,110 @@
-# MRS NFC Manual Input 🚀
+# Bridge MeRS (MeRS NFC & Remote System) 🚀
 
-[![Version](https://img.shields.io/badge/version-1.0-blue.svg)](https://github.com/endrisusanto/MRS-NFC-Manual-Input)
-[![Manifest](https://img.shields.io/badge/Manifest-V3-green.svg)](https://developer.chrome.com/docs/extensions/mv3/intro/)
-[![Style](https://img.shields.io/badge/Style-Neobrutalism-yellow.svg)](#)
+[![Version](https://img.shields.io/badge/version-1.0.108-blue.svg)](https://github.com/endrisusanto/MRS-NFC-Manual-Input)
+[![Tauri](https://img.shields.io/badge/Tauri-v2-orange.svg)](https://tauri.app/)
+[![Android](https://img.shields.io/badge/Android-Kotlin-green.svg)](https://developer.android.com/)
+[![Manifest](https://img.shields.io/badge/Manifest-V3-brightgreen.svg)](https://developer.chrome.com/docs/extensions/mv3/intro/)
+[![Style](https://img.shields.io/badge/Style-Neobrutalism%20%26%20Glassmorphism-yellow.svg)](#)
 
-Extension browser untuk memudahkan input UID NFC secara manual pada sistem **MeRS**. Didesain khusus untuk situasi di mana hardware NFC Reader tidak tersedia atau tidak terdeteksi, memungkinkan pengujian dan operasional tetap berjalan dengan input manual.
+Solusi multi-platform (Desktop Agent, Web PWA, Android APK, dan Chrome Extension) untuk menjembatani operasional sistem katering/kantin **MeRS Intranet** (`https://seinp.sec.samsung.net/MERS`). Memungkinkan tap in NFC, input manual UID/GEN, pemesanan & pembatalan menu, pengecekan riwayat pesanan, sinkronisasi widget Android, hingga relay jarak jauh melalui Cloud WebSocket Gateway.
 
-## ✨ Fitur Utama
+---
 
-- **Manual UID/Serial Input**: Masukkan nomor kartu dalam format desimal maupun hex (serial) dengan mudah.
-- **📌 Pinned IDs**: Simpan ID yang sering digunakan dengan sistem sematan (pinning) agar tidak perlu mengetik berulang kali.
-- **🕒 Riwayat Input**: Melacak ID terakhir yang digunakan secara otomatis.
-- **🎨 Neobrutalism UI**: Antarmuka modern, kontras tinggi, dan responsif.
-- **⚡ Quick Actions**: Tombol akses cepat ke halaman Scanner dan Menu utama MRS.
-- **🔄 Auto-Injection**: Panel input manual otomatis muncul di halaman scanner jika extension aktif.
+## 🌟 Komponen & Fitur Utama
 
-## 🛠️ Instalasi (Developer Mode)
+### 1. 🖥️ Desktop Agent (Tauri / Rust)
+- **Direct Intranet Access**: Menghubungkan langsung PC kasir/loket ke backend `https://seinp.sec.samsung.net/MERS`.
+- **High-Performance Bridge**: Menghubungkan cloud WebSocket gateway (`wss://makan.endrisusanto.my.id`) dengan intranet lokal.
+- **Resilient Background Loop**:
+  - Worker asynchronous non-blocking untuk memproses perintah tanpa menghentikan loop jaringan.
+  - Heartbeat & ping aktif setiap 15 detik untuk mencegah silent TCP disconnect dari Cloudflare/Nginx.
+  - Watchdog 60 detik dengan auto-reconnect cepat (3 detik).
+- **TLS Tolerance**: Mendukung handshake HTTPS internal intranet Samsung tanpa error sertifikat.
+- **System Tray & Hot Reload**: Berjalan di background/tray dan mendukung pembaruan konfigurasi dinamis.
 
-Karena extension ini belum dipublikasikan di Chrome Web Store, Anda dapat menginstalnya secara manual:
+### 2. 📱 Web Remote & PWA (`web/`)
+- **Mobile-First & PWA Installable**: Dapat diakses dan diinstal di smartphone atau browser mana saja.
+- **Cek & Tap In Pesanan**: Pengecekan pesanan aktif dan eksekusi pengambilan makanan (Tap In) per loket.
+- **🍱 Menu Order & Cancel**:
+  - Melihat menu makan siang & makan malam multi-hari dengan status stok real-time.
+  - Submit pesanan katering dan pembatalan pesanan langsung dari UI.
+- **📋 Riwayat Pesanan**: Melihat log pesanan yang sudah diambil maupun yang belum diambil.
+- **Web NFC & UID Converter**: Membaca kartu via Web NFC (Chrome Android) dengan reverse-byte converter otomatis.
 
-1. **Clone** repository ini atau **Download ZIP** dan ekstrak.
-2. Buka browser Chrome/Edge dan arahkan ke `chrome://extensions/`.
-3. Aktifkan **Developer Mode** di pojok kanan atas.
-4. Klik tombol **Load unpacked** (Muat yang belum dikemas).
-5. Pilih folder tempat Anda menyimpan file project ini.
-6. Icon MRS NFC akan muncul di toolbar browser Anda.
+### 3. 🤖 Android Native App & Home Screen Widgets (`android/`)
+- **Native NFC Reader**: Membaca UID chip kartu NFC secara presisi dan mengirimkan ke antarmuka aplikasi.
+- **Home Screen Widgets**:
+  - **Widget 4x2**: Menampilkan ringkasan menu hari ini, status pengambilan, tombol ganti jadwal, dan tombol refresh.
+  - **Widget 2x2**: Tampilan kompak dengan info menu utama dan status real-time.
+- **Background Sync Worker**: Widget diperbarui secara periodik di background melalui proxy cloud.
 
-## 🚀 Cara Penggunaan
+### 4. 🧩 Browser Extension (Manifest V3)
+- **Manual UID / Scanner Helper**: Membantu input UID secara manual saat hardware NFC reader di PC kasir tidak terdeteksi.
+- **📌 Pinned & Recent IDs**: Menyimpan daftar ID karyawan yang sering digunakan.
+- **Bento Preview & Quota Monitor**: Menampilkan rincian menu bento dan kuota porsi yang tersisa.
 
-### Melalui Popup Extension
-1. Klik icon extension di toolbar.
-2. Masukkan UID atau Serial kartu pada kolom input.
-3. Klik tombol **🔍 TAP IN MeRS!** untuk mengirim data ke halaman scanner yang aktif.
-4. Gunakan icon 📌 untuk menyimpan ID tersebut ke daftar favorit.
+---
 
-### Melalui Floating Modal di Halaman
-Saat Anda berada di halaman `nfc_scanner.html`, sebuah tombol melayang (atau panel) akan tersedia secara otomatis untuk memudahkan input tanpa harus membuka popup extension.
+## ⚙️ URL Sistem & Konfigurasi
 
-## 💻 Tech Stack
+| Layanan | URL Default | Deskripsi |
+|---|---|---|
+| **MeRS Intranet** | `https://seinp.sec.samsung.net/MERS` | Endpoint intranet utama (HTTPS) |
+| **Cloud Gateway** | `wss://makan.endrisusanto.my.id` | WebSocket relay untuk komunikasi jarak jauh |
+| **Web App PWA** | `https://makan.endrisusanto.my.id/` | Frontend Web / PWA Remote |
 
-- **Javascript (ES6+)**: Logika utama extension dan komunikasi antar script.
-- **HTML5 & CSS3**: Struktur panel dan styling Neobrutalism modern.
-- **Chrome Extension API (V3)**: Storage API untuk persistensi data dan Scripting API untuk injeksi.
-- **Tauri/Rust**: Desktop client MeRS dengan UI dark glassmorphism, NSIS installer, dan algoritma bridge yang sama.
+---
 
-## 🖥️ Desktop App
+## 🛠️ Panduan Build & Menjalankan Aplikasi
 
+### Desktop App (Tauri / Rust)
 ```bash
 npm install
 npm run dev
 ```
-
-Frontend desktop ada di `src/` dan dipaketkan oleh Tauri lewat `src-tauri/tauri.conf.json` (`frontendDist: "../src"`). File `src/index.html` memakai bridge Tauri/Rust (`window.__TAURI__`) untuk command desktop, jadi tidak sama fungsinya dengan web PWA.
-
-UI desktop memiliki input GEN 8 digit atau ID kartu 10 digit, shortcut **Tap In Scanner**, shortcut **Cek Menu Pesanan**, dan pilihan 6 loket untuk Tap In.
-
-Desktop app memanggil backend `https://seinp.sec.samsung.net/MERS` langsung dari PC tempat app dijalankan. Build bisa dibuat dari jaringan mana pun, tetapi fitur cek pesanan dan tap in hanya bisa dites/berjalan di PC yang punya akses intranet ke alamat tersebut.
-
-## Debug Workflow MeRS
-
-Di PC intranet yang menjalankan extension, buka halaman MeRS, jalankan workflow scanner/cek pesanan, lalu buka DevTools Console:
-
-```js
-mrsExportApiLog()
+Build installer MSI Windows:
+```bash
+npm run dist:win
 ```
 
-Command tersebut akan download JSON berisi request dan response API terakhir. Untuk mengosongkan log:
-
-```js
-mrsClearApiLog()
-```
-
-## Web PWA Remote
-
+### Web PWA Remote
 ```bash
 npm run web:dev
 ```
-
-Web app ada di `web/`. Fiturnya mobile-first, installable sebagai PWA, input manual 8-10 digit, Web NFC jika browser mendukung, pilihan cek pesanan/tap in, pilihan loket, dan WebSocket gateway. Web NFC butuh Android Chrome pada secure context (`https://` atau localhost).
-
-Folder `web/` juga dipakai Docker/nginx dan Android WebView (`android/app/build.gradle` menambahkan `../../web` sebagai assets). Walau mirip dengan `src/index.html`, entrypoint ini jalan sebagai PWA/Android dan memakai `fetch`/`WebSocket`, bukan command Tauri desktop.
-
-Preset awal server memakai `https://makan.endrisusanto.my.id/` dan otomatis dipakai sebagai WebSocket `wss://makan.endrisusanto.my.id/ws`. Ubah dari tombol **Server** jika gateway berbeda.
-
-### Docker Web PWA
-
+Jalankan via Docker:
 ```bash
 docker compose up -d --build
 ```
+Akses di: `http://localhost:7465`
 
-Web app akan berjalan di:
-
-```text
-http://localhost:7465
-```
-
-## Android APK
-
+### Android APK
 ```bash
 npm run android:debug
 ```
+Output APK berada di `android/app/build/outputs/apk/debug/app-debug.apk`.
 
-APK debug dibuat di:
+### Chrome Extension
+1. Buka `chrome://extensions/` di browser Chromium (Chrome/Edge).
+2. Aktifkan **Developer Mode**.
+3. Klik **Load unpacked** dan pilih folder root repository ini.
 
-```text
-android/app/build/outputs/apk/debug/app-debug.apk
-```
+---
 
-Aplikasi Android native Kotlin ini membungkus web app lokal dalam WebView dan membaca NFC native Android. Hasil tap NFC otomatis mengisi input ID di web app; input manual tetap tersedia.
-
-## 📦 Release
+## 📦 Rilis Otomatis
 
 ```bash
 ./release.sh
 ```
-
-Script akan bump patch version, commit, tag `vX.Y.Z`, lalu push ke GitHub. GitHub Actions otomatis build NSIS `.exe`, zip extension, upload artifact, dan membuat GitHub Release.
-
-## 🛡️ Keamanan & Privasi
-
-Extension ini hanya berjalan pada domain yang ditentukan dalam `manifest.json` (terkait sistem MRS). Data ID yang Anda simpan/pin disimpan secara lokal di browser Anda menggunakan `chrome.storage.local` dan tidak dikirim ke server luar manapun.
+Script akan menaikkan versi patch, membuat git tag, dan melakukan push ke repository. GitHub Actions akan otomatis mengompilasi file installer Windows MSI, Android APK, dan bundle ZIP Chrome Extension.
 
 ---
 
-Dibuat dengan ❤️ untuk efisiensi kerja.
+## 🛡️ Keamanan & Privasi
+
+- Kredensial dan PIN lokal tersimpan dengan enkripsi pada perangkat pengguna (`localStorage` / `SharedPreferences`).
+- Komunikasi cloud menggunakan enkripsi TLS/HTTPS & WSS.
+
+---
+
+Dibuat dengan ❤️ untuk efisiensi operasional.
 Copyright © 2026 - [Endri Susanto](https://github.com/endrisusanto)
