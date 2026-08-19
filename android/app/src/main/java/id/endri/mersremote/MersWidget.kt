@@ -75,7 +75,7 @@ open class MersWidget : AppWidgetProvider() {
         val name = prefs.getString("pinned_name", "") ?: ""
         val ordersJson = prefs.getString("pinned_orders", "[]") ?: "[]"
         val savedSyncError = prefs.getString("last_sync_error", "") ?: ""
-        val syncError = if ("107.102.8.148" in savedSyncError) "" else savedSyncError
+        val syncError = if ("107.102.8.148" in savedSyncError || "seinp.sec.samsung.net" in savedSyncError) "" else savedSyncError
 
         for (appWidgetId in appWidgetIds) {
             val views = RemoteViews(context.packageName, layoutId)

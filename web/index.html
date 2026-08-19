@@ -1605,8 +1605,8 @@
         if (typeof value === 'string') {
           const img = value.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1] || value;
           if (/^data:image\//i.test(img) || /^https?:\/\/.+\.(png|jpe?g|webp|gif)(\?.*)?$/i.test(img)) return img;
-          if (/^\/.+\.(png|jpe?g|webp|gif)(\?.*)?$/i.test(img)) return `http://107.102.8.148${img}`;
-          if (/^[\w./-]+\.(png|jpe?g|webp|gif)(\?.*)?$/i.test(img)) return `http://107.102.8.148/MERS/${img.replace(/^\/+/, '')}`;
+          if (/^\/.+\.(png|jpe?g|webp|gif)(\?.*)?$/i.test(img)) return `https://seinp.sec.samsung.net${img}`;
+          if (/^[\w./-]+\.(png|jpe?g|webp|gif)(\?.*)?$/i.test(img)) return `https://seinp.sec.samsung.net/MERS/${img.replace(/^\/+/, '')}`;
           return '';
         }
         if (!value || typeof value !== 'object') return '';

@@ -22,12 +22,23 @@ fn clear_order_menu_cache() {
     }
 }
 
-const MERS_BASE_URL: &str = "http://107.102.8.148/MERS";
+const MERS_BASE_URL: &str = "https://seinp.sec.samsung.net/MERS";
 const LOGIN_IDENTITY: &str = "16756586";
 const LOGIN_PASSWORD: &str = "27051994";
 
 static RECONNECT_REQUESTED: AtomicBool = AtomicBool::new(false);
 static WS_STATUS: AtomicU8 = AtomicU8::new(0); // 0 = offline, 1 = connecting, 2 = online
+
+fn mers_http_client(timeout_secs: u64, follow_redirect: bool) -> Result<reqwest::Client, String> {
+    let mut builder = reqwest::Client::builder()
+        .danger_accept_invalid_certs(true)
+        .connect_timeout(Duration::from_secs(6))
+        .timeout(Duration::from_secs(timeout_secs));
+    if !follow_redirect {
+        builder = builder.redirect(reqwest::redirect::Policy::none());
+    }
+    builder.build().map_err(|e| e.to_string())
+}
 
 #[derive(Deserialize, Debug)]
 struct WsIncomingCommand {
@@ -54,7 +65,7 @@ struct WsIncomingCommand {
 
 fn server_url(server: &str) -> String {
     let trimmed = server.trim().trim_end_matches('/');
-    if trimmed.is_empty() {
+    if trimmed.is_empty() || trimmed.contains("107.102.8.148") {
         MERS_BASE_URL.to_string()
     } else {
         trimmed.to_string()
@@ -254,11 +265,7 @@ mod tests {
 }
 
 async fn login_cookie(base_url: &str) -> Result<String, String> {
-    let client = reqwest::Client::builder()
-        .redirect(reqwest::redirect::Policy::none())
-        .timeout(Duration::from_secs(30)) // ponytail: avoid hanging
-        .build()
-        .map_err(|e| e.to_string())?;
+    let client = mers_http_client(15, false)?;
 
     let res = client
         .post(format!("{base_url}/auth/login"))
@@ -282,11 +289,7 @@ async fn login_cookie(base_url: &str) -> Result<String, String> {
 }
 
 async fn order_login_cookie(base_url: &str, gen_id: &str, password: &str) -> Result<(String, Option<String>), String> {
-    let client = reqwest::Client::builder()
-        .redirect(reqwest::redirect::Policy::none())
-        .timeout(Duration::from_secs(30))
-        .build()
-        .map_err(|e| e.to_string())?;
+    let client = mers_http_client(15, false)?;
 
     let res = client
         .post(format!("{base_url}/auth/login"))
@@ -627,10 +630,7 @@ fn enrich_order_from_schedule(order: &mut serde_json::Value, schedule: &serde_js
 async fn run_cek_pesanan(uid: &str, server: &str) -> Result<serde_json::Value, String> {
     let base_url = server_url(server);
     let cookie = login_cookie(&base_url).await?;
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(30)) // ponytail: avoid hanging
-        .build()
-        .map_err(|e| e.to_string())?;
+    let client = mers_http_client(15, true)?;
 
     let text = client
         .get(format!(
@@ -672,10 +672,7 @@ async fn loket_schedule(
     cookie: &str,
     loket: &str,
 ) -> Result<serde_json::Value, String> {
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(30)) // ponytail: avoid hanging
-        .build()
-        .map_err(|e| e.to_string())?;
+    let client = mers_http_client(15, true)?;
 
     let text = client
         .get(format!("{base_url}/cekorder.php?loket={}", loket.trim()))
@@ -693,10 +690,7 @@ async fn loket_schedule(
 async fn run_tap_in(uid: &str, loket: &str, server: &str) -> Result<serde_json::Value, String> {
     let base_url = server_url(server);
     let cookie = login_cookie(&base_url).await?;
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(30)) // ponytail: avoid hanging
-        .build()
-        .map_err(|e| e.to_string())?;
+    let client = mers_http_client(15, true)?;
 
     let order_text = client
         .get(format!(
@@ -758,7 +752,7 @@ async fn fetch_order_menu(
         }
     }
 
-    let client = reqwest::Client::builder().timeout(Duration::from_secs(30)).build().map_err(|e| e.to_string())?;
+    let client = mers_http_client(15, true)?;
     let stock_text = client
         .get(format!("{base}/order/get_stock_data?date={date}&schedule_meal_id={meal_id}"))
         .header("Cookie", cookie)
@@ -801,7 +795,7 @@ async fn fetch_order_menu(
 }
 
 async fn fetch_report_menu_names(base: &str, cookie: &str, from: &str, to: &str) -> Result<HashMap<String, String>, String> {
-    let client = reqwest::Client::builder().timeout(Duration::from_secs(5)).build().map_err(|e| e.to_string())?;
+    let client = mers_http_client(6, true)?;
     let text = client
         .get(format!("{base}/reports/generate/{from}/{to}/all/final-order"))
         .header("Cookie", cookie)
@@ -861,10 +855,7 @@ async fn run_order_menu_range(
 #[tauri::command]
 async fn ping_server(server: String) -> Result<bool, String> {
     let base_url = server_url(&server);
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(3))
-        .build()
-        .map_err(|e| e.to_string())?;
+    let client = mers_http_client(4, true)?;
 
     Ok(client
         .head(format!("{base_url}/cekorder.php?ping=1"))
@@ -902,7 +893,7 @@ async fn order_menu_range(gen_id: String, password: String, server: String, date
 async fn order_stock(gen_id: String, password: String, server: String, date: String, meal_id: String) -> Result<serde_json::Value, String> {
     let base = server_url(&server);
     let (cookie, _) = ensure_order_session(&base, &gen_id, &password).await?;
-    let client = reqwest::Client::builder().timeout(Duration::from_secs(30)).build().map_err(|e| e.to_string())?;
+    let client = mers_http_client(15, true)?;
     let text = client
         .get(format!("{base}/order/get_stock_data?date={date}&schedule_meal_id={meal_id}"))
         .header("Cookie", cookie)
@@ -915,7 +906,7 @@ async fn order_stock(gen_id: String, password: String, server: String, date: Str
 async fn order_menu_names(gen_id: String, password: String, server: String, date: String, meal_id: String) -> Result<serde_json::Value, String> {
     let base = server_url(&server);
     let (cookie, _) = ensure_order_session(&base, &gen_id, &password).await?;
-    let client = reqwest::Client::builder().timeout(Duration::from_secs(30)).build().map_err(|e| e.to_string())?;
+    let client = mers_http_client(15, true)?;
     let text = client
         .get(format!("{base}/order/pilihmenu?xtanggal={date}&xjadwal={meal_id}&xfor_date={date}&xjm={meal_id}"))
         .header("Cookie", cookie)
@@ -932,9 +923,7 @@ async fn order_menu_names(gen_id: String, password: String, server: String, date
 async fn order_submit(gen_id: String, password: String, server: String, date: String, meal_id: String, menu_id: String) -> Result<serde_json::Value, String> {
     let base = server_url(&server);
     let (cookie, _) = ensure_order_session(&base, &gen_id, &password).await?;
-    let client = reqwest::Client::builder()
-        .redirect(reqwest::redirect::Policy::none())
-        .timeout(Duration::from_secs(30)).build().map_err(|e| e.to_string())?;
+    let client = mers_http_client(15, false)?;
     let res = client
         .post(format!("{base}/order/pilihmenu"))
         .header("Cookie", cookie)
@@ -955,9 +944,7 @@ async fn order_submit(gen_id: String, password: String, server: String, date: St
 async fn order_cancel(gen_id: String, password: String, server: String, xid: String) -> Result<serde_json::Value, String> {
     let base = server_url(&server);
     let (cookie, _) = ensure_order_session(&base, &gen_id, &password).await?;
-    let client = reqwest::Client::builder()
-        .redirect(reqwest::redirect::Policy::none())
-        .timeout(Duration::from_secs(5)).build().map_err(|e| e.to_string())?;
+    let client = mers_http_client(15, false)?;
     let res = client
         .post(format!("{base}/order/hapusPesanan"))
         .header("Cookie", cookie)
@@ -975,12 +962,11 @@ async fn order_history(gen_id: String, password: String, server: String, from: S
     let base = server_url(&server);
     let (cookie, user_id) = ensure_order_session(&base, &gen_id, &password).await?;
     let uid = user_id.as_deref().unwrap_or(&gen_id);
-    let client = reqwest::Client::builder().timeout(Duration::from_secs(5)).build().map_err(|e| e.to_string())?;
+    let client = mers_http_client(8, true)?;
     
     let mut text = String::new();
     let mut success = false;
     
-    // As requested: use the untaken widget algorithm. 
     // Fetch /all/final-order using the user's own cookie.
     let res_all = client
         .get(format!("{base}/reports/generate/{from}/{to}/all/final-order"))
@@ -1046,7 +1032,7 @@ fn get_agent_config(app_handle: tauri::AppHandle) -> Result<serde_json::Value, S
     Ok(serde_json::json!({
         "gateway_url": "wss://makan.endrisusanto.my.id",
         "device_id": "loket-pc-1",
-        "server_url": "http://107.102.8.148/MERS"
+        "server_url": "https://seinp.sec.samsung.net/MERS"
     }))
 }
 
@@ -1097,7 +1083,7 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
             let default_config = serde_json::json!({
                 "gateway_url": "wss://makan.endrisusanto.my.id",
                 "device_id": "loket-pc-1",
-                "server_url": "http://107.102.8.148/MERS"
+                "server_url": "https://seinp.sec.samsung.net/MERS"
             });
             let _ = std::fs::write(
                 &config_file,
@@ -1107,7 +1093,7 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
 
         loop {
             // Read config dynamically to allow hot-reloading changes
-            let (gateway_url, device_id, server_url) = match std::fs::read_to_string(&config_file) {
+            let (gateway_url, device_id, server_url_val) = match std::fs::read_to_string(&config_file) {
                 Ok(content) => {
                     let json: serde_json::Value =
                         serde_json::from_str(&content).unwrap_or_default();
@@ -1124,14 +1110,14 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
                     let srv = json
                         .get("server_url")
                         .and_then(|v| v.as_str())
-                        .unwrap_or("http://107.102.8.148/MERS")
-                        .to_string();
+                        .map(|s| server_url(s))
+                        .unwrap_or_else(|| MERS_BASE_URL.to_string());
                     (url, dev, srv)
                 }
                 Err(_) => (
                     "wss://makan.endrisusanto.my.id".to_string(),
                     "loket-pc-1".to_string(),
-                    "http://107.102.8.148/MERS".to_string(),
+                    MERS_BASE_URL.to_string(),
                 ),
             };
 
@@ -1141,6 +1127,7 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
                 "[Agent WS] Connecting to cloud WebSocket gateway: {}",
                 gateway_url
             );
+
             match connect_async(&gateway_url).await {
                 Ok((ws_stream, _)) => {
                     println!("[Agent WS] Connected successfully!");
@@ -1159,142 +1146,210 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
                         WS_STATUS.store(0, Ordering::Relaxed);
                         let error_msg = format!("offline (Join fail: {})", e);
                         let _ = app_handle.emit("ws-status", error_msg);
-                        tokio::time::sleep(Duration::from_secs(5)).await;
+                        tokio::time::sleep(Duration::from_secs(3)).await;
                         continue;
                     }
 
+                    // Create mpsc channel for non-blocking writes to WebSocket sink
+                    let (tx, mut rx) = tokio::sync::mpsc::channel::<Message>(64);
+
+                    // Dedicated writer task sends from channel to write sink
+                    let write_task = tokio::spawn(async move {
+                        while let Some(msg) = rx.recv().await {
+                            if let Err(e) = write.send(msg).await {
+                                println!("[Agent WS] Write error: {}", e);
+                                return Err(e);
+                            }
+                        }
+                        Ok(())
+                    });
+
+                    // Heartbeat interval: every 15s send WS Ping & heartbeat JSON
+                    let mut ping_interval = tokio::time::interval(Duration::from_secs(15));
+                    ping_interval.tick().await;
+
+                    let mut last_activity = Instant::now();
+
                     loop {
                         tokio::select! {
-                            msg_result = read.next() => {
-                                match msg_result {
-                                    Some(Ok(Message::Text(text))) => {
-                                        if let Ok(cmd) = serde_json::from_str::<WsIncomingCommand>(&text) {
-                                            if cmd.msg_type == "command" {
-                                                println!("[Agent WS] Received command: {} for UID {}", cmd.action, cmd.uid.as_deref().unwrap_or("-"));
-
-                                                // Execute request locally on intranet MeRS PHP
-                                                let response_json = match cmd.action.as_str() {
-                                                    "cek_pesanan" => {
-                                                        let uid = cmd.uid.as_deref().unwrap_or_default();
-                                                        match run_cek_pesanan(uid, &server_url).await {
-                                                            Ok(val) => val,
-                                                            Err(err) => serde_json::json!({ "success": false, "message": err })
-                                                        }
-                                                    }
-                                                    "tap_in" => {
-                                                        let uid = cmd.uid.as_deref().unwrap_or_default();
-                                                        let loket = cmd.loket.as_deref().unwrap_or_default();
-                                                        match run_tap_in(uid, loket, &server_url).await {
-                                                            Ok(val) => val,
-                                                            Err(err) => serde_json::json!({ "success": false, "message": err })
-                                                        }
-                                                    }
-                                                    "order_menu_range" => {
-                                                        let dates = cmd.dates.clone().unwrap_or_default();
-                                                        match (cmd.gen_id.as_deref(), cmd.password.as_deref()) {
-                                                            (Some(gen_id), Some(password)) if !dates.is_empty() => {
-                                                                match run_order_menu_range(gen_id, password, &server_url, &dates).await {
-                                                                    Ok(val) => val,
-                                                                    Err(err) => serde_json::json!({ "type": "order_menu_range_result", "success": false, "message": err })
-                                                                }
-                                                            }
-                                                            _ => serde_json::json!({ "type": "order_menu_range_result", "success": false, "message": "GEN, password, dan tanggal wajib diisi" })
-                                                        }
-                                                    }
-                                                    "order_submit" => {
-                                                        match (cmd.gen_id.clone(), cmd.password.clone(), cmd.date.clone(), cmd.meal_id.clone(), cmd.menu_id.clone()) {
-                                                            (Some(gen_id), Some(password), Some(date), Some(meal_id), Some(menu_id)) => {
-                                                                match order_submit(gen_id, password, server_url.clone(), date, meal_id, menu_id).await {
-                                                                    Ok(val) => val,
-                                                                    Err(err) => serde_json::json!({ "success": false, "message": err })
-                                                                }
-                                                            }
-                                                            _ => serde_json::json!({ "success": false, "message": "GEN, password, tanggal, jadwal, dan menu wajib diisi" })
-                                                        }
-                                                    }
-                                                    "order_cancel" => {
-                                                        match (cmd.gen_id.clone(), cmd.password.clone(), cmd.xid.clone()) {
-                                                            (Some(gen_id), Some(password), Some(xid)) => {
-                                                                match order_cancel(gen_id, password, server_url.clone(), xid).await {
-                                                                    Ok(val) => val,
-                                                                    Err(err) => serde_json::json!({ "success": false, "message": err })
-                                                                }
-                                                            }
-                                                            _ => serde_json::json!({ "success": false, "message": "GEN, password, dan XID wajib diisi" })
-                                                        }
-                                                    }
-                                                    "order_history" => {
-                                                        match (cmd.gen_id.clone(), cmd.password.clone(), cmd.from.clone(), cmd.to.clone()) {
-                                                            (Some(gen_id), Some(password), Some(from), Some(to)) => {
-                                                                match order_history(gen_id, password, server_url.clone(), from, to).await {
-                                                                    Ok(val) => val,
-                                                                    Err(err) => serde_json::json!({ "success": false, "message": err })
-                                                                }
-                                                            }
-                                                            _ => serde_json::json!({ "success": false, "message": "GEN, password, dan tanggal wajib diisi" })
-                                                        }
-                                                    }
-                                                    "widget_sync" => {
-                                                        match cmd.uid.clone() {
-                                                            Some(uid) => {
-                                                                match widget_sync(uid, server_url.clone()).await {
-                                                                    Ok(val) => val,
-                                                                    Err(err) => serde_json::json!({ "success": false, "message": err, "orders": [] })
-                                                                }
-                                                            }
-                                                            _ => serde_json::json!({ "success": false, "message": "UID wajib diisi", "orders": [] })
-                                                        }
-                                                    }
-                                                    _ => serde_json::json!({ "success": false, "message": "Command tidak dikenali" })
-                                                };
-                                                let response_json = if let Some(request_id) = &cmd.request_id {
-                                                    let mut val = response_json;
-                                                    if let Some(obj) = val.as_object_mut() {
-                                                        obj.insert("requestId".to_string(), serde_json::Value::String(request_id.clone()));
-                                                    }
-                                                    val
-                                                } else {
-                                                    response_json
-                                                };
-
-                                                // Send response JSON back to Cloud Gateway
-                                                if let Err(e) = write.send(Message::Text(response_json.to_string())).await {
-                                                    println!("[Agent WS] Failed to send response back to gateway: {}", e);
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                    }
-                                    Some(Ok(_)) => {}
-                                    Some(Err(e)) => {
-                                        println!("[Agent WS] Read socket error: {}", e);
-                                        WS_STATUS.store(0, Ordering::Relaxed);
-                                        let error_msg = format!("offline (Read error: {})", e);
-                                        let _ = app_handle.emit("ws-status", error_msg);
-                                        break;
-                                    }
-                                    None => {
-                                        WS_STATUS.store(0, Ordering::Relaxed);
-                                        let _ = app_handle.emit("ws-status", "offline (closed by server)");
-                                        break;
-                                    }
-                                }
-                            }
-                            _ = tokio::time::sleep(Duration::from_secs(2)) => {
+                            _ = ping_interval.tick() => {
                                 if RECONNECT_REQUESTED.load(Ordering::Relaxed) {
                                     RECONNECT_REQUESTED.store(false, Ordering::Relaxed);
                                     println!("[Agent WS] Configuration changed. Reconnecting...");
-                                    WS_STATUS.store(0, Ordering::Relaxed);
-                                    let _ = app_handle.emit("ws-status", "offline");
                                     break;
+                                }
+
+                                if last_activity.elapsed() > Duration::from_secs(60) {
+                                    println!("[Agent WS] Heartbeat watchdog timeout (no activity for 60s). Reconnecting...");
+                                    break;
+                                }
+
+                                if tx.send(Message::Ping(vec![])).await.is_err() {
+                                    println!("[Agent WS] Failed to queue ping frame. Socket writer closed.");
+                                    break;
+                                }
+
+                                let hb = serde_json::json!({
+                                    "type": "heartbeat",
+                                    "device": device_id
+                                });
+                                if tx.send(Message::Text(hb.to_string())).await.is_err() {
+                                    break;
+                                }
+                            }
+
+                            msg_result = read.next() => {
+                                match msg_result {
+                                    Some(Ok(msg)) => {
+                                        last_activity = Instant::now();
+                                        match msg {
+                                            Message::Text(text) => {
+                                                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text) {
+                                                    let msg_type = json.get("type").and_then(|v| v.as_str()).unwrap_or("");
+                                                    if msg_type == "ping" {
+                                                        let _ = tx.send(Message::Text(serde_json::json!({ "type": "pong" }).to_string())).await;
+                                                        continue;
+                                                    }
+                                                }
+
+                                                if let Ok(cmd) = serde_json::from_str::<WsIncomingCommand>(&text) {
+                                                    if cmd.msg_type == "command" {
+                                                        let tx_clone = tx.clone();
+                                                        let server_url_clone = server_url_val.clone();
+                                                        let device_id_clone = device_id.clone();
+
+                                                        // Handle command asynchronously to avoid blocking the WS read/heartbeat loop!
+                                                        tokio::spawn(async move {
+                                                            println!("[Agent WS] Handling command: {} for UID {}", cmd.action, cmd.uid.as_deref().unwrap_or("-"));
+
+                                                            let response_json = match cmd.action.as_str() {
+                                                                "ping" => {
+                                                                    serde_json::json!({
+                                                                        "success": true,
+                                                                        "pong": true,
+                                                                        "device": device_id_clone
+                                                                    })
+                                                                }
+                                                                "cek_pesanan" => {
+                                                                    let uid = cmd.uid.as_deref().unwrap_or_default();
+                                                                    match run_cek_pesanan(uid, &server_url_clone).await {
+                                                                        Ok(val) => val,
+                                                                        Err(err) => serde_json::json!({ "success": false, "message": err })
+                                                                    }
+                                                                }
+                                                                "tap_in" => {
+                                                                    let uid = cmd.uid.as_deref().unwrap_or_default();
+                                                                    let loket = cmd.loket.as_deref().unwrap_or_default();
+                                                                    match run_tap_in(uid, loket, &server_url_clone).await {
+                                                                        Ok(val) => val,
+                                                                        Err(err) => serde_json::json!({ "success": false, "message": err })
+                                                                    }
+                                                                }
+                                                                "order_menu_range" => {
+                                                                    let dates = cmd.dates.clone().unwrap_or_default();
+                                                                    match (cmd.gen_id.as_deref(), cmd.password.as_deref()) {
+                                                                        (Some(gen_id), Some(password)) if !dates.is_empty() => {
+                                                                            match run_order_menu_range(gen_id, password, &server_url_clone, &dates).await {
+                                                                                Ok(val) => val,
+                                                                                Err(err) => serde_json::json!({ "type": "order_menu_range_result", "success": false, "message": err })
+                                                                            }
+                                                                        }
+                                                                        _ => serde_json::json!({ "type": "order_menu_range_result", "success": false, "message": "GEN, password, dan tanggal wajib diisi" })
+                                                                    }
+                                                                }
+                                                                "order_submit" => {
+                                                                    match (cmd.gen_id.clone(), cmd.password.clone(), cmd.date.clone(), cmd.meal_id.clone(), cmd.menu_id.clone()) {
+                                                                        (Some(gen_id), Some(password), Some(date), Some(meal_id), Some(menu_id)) => {
+                                                                            match order_submit(gen_id, password, server_url_clone.clone(), date, meal_id, menu_id).await {
+                                                                                Ok(val) => val,
+                                                                                Err(err) => serde_json::json!({ "success": false, "message": err })
+                                                                            }
+                                                                        }
+                                                                        _ => serde_json::json!({ "success": false, "message": "GEN, password, tanggal, jadwal, dan menu wajib diisi" })
+                                                                    }
+                                                                }
+                                                                "order_cancel" => {
+                                                                    match (cmd.gen_id.clone(), cmd.password.clone(), cmd.xid.clone()) {
+                                                                        (Some(gen_id), Some(password), Some(xid)) => {
+                                                                            match order_cancel(gen_id, password, server_url_clone.clone(), xid).await {
+                                                                                Ok(val) => val,
+                                                                                Err(err) => serde_json::json!({ "success": false, "message": err })
+                                                                            }
+                                                                        }
+                                                                        _ => serde_json::json!({ "success": false, "message": "GEN, password, dan XID wajib diisi" })
+                                                                    }
+                                                                }
+                                                                "order_history" => {
+                                                                    match (cmd.gen_id.clone(), cmd.password.clone(), cmd.from.clone(), cmd.to.clone()) {
+                                                                        (Some(gen_id), Some(password), Some(from), Some(to)) => {
+                                                                            match order_history(gen_id, password, server_url_clone.clone(), from, to).await {
+                                                                                Ok(val) => val,
+                                                                                Err(err) => serde_json::json!({ "success": false, "message": err })
+                                                                            }
+                                                                        }
+                                                                        _ => serde_json::json!({ "success": false, "message": "GEN, password, dan tanggal wajib diisi" })
+                                                                    }
+                                                                }
+                                                                "widget_sync" => {
+                                                                    match cmd.uid.clone() {
+                                                                        Some(uid) => {
+                                                                            match widget_sync(uid, server_url_clone.clone()).await {
+                                                                                Ok(val) => val,
+                                                                                Err(err) => serde_json::json!({ "success": false, "message": err, "orders": [] })
+                                                                            }
+                                                                        }
+                                                                        _ => serde_json::json!({ "success": false, "message": "UID wajib diisi", "orders": [] })
+                                                                    }
+                                                                }
+                                                                _ => serde_json::json!({ "success": false, "message": "Command tidak dikenali" })
+                                                            };
+
+                                                            let response_json = if let Some(request_id) = &cmd.request_id {
+                                                                let mut val = response_json;
+                                                                if let Some(obj) = val.as_object_mut() {
+                                                                    obj.insert("requestId".to_string(), serde_json::Value::String(request_id.clone()));
+                                                                }
+                                                                val
+                                                            } else {
+                                                                response_json
+                                                            };
+
+                                                            let _ = tx_clone.send(Message::Text(response_json.to_string())).await;
+                                                        });
+                                                    }
+                                                }
+                                            }
+                                            Message::Ping(payload) => {
+                                                let _ = tx.send(Message::Pong(payload)).await;
+                                            }
+                                            Message::Pong(_) => {}
+                                            Message::Close(_) => {
+                                                println!("[Agent WS] Received Close frame from server");
+                                                break;
+                                            }
+                                            _ => {}
+                                        }
+                                    }
+                                    Some(Err(e)) => {
+                                        println!("[Agent WS] Read socket error: {}", e);
+                                        break;
+                                    }
+                                    None => {
+                                        println!("[Agent WS] Read stream ended");
+                                        break;
+                                    }
                                 }
                             }
                         }
                     }
+
+                    write_task.abort();
+                    WS_STATUS.store(0, Ordering::Relaxed);
+                    let _ = app_handle.emit("ws-status", "offline");
                 }
                 Err(e) => {
                     println!(
-                        "[Agent WS] Connection failed: {}. Retrying in 5 seconds...",
+                        "[Agent WS] Connection failed: {}. Retrying in 3 seconds...",
                         e
                     );
                     WS_STATUS.store(0, Ordering::Relaxed);
@@ -1302,7 +1357,7 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
                     let _ = app_handle.emit("ws-status", error_msg);
                 }
             }
-            tokio::time::sleep(Duration::from_secs(5)).await;
+            tokio::time::sleep(Duration::from_secs(3)).await;
         }
     });
 }

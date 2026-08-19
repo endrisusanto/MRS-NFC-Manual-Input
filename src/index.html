@@ -973,7 +973,7 @@
     <div id="config" class="modal" hidden>
       <form>
         <label for="server-url">URL Server MeRS</label>
-        <input id="server-url" placeholder="http://107.102.8.148/MERS">
+        <input id="server-url" placeholder="https://seinp.sec.samsung.net/MERS">
         
         <label for="gateway-url">URL Gateway WebSocket</label>
         <input id="gateway-url" placeholder="wss://makan.endrisusanto.my.id">
@@ -1070,12 +1070,12 @@
       const invoke = window.__TAURI__.core.invoke;
       const input = document.getElementById('uid');
       const hint = document.getElementById('hint');
-      const defaultServer = 'http://107.102.8.148/MERS';
+      const defaultServer = 'https://seinp.sec.samsung.net/MERS';
 
       let currentConfig = {
         gateway_url: 'wss://makan.endrisusanto.my.id',
         device_id: 'loket-pc-1',
-        server_url: 'http://107.102.8.148/MERS'
+        server_url: 'https://seinp.sec.samsung.net/MERS'
       };
 
       async function loadConfig() {
@@ -1083,6 +1083,9 @@
           const cfg = await invoke('get_agent_config');
           if (cfg) {
             currentConfig = cfg;
+            if (currentConfig.server_url && currentConfig.server_url.includes('107.102.8.148')) {
+              currentConfig.server_url = defaultServer;
+            }
           }
         } catch (e) {
           console.error("Gagal memuat konfigurasi dari backend:", e);
@@ -1090,7 +1093,8 @@
       }
 
       function serverUrl() {
-        return (currentConfig.server_url || defaultServer).replace(/\/+$/, '');
+        const url = (currentConfig.server_url || defaultServer).replace(/\/+$/, '');
+        return url.includes('107.102.8.148') ? defaultServer : url;
       }
 
       function setBadge(id, text, kind) {

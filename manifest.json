@@ -9,6 +9,7 @@
         "scripting"
     ],
     "host_permissions": [
+        "https://seinp.sec.samsung.net/MERS/*",
         "http://107.102.8.148/MERS/*"
     ],
     "web_accessible_resources": [
@@ -17,6 +18,7 @@
                 "bridge.js"
             ],
             "matches": [
+                "https://seinp.sec.samsung.net/MERS/*",
                 "http://107.102.8.148/MERS/*"
             ]
         }
@@ -33,6 +35,7 @@
     "content_scripts": [
         {
             "matches": [
+                "https://seinp.sec.samsung.net/MERS/*",
                 "http://107.102.8.148/MERS/*"
             ],
             "js": [
@@ -45,6 +48,7 @@
         },
         {
             "matches": [
+                "https://seinp.sec.samsung.net/MERS/*",
                 "http://107.102.8.148/MERS/*"
             ],
             "js": [

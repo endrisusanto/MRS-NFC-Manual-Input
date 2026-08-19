@@ -96,7 +96,7 @@
     const bento = document.getElementById('mrs-bento-panel');
     if (!bento) return;
 
-    const BASE_IMG = 'http://107.102.8.148/MERS/assets/images/menu/';
+    const BASE_IMG = 'https://seinp.sec.samsung.net/MERS/assets/images/menu/';
     const items = [
       { label: 'Karbo',      name: schedule.carbo_name,      pic: schedule.carbo_pic,      cat: schedule.carbo_cat,      color: '#fef9c3', accent: '#ca8a04' },
       { label: 'Utama',      name: schedule.main_name,       pic: schedule.menu_detail_pic, cat: schedule.main_cat,       color: '#dcfce7', accent: '#16a34a' },
@@ -184,7 +184,7 @@
   const MERS_AUTH = {
     identity: '16756586',
     password: '27051994',
-    loginUrl: 'http://107.102.8.148/MERS/auth/login'
+    loginUrl: 'https://seinp.sec.samsung.net/MERS/auth/login'
   };
 
   async function performMersLogin() {
@@ -210,7 +210,7 @@
 
   function fetchUntakenOrders() {
     const dateStr = currentUntakenDate;
-    const url = `http://107.102.8.148/MERS/reports/generate/${dateStr}/${dateStr}/all/untaken-order`;
+    const url = `https://seinp.sec.samsung.net/MERS/reports/generate/${dateStr}/${dateStr}/all/untaken-order`;
 
     fetch(url, { cache: 'no-store' })
       .then(res => res.text())
@@ -431,10 +431,10 @@
         }
     });
     document.getElementById('mrs-open-scanner').addEventListener('click', () => {
-        window.open('http://107.102.8.148/MERS/nfc_scanner.html', '_blank');
+        window.open('https://seinp.sec.samsung.net/MERS/nfc_scanner.html', '_blank');
     });
     document.getElementById('mrs-open-menu').addEventListener('click', () => {
-        window.open('http://107.102.8.148/MERS/cek_menu.html', '_blank');
+        window.open('https://seinp.sec.samsung.net/MERS/cek_menu.html', '_blank');
     });
 
     renderLists();
@@ -545,7 +545,7 @@
           const activeLoketBtn = document.querySelector('.loket-btn.bg-emerald-500');
           if (!activeLoketBtn) return;
           const loketId = activeLoketBtn.getAttribute('data-loket');
-          const apiUrl = "http://107.102.8.148/MERS/";
+          const apiUrl = "https://seinp.sec.samsung.net/MERS/";
           
           fetch(`${apiUrl}cekorder.php?loket=${loketId}`, {cache: 'no-store'})
               .then(res => res.json())

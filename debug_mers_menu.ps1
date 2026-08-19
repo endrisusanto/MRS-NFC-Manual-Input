@@ -1,5 +1,5 @@
 param(
-    [string]$BaseUrl = "http://107.102.8.148/MERS",
+    [string]$BaseUrl = "https://seinp.sec.samsung.net/MERS",
     [string]$GenId = "",
     [string]$Password = "",
     [string]$Date = (Get-Date -Format "yyyy-MM-dd"),

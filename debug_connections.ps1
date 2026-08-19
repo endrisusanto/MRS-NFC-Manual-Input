@@ -49,11 +49,11 @@ function Get-HttpResponse {
 $cloudDns = try { [System.Net.Dns]::GetHostAddresses("makan.endrisusanto.my.id")[0].IPAddressToString } catch { $null }
 
 # 2. Test TCP Ports
-$mersTcp = Test-TcpPort -ComputerName "107.102.8.148" -Port 80
+$mersTcp = Test-TcpPort -ComputerName "seinp.sec.samsung.net" -Port 443
 $gatewayTcp = Test-TcpPort -ComputerName "makan.endrisusanto.my.id" -Port 443
 
 # 3. Test HTTP endpoints
-$mersHttp = Get-HttpResponse -Url "http://107.102.8.148/MERS/cekorder.php?ping=1"
+$mersHttp = Get-HttpResponse -Url "https://seinp.sec.samsung.net/MERS/cekorder.php?ping=1"
 $gatewayHttp = Get-HttpResponse -Url "https://makan.endrisusanto.my.id/mers-ping"
 
 # 4. Overall diagnosis
@@ -62,7 +62,7 @@ $recommendation = "Semua koneksi berjalan dengan baik."
 
 if (-not $mersTcp) {
     $status = "ERROR"
-    $recommendation = "Koneksi ke Intranet MeRS (107.102.8.148:80) gagal. Pastikan Anda sudah terhubung ke Wi-Fi kantor atau VPN Samsung aktif."
+    $recommendation = "Koneksi ke Intranet MeRS (seinp.sec.samsung.net:443) gagal. Pastikan Anda sudah terhubung ke Wi-Fi kantor atau VPN Samsung aktif."
 } elseif (-not $gatewayTcp) {
     $status = "ERROR"
     $recommendation = "Koneksi ke WebSocket Gateway (makan.endrisusanto.my.id:443) gagal. Firewall kantor mungkin memblokir port 443 ke domain ini."
@@ -76,8 +76,8 @@ $report = [PSCustomObject]@{
     Status         = $status
     Recommendation = $recommendation
     IntranetMers   = [PSCustomObject]@{
-        IpAddress  = "107.102.8.148"
-        Port80Open = $mersTcp
+        HostName   = "seinp.sec.samsung.net"
+        Port443Open = $mersTcp
         HttpResponse = $mersHttp
     }
     CloudGateway   = [PSCustomObject]@{

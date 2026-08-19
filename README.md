@@ -55,7 +55,7 @@ Frontend desktop ada di `src/` dan dipaketkan oleh Tauri lewat `src-tauri/tauri.
 
 UI desktop memiliki input GEN 8 digit atau ID kartu 10 digit, shortcut **Tap In Scanner**, shortcut **Cek Menu Pesanan**, dan pilihan 6 loket untuk Tap In.
 
-Desktop app memanggil backend `http://107.102.8.148/MERS` langsung dari PC tempat app dijalankan. Build bisa dibuat dari jaringan mana pun, tetapi fitur cek pesanan dan tap in hanya bisa dites/berjalan di PC yang punya akses intranet ke alamat tersebut.
+Desktop app memanggil backend `https://seinp.sec.samsung.net/MERS` langsung dari PC tempat app dijalankan. Build bisa dibuat dari jaringan mana pun, tetapi fitur cek pesanan dan tap in hanya bisa dites/berjalan di PC yang punya akses intranet ke alamat tersebut.
 
 ## Debug Workflow MeRS
 

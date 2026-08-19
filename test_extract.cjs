@@ -1,8 +1,8 @@
-const http = require('http');
+const https = require('https');
 
 function req(options, body) {
   return new Promise((resolve, reject) => {
-    const request = http.request(options, response => {
+    const request = https.request({ rejectUnauthorized: false, ...options }, response => {
       let data = '';
       response.on('data', chunk => data += chunk);
       response.on('end', () => resolve({ body: data, headers: response.headers, statusCode: response.statusCode }));
@@ -17,7 +17,7 @@ async function run() {
   console.log("Logging in...");
   const body = "identity=16756586&password=27051994";
   const loginRes = await req({
-    hostname: '107.102.8.148', port: 80, path: '/MERS/auth/login', method: 'POST',
+    hostname: 'seinp.sec.samsung.net', port: 443, path: '/MERS/auth/login', method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': body.length }
   }, body);
 
@@ -26,7 +26,7 @@ async function run() {
 
   console.log("Fetching /order/pilihmenu...");
   const menuRes = await req({
-    hostname: '107.102.8.148', port: 80, path: '/MERS/order/pilihmenu', method: 'GET',
+    hostname: 'seinp.sec.samsung.net', port: 443, path: '/MERS/order/pilihmenu', method: 'GET',
     headers: { 'Cookie': cookie }
   });
 
@@ -40,7 +40,7 @@ async function run() {
 
   console.log("Fetching /dashboard...");
   const dashRes = await req({
-    hostname: '107.102.8.148', port: 80, path: '/MERS/dashboard', method: 'GET',
+    hostname: 'seinp.sec.samsung.net', port: 443, path: '/MERS/dashboard', method: 'GET',
     headers: { 'Cookie': cookie }
   });
 

@@ -127,8 +127,8 @@ document.addEventListener('DOMContentLoaded', () => {
     pinBtn.addEventListener('click', togglePin);
     input.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendUID(); });
 
-    document.getElementById('open-scanner')?.addEventListener('click', () => window.open('http://107.102.8.148/MERS/nfc_scanner.html', '_blank'));
-    document.getElementById('open-menu')?.addEventListener('click', () => window.open('http://107.102.8.148/MERS/cek_menu.html', '_blank'));
+    document.getElementById('open-scanner')?.addEventListener('click', () => window.open('https://seinp.sec.samsung.net/MERS/nfc_scanner.html', '_blank'));
+    document.getElementById('open-menu')?.addEventListener('click', () => window.open('https://seinp.sec.samsung.net/MERS/cek_menu.html', '_blank'));
 
     function showFeedback(msg, err = false) {
         const fb = document.getElementById('feedback');
