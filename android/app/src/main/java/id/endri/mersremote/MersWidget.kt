@@ -87,7 +87,6 @@ open class MersWidget : AppWidgetProvider() {
                 views.setViewVisibility(R.id.item_menu_empty, View.VISIBLE)
                 views.setTextViewText(R.id.item_menu_empty, "🤷‍♂️\nBelum ada ID dipin\nKetuk di sini untuk input GEN ID")
                 views.setViewVisibility(R.id.widget_badge_container, View.GONE)
-                views.setViewVisibility(R.id.widget_refresh_btn, View.GONE)
                 views.setViewVisibility(R.id.widget_next_btn, View.GONE)
 
                 // Click opens config activity
@@ -101,8 +100,8 @@ open class MersWidget : AppWidgetProvider() {
                 views.setOnClickPendingIntent(R.id.widget_container, configPending)
             } else {
                 views.setTextViewText(R.id.widget_title, name)
-                views.setViewVisibility(R.id.widget_refresh_btn, View.VISIBLE)
 
+                // Tapping widget triggers instant refresh
                 val refreshIntent = Intent(context, javaClass).apply { action = ACTION_REFRESH }
                 val refreshFlags = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -112,7 +111,7 @@ open class MersWidget : AppWidgetProvider() {
                 val refreshPendingIntent = PendingIntent.getBroadcast(
                     context, appWidgetId + 10000, refreshIntent, refreshFlags
                 )
-                views.setOnClickPendingIntent(R.id.widget_refresh_btn, refreshPendingIntent)
+                views.setOnClickPendingIntent(R.id.widget_container, refreshPendingIntent)
 
                 try {
                     // Show ALL orders (including Sudah Diambil)
@@ -188,16 +187,6 @@ open class MersWidget : AppWidgetProvider() {
                     views.setViewVisibility(R.id.widget_badge_container, View.GONE)
                     views.setViewVisibility(R.id.widget_next_btn, View.GONE)
                 }
-
-                // Click container opens main app when ID is set
-                val intent = Intent(context, MainActivity::class.java)
-                val flags = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                } else {
-                    PendingIntent.FLAG_UPDATE_CURRENT
-                }
-                val pendingIntent = PendingIntent.getActivity(context, 0, intent, flags)
-                views.setOnClickPendingIntent(R.id.widget_container, pendingIntent)
             }
 
             appWidgetManager.updateAppWidget(appWidgetId, views)

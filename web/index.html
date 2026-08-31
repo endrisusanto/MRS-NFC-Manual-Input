@@ -1624,16 +1624,29 @@
       }
 
       function renderResponse(data) {
+        if (!data || typeof data !== 'object') return;
+        if (data.type === 'pong' || data.type === 'ping' || data.type === 'heartbeat' || data.pong) return;
+
         state.lastData = data;
         const text = responseText(data);
         const lower = text.toLowerCase();
         const kind = lower.includes('tidak pesan') || lower.includes('unplan') ? 'warn' : data?.success === false ? 'bad' : 'ok';
         setStatus(text, kind);
         setDebug(data);
-        const image = isTauriApp() ? imageSrcFrom(data) : '';
         $('result-image').hidden = true;
 
-        // Always show result in modal (Android + PWA web)
+        // Check if this response has meaningful order/tap data or explicit message to show in a modal
+        const hasOrders = Array.isArray(data?.data?.orders) && data.data.orders.length > 0;
+        const hasTap = Boolean(data?.tap?.data || data?.schedule?.data || data?.order || data?.first_name || data?.employee_name);
+        const hasDirectDetail = Boolean(data?.data && (data.data.employee_name || data.data.first_name || data.data.menu_info));
+        const isMeaningfulMessage = Boolean(data?.message && data.message !== 'Response diterima.' && data.message !== 'OK' && data.message !== 'pong');
+
+        // Do not open intrusive modal view for generic "Response diterima." without actual order content
+        if (!hasOrders && !hasTap && !hasDirectDetail && (!isMeaningfulMessage || text === 'Response diterima.')) {
+          return;
+        }
+
+        // Show result in modal
         $('modal-result-title').textContent = text;
         currentSlide = 0;
         $('modal-result-content').innerHTML = detailHtml(data, false);
@@ -1705,7 +1718,18 @@
           };
           state.ws.onerror = () => setConn('offline');
           state.ws.onmessage = event => {
-            const data = JSON.parse(event.data);
+            let data;
+            try {
+              data = JSON.parse(event.data);
+            } catch (_) {
+              return;
+            }
+            if (!data || typeof data !== 'object') return;
+
+            // Ignore background system signals
+            if (data.type === 'pong' || data.type === 'ping' || data.type === 'heartbeat' || data.pong) {
+              return;
+            }
             if (data.type === 'status') {
               setStatus(data.message, data.status === 'online' ? 'ok' : 'bad');
               return;
@@ -1715,6 +1739,10 @@
               clearTimeout(pending.timer);
               orderRequests.delete(data.requestId);
               pending.resolve(data);
+              return;
+            }
+            // Ignore background widget sync signals
+            if (data.type === 'widget_sync' || (data.action === 'widget_sync' && !data.data?.orders)) {
               return;
             }
             renderResponse(data);
