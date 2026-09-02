@@ -9,6 +9,7 @@ import android.graphics.Color
 import android.view.View
 import android.widget.RemoteViews
 import org.json.JSONArray
+import java.util.Calendar
 
 open class MersWidget : AppWidgetProvider() {
     open val layoutId: Int = R.layout.widget_layout_4x2
@@ -17,6 +18,36 @@ open class MersWidget : AppWidgetProvider() {
         private const val ACTION_TOGGLE_SLIDE = "id.endri.mersremote.action.TOGGLE_SLIDE"
         private const val ACTION_REFRESH = "id.endri.mersremote.action.REFRESH"
         const val EXTRA_RENDER_ONLY = "id.endri.mersremote.extra.RENDER_ONLY"
+
+        private val WEEKEND_GREETINGS = listOf(
+            "🏖️ HARI INI LIBUR!\nSelamat beristirahat & recharge energimu! ✨",
+            "🎉 HAPPY WEEKEND!\nNikmati waktu libur & santai berkualitasmu! 🌟",
+            "✨ HARI INI SEDANG LIBUR!\nSelamat berakhir pekan & tetap semangat! 🚀",
+            "☕ WEEKEND MODE ON!\nRehat sejenak, nikmati hari tenangmu! 🌈",
+            "🌿 WEEKEND SANTAI!\nSelamat liburan bersama orang tersayang! 💛",
+            "🏖️ SEDANG LIBUR!\nIstirahat cukup untuk kembali lebih kuat! 💪"
+        )
+
+        private val WEEKDAY_REMINDERS = listOf(
+            "⚠️ KAMU BELUM PESAN MAKAN!\nYuk segera pesan menu kateringmu 🍽️",
+            "🍱 BELUM ADA PESANAN!\nJangan lupa pesan makan hari ini ya! ⏳",
+            "⚠️ KAMU BELUM ORDER!\nPerut jangan kosong, pesan sekarang 🍽️"
+        )
+
+        fun getEmptyState(syncError: String): Pair<String, Int> {
+            if (syncError.isNotEmpty()) {
+                return Pair("⚠️\n$syncError", Color.parseColor("#F87171"))
+            }
+            val calendar = Calendar.getInstance()
+            val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+            val isWeekend = (dayOfWeek == Calendar.SATURDAY || dayOfWeek == Calendar.SUNDAY)
+
+            return if (isWeekend) {
+                Pair(WEEKEND_GREETINGS.random(), Color.parseColor("#38BDF8"))
+            } else {
+                Pair(WEEKDAY_REMINDERS.random(), Color.parseColor("#FBBF24"))
+            }
+        }
     }
 
     override fun onEnabled(context: Context) {
@@ -86,6 +117,7 @@ open class MersWidget : AppWidgetProvider() {
                 views.setViewVisibility(R.id.item_menu, View.GONE)
                 views.setViewVisibility(R.id.item_menu_empty, View.VISIBLE)
                 views.setTextViewText(R.id.item_menu_empty, "🤷‍♂️\nBelum ada ID dipin\nKetuk di sini untuk input GEN ID")
+                views.setTextColor(R.id.item_menu_empty, Color.parseColor("#94A3B8"))
                 views.setViewVisibility(R.id.widget_badge_container, View.GONE)
                 views.setViewVisibility(R.id.widget_next_btn, View.GONE)
 
@@ -120,7 +152,9 @@ open class MersWidget : AppWidgetProvider() {
                     if (ordersArray.length() == 0) {
                         views.setViewVisibility(R.id.item_menu, View.GONE)
                         views.setViewVisibility(R.id.item_menu_empty, View.VISIBLE)
-                        views.setTextViewText(R.id.item_menu_empty, if (syncError.isNotEmpty()) "⚠️\n$syncError" else "🤷‍♂️\nBelum ada pesanan nih~")
+                        val (emptyMsg, emptyColor) = getEmptyState(syncError)
+                        views.setTextViewText(R.id.item_menu_empty, emptyMsg)
+                        views.setTextColor(R.id.item_menu_empty, emptyColor)
                         views.setViewVisibility(R.id.widget_badge_container, View.GONE)
                         views.setViewVisibility(R.id.widget_next_btn, View.GONE)
                     } else {
@@ -184,6 +218,7 @@ open class MersWidget : AppWidgetProvider() {
                     views.setViewVisibility(R.id.item_menu, View.GONE)
                     views.setViewVisibility(R.id.item_menu_empty, View.VISIBLE)
                     views.setTextViewText(R.id.item_menu_empty, "😵\nError data")
+                    views.setTextColor(R.id.item_menu_empty, Color.parseColor("#F87171"))
                     views.setViewVisibility(R.id.widget_badge_container, View.GONE)
                     views.setViewVisibility(R.id.widget_next_btn, View.GONE)
                 }

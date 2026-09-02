@@ -60,16 +60,19 @@
             android:textSize="16sp"
             android:textStyle="bold" />
 
-        <!-- Empty State text (Centered with Emoji) -->
+        <!-- Empty State text (Centered with Big Bold Typography) -->
         <TextView
             android:id="@+id/item_menu_empty"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:gravity="center"
-            android:textColor="#94a3b8"
-            android:textSize="13sp"
+            android:textColor="#FBBF24"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:lineSpacingMultiplier="1.15"
             android:visibility="gone"
-            android:text="🤷‍♂️\nBelum ada pesanan nih~" />
+            android:text="⚠️ KAMU BELUM PESAN MAKAN!\nYuk pesan kateringmu 🍽️" />
 
         <!-- Bottom Row: Dynamic Colored Badges (Vertical Stack for 2x2 layout to prevent wrapping) -->
         <LinearLayout
