@@ -2044,7 +2044,7 @@ dependencies = [
 
 [[package]]
 name = "mers-nfc-tauri"
-version = "1.0.110"
+version = "1.0.112"
 dependencies = [
  "futures-util",
  "regex",

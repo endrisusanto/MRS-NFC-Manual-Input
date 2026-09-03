@@ -1998,7 +1998,7 @@
         return orderLocalDate(d);
       }
 
-      function orderDateRange(start, count = 4) {
+      function orderDateRange(start, count = 5) {
         const base = new Date(`${start}T00:00:00`);
         return Array.from({ length: count }, (_, i) => {
           const d = new Date(base);
@@ -2206,7 +2206,7 @@
 
       async function loadMenuOptions() {
         if (!orderCreds) return;
-        const dates = orderDateRange(orderToday(), 4);
+        const dates = orderDateRange(orderToday(), 5);
 
         const list = $('order-menu-list');
         list.innerHTML = '<div class="order-loading"><div style="font-size:42px; display:inline-block; animation: wobble 1.5s infinite ease-in-out;">🍱</div><div style="margin-top:12px; animation: pulse 1.5s infinite; letter-spacing: 0.5px;">Memuat menu...</div></div>';

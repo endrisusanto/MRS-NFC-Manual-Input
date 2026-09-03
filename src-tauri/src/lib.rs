@@ -814,7 +814,7 @@ async fn run_order_menu_range(
     let (cookie, _) = ensure_order_session(&base, gen_id, password).await?;
     let mut days = Vec::new();
     let mut errors = Vec::new();
-    let selected_dates = dates.iter().take(4).cloned().collect::<Vec<_>>();
+    let selected_dates = dates.iter().take(5).cloned().collect::<Vec<_>>();
     
     let mut report_names = match (selected_dates.first(), selected_dates.last()) {
         (Some(from), Some(to)) => fetch_report_menu_names(&base, &cookie, from, to).await.unwrap_or_default(),
