@@ -111,6 +111,16 @@ open class MersWidget : AppWidgetProvider() {
         for (appWidgetId in appWidgetIds) {
             val views = RemoteViews(context.packageName, layoutId)
 
+            // Shortcut icon in top-left opens the app to order food
+            val appIntent = Intent(context, MainActivity::class.java)
+            val appFlags = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            } else {
+                PendingIntent.FLAG_UPDATE_CURRENT
+            }
+            val appPendingIntent = PendingIntent.getActivity(context, appWidgetId + 20000, appIntent, appFlags)
+            views.setOnClickPendingIntent(R.id.widget_app_btn, appPendingIntent)
+
             if (name.isEmpty()) {
                 // No ID pinned — show empty state with config prompt
                 views.setTextViewText(R.id.widget_title, "📌 Ketuk untuk setup")
