@@ -35,18 +35,19 @@ open class MersWidget : AppWidgetProvider() {
         )
 
         fun getEmptyState(syncError: String): Pair<String, Int> {
-            if (syncError.isNotEmpty()) {
-                return Pair("⚠️\n$syncError", Color.parseColor("#F87171"))
-            }
             val calendar = Calendar.getInstance()
             val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
             val isWeekend = (dayOfWeek == Calendar.SATURDAY || dayOfWeek == Calendar.SUNDAY)
 
-            return if (isWeekend) {
-                Pair(WEEKEND_GREETINGS.random(), Color.parseColor("#38BDF8"))
-            } else {
-                Pair(WEEKDAY_REMINDERS.random(), Color.parseColor("#FBBF24"))
+            if (isWeekend) {
+                return Pair(WEEKEND_GREETINGS.random(), Color.parseColor("#38BDF8"))
             }
+
+            if (syncError.isNotEmpty()) {
+                return Pair("⚠️\n$syncError", Color.parseColor("#F87171"))
+            }
+
+            return Pair(WEEKDAY_REMINDERS.random(), Color.parseColor("#FBBF24"))
         }
     }
 

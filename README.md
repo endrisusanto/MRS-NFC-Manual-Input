@@ -88,6 +88,24 @@ Output APK berada di `android/app/build/outputs/apk/debug/app-debug.apk`.
 2. Aktifkan **Developer Mode**.
 3. Klik **Load unpacked** dan pilih folder root repository ini.
 
+### 🍱 CLI Cancel Order Workflow
+Script CLI mandiri untuk melihat riwayat dan membatalkan pesanan MERS (termasuk pesanan besok maupun data yang sudah lewat / cut-off):
+```bash
+# Mode interaktif (tampilkan daftar pesanan & pilih baris/XID yang ingin dibatalkan)
+npm run order:cancel
+# Linux / macOS / Git Bash:
+./scripts/cancel-order.sh
+# Windows (CMD / PowerShell):
+.\scripts\cancel-order.bat
+
+# Batalkan langsung jika sudah tahu nomor XID
+node scripts/cancel_order.js --xid 12345
+# atau (Windows): .\scripts\cancel-order.bat --xid 12345
+
+# Tampilkan riwayat pesanan (tanpa membatalkan)
+node scripts/cancel_order.js --list --from 2026-08-25 --to 2026-09-15
+```
+
 ---
 
 ## 📦 Rilis Otomatis
