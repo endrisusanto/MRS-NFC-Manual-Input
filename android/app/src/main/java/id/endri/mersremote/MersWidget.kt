@@ -123,7 +123,7 @@ open class MersWidget : AppWidgetProvider() {
             views.setOnClickPendingIntent(R.id.widget_app_btn, appPendingIntent)
 
             if (name.isEmpty()) {
-                // No ID pinned — show empty state with config prompt
+                // No ID pinned: show empty state with config prompt
                 views.setTextViewText(R.id.widget_title, "📌 Ketuk untuk setup")
                 views.setViewVisibility(R.id.item_menu, View.GONE)
                 views.setViewVisibility(R.id.item_menu_empty, View.VISIBLE)

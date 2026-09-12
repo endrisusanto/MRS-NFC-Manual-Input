@@ -19,7 +19,7 @@ class WidgetConfigActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Set CANCELED as default — if user backs out, widget won't be added
+        // Set CANCELED as default: if user backs out, widget won't be added
         setResult(RESULT_CANCELED)
 
         // Get widget ID from intent (passed when adding new widget or reconfiguring)
