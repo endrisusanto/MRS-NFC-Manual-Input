@@ -135,11 +135,18 @@
 
       .scan-row {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr;
         gap: 10px;
+        width: 100%;
+        transition: grid-template-columns 0.2s ease;
+      }
+
+      body:not(.nfc-mode) .scan-row {
+        grid-template-columns: 1fr 1fr;
       }
 
       .mode-toggle {
+        width: 100%;
         height: 50px;
         border: 1px solid var(--border);
         border-radius: 10px;
@@ -442,6 +449,7 @@
         justify-content: space-between;
         gap: 10px;
         background: var(--surface-subtle);
+        min-width: 0;
       }
 
       .menu-card:hover {
@@ -456,15 +464,20 @@
       .menu-card input {
         width: 18px;
         height: 18px;
+        flex-shrink: 0;
         accent-color: #22c55e;
         margin: 0;
       }
 
       .menu-card-name {
         flex: 1;
+        min-width: 0;
         font-size: 14px;
         font-weight: 700;
         color: var(--text-main);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .menu-card-name small {
@@ -473,6 +486,9 @@
         font-size: 12px;
         font-weight: 500;
         color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .menu-card-stock {
@@ -480,6 +496,8 @@
         font-weight: 700;
         padding: 3px 8px;
         border-radius: 6px;
+        white-space: nowrap;
+        flex-shrink: 0;
       }
 
       .stock-ok {
@@ -665,10 +683,8 @@
 
         <!-- Step: Pilih Menu -->
         <div class="order-step" id="ostep-menu">
-          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-            <button id="order-load-menu" type="button" class="primary" style="align-self:flex-end; min-height:50px; padding:0 16px;">Cari</button>
-          </div>
-        <div id="order-menu-list" class="menu-cards"></div>
+          <button id="order-load-menu" type="button" class="primary" style="width:100%; min-height:50px;">Muat Ulang Menu</button>
+          <div id="order-menu-list" class="menu-cards"></div>
         <div class="actions" style="margin-top:4px;">
             <button id="order-back-login" type="button" style="width:100%;">Logout</button>
             <button id="order-submit" type="button" class="primary" disabled style="width:100%;">Simpan Pesanan</button>
