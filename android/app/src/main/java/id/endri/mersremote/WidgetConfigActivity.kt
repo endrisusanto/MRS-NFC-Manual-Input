@@ -74,7 +74,7 @@ class WidgetConfigActivity : Activity() {
             textSize = 13f
             setTextColor(subtitleColor)
             gravity = Gravity.CENTER
-            lineSpacingMultiplier = 1.25f
+            setLineSpacing(0f, 1.25f)
         }
         card.addView(subtitle, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
