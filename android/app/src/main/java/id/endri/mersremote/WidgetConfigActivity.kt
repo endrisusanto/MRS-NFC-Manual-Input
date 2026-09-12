@@ -28,63 +28,86 @@ class WidgetConfigActivity : Activity() {
             AppWidgetManager.INVALID_APPWIDGET_ID
         ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
 
+        val isDark = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val bgColor = if (isDark) Color.parseColor("#090d16") else Color.parseColor("#f3f4f6")
+        val surfaceColor = if (isDark) Color.parseColor("#111827") else Color.parseColor("#ffffff")
+        val borderColor = if (isDark) Color.parseColor("#374151") else Color.parseColor("#e5e7eb")
+        val titleColor = if (isDark) Color.parseColor("#f9fafb") else Color.parseColor("#111827")
+        val subtitleColor = if (isDark) Color.parseColor("#9ca3af") else Color.parseColor("#6b7280")
+        val inputBg = if (isDark) Color.parseColor("#1f2937") else Color.parseColor("#f9fafb")
+        val inputBorder = if (isDark) Color.parseColor("#374151") else Color.parseColor("#d1d5db")
+
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setPadding(64, 128, 64, 128)
-            setBackgroundColor(Color.parseColor("#0f172a"))
+            setPadding(48, 64, 48, 64)
+            setBackgroundColor(bgColor)
         }
 
-        // Emoji header
-        val emoji = TextView(this).apply {
-            text = "📌"
-            textSize = 48f
-            gravity = Gravity.CENTER
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(48, 48, 48, 48)
+            background = GradientDrawable().apply {
+                setColor(surfaceColor)
+                cornerRadius = 32f
+                setStroke(2, borderColor)
+            }
         }
-        root.addView(emoji, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        ).apply { bottomMargin = 24 })
 
         // Title
         val title = TextView(this).apply {
-            text = "Pin ID ke Widget"
-            textSize = 22f
-            setTextColor(Color.WHITE)
+            text = "Pengaturan Widget MeRS"
+            textSize = 20f
+            setTextColor(titleColor)
             gravity = Gravity.CENTER
             setTypeface(typeface, android.graphics.Typeface.BOLD)
         }
-        root.addView(title, LinearLayout.LayoutParams(
+        card.addView(title, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
-        ).apply { bottomMargin = 12 })
+        ).apply { bottomMargin = 8 })
 
         // Subtitle
         val subtitle = TextView(this).apply {
-            text = "Masukkan GEN ID karyawan untuk\nmemantau status pesanan di widget"
-            textSize = 14f
-            setTextColor(Color.parseColor("#94a3b8"))
+            text = "Masukkan GEN ID untuk menyinkronkan status pesanan makan ke Home Screen."
+            textSize = 13f
+            setTextColor(subtitleColor)
             gravity = Gravity.CENTER
+            lineSpacingMultiplier = 1.25f
         }
-        root.addView(subtitle, LinearLayout.LayoutParams(
+        card.addView(subtitle, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
-        ).apply { bottomMargin = 40 })
+        ).apply { bottomMargin = 28 })
+
+        // Label
+        val label = TextView(this).apply {
+            text = "GEN ID KARYAWAN"
+            textSize = 11f
+            setTextColor(subtitleColor)
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            gravity = Gravity.START
+        }
+        card.addView(label, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply { bottomMargin = 8 })
 
         // Input field
         val input = EditText(this).apply {
             hint = "Contoh: 16756586"
-            setHintTextColor(Color.parseColor("#475569"))
-            setTextColor(Color.WHITE)
-            textSize = 18f
+            setHintTextColor(if (isDark) Color.parseColor("#4b5563") else Color.parseColor("#9ca3af"))
+            setTextColor(titleColor)
+            textSize = 16f
             gravity = Gravity.CENTER
             inputType = android.text.InputType.TYPE_CLASS_NUMBER
             imeOptions = EditorInfo.IME_ACTION_DONE
             setPadding(32, 28, 32, 28)
             background = GradientDrawable().apply {
-                setColor(Color.parseColor("#1e293b"))
-                cornerRadius = 24f
-                setStroke(2, Color.parseColor("#334155"))
+                setColor(inputBg)
+                cornerRadius = 18f
+                setStroke(2, inputBorder)
             }
         }
 
@@ -93,42 +116,45 @@ class WidgetConfigActivity : Activity() {
         val existing = prefs.getString("pinned_gen_id", "") ?: ""
         if (existing.isNotEmpty()) input.setText(existing)
 
-        root.addView(input, LinearLayout.LayoutParams(
+        card.addView(input, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
-        ).apply { bottomMargin = 32 })
+        ).apply { bottomMargin = 24 })
 
         // Save button
         val btn = Button(this).apply {
-            text = "📌 Simpan & Pin ke Widget"
-            textSize = 16f
+            text = "Simpan ke Widget"
+            textSize = 15f
             setTextColor(Color.WHITE)
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
             isAllCaps = false
             setPadding(32, 24, 32, 24)
             background = GradientDrawable().apply {
                 setColor(Color.parseColor("#2563eb"))
-                cornerRadius = 24f
+                cornerRadius = 18f
             }
             setOnClickListener { saveAndFinish(input.text.toString().trim()) }
         }
-        root.addView(btn, LinearLayout.LayoutParams(
+        card.addView(btn, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
-        ).apply { bottomMargin = 16 })
+        ).apply { bottomMargin = 12 })
 
         val refreshBtn = Button(this).apply {
-            text = "↻ Refresh Data Pesanan"
-            textSize = 15f
-            setTextColor(Color.WHITE)
+            text = "Refresh Data Sekarang"
+            textSize = 14f
+            setTextColor(if (isDark) Color.parseColor("#e5e7eb") else Color.parseColor("#374151"))
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
             isAllCaps = false
             setPadding(32, 20, 32, 20)
             background = GradientDrawable().apply {
-                setColor(Color.parseColor("#0f766e"))
-                cornerRadius = 24f
+                setColor(inputBg)
+                cornerRadius = 18f
+                setStroke(2, borderColor)
             }
             setOnClickListener { refreshOrders(input.text.toString().trim()) }
         }
-        root.addView(refreshBtn, LinearLayout.LayoutParams(
+        card.addView(refreshBtn, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         ))
@@ -140,6 +166,11 @@ class WidgetConfigActivity : Activity() {
                 true
             } else false
         }
+
+        root.addView(card, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ))
 
         setContentView(root)
     }
