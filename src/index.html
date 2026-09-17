@@ -1149,27 +1149,6 @@
       // ── Fitur Pesan Menu ─────────────────────────────────────────────────
       const ORDER_KEY = 'mers_order_creds_desktop';
       let orderCreds = null;
-      let selectedMenuId = null;
-      let canceledXid = null;
-      let initialXid = null;
-
-      function oToday()    { return new Date().toISOString().split('T')[0]; }
-      function oTomorrow() { const d = new Date(); d.setDate(d.getDate()+1); return d.toISOString().split('T')[0]; }
-
-      function showOStep(step) {
-        document.querySelectorAll('.order-step').forEach(s => s.classList.remove('active'));
-        document.getElementById('ostep-' + step).classList.add('active');
-      }
-
-      function showOrderMenu() {
-        showOStep('menu');
-        document.getElementById('o-date').value ||= oTomorrow();
-        loadOrderMenu();
-      }
-
-      // ── Fitur Pesan Menu ─────────────────────────────────────────────────
-      const ORDER_KEY = 'mers_order_creds_desktop';
-      let orderCreds = null;
       let selectedMenus = new Map();
       let initialOrders = new Set();
       let canceledXids = new Set();
