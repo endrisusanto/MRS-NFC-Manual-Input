@@ -600,8 +600,7 @@
 
       /* ── Order Modal ── */
       .order-modal-inner {
-        width: 100%;
-        max-width: 480px;
+        width: min(680px, 95%);
         max-height: 90vh;
         overflow-y: auto;
         padding: 20px;
@@ -611,30 +610,6 @@
         display: flex;
         flex-direction: column;
         gap: 16px;
-      }
-      .order-tabs {
-        display: flex;
-        border-bottom: 1px solid var(--border);
-        margin-bottom: 4px;
-      }
-      .order-tab {
-        flex: 1;
-        padding: 10px 4px;
-        font-size: 13px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: .04em;
-        background: transparent;
-        border: none;
-        border-bottom: 2px solid transparent;
-        color: var(--text-muted);
-        cursor: pointer;
-        min-height: auto;
-        border-radius: 0;
-      }
-      .order-tab.active { 
-        border-bottom-color: var(--primary);
-        color: var(--text-main);
       }
       .order-step { display: none; flex-direction: column; gap: 14px; }
       .order-step.active { display: flex; }
@@ -663,23 +638,45 @@
         letter-spacing: normal;
       }
       .order-input:focus { border-color: var(--border-focus); }
-      .order-row {
+      
+      .day-card {
+        background: var(--surface-subtle);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px;
+        margin-bottom: 12px;
         display: flex;
         flex-direction: column;
         gap: 12px;
       }
-      .order-row-fields {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
+      .day-title {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 800;
+        color: var(--text-main);
+        text-transform: uppercase;
       }
-      .order-search-btn {
-        width: 100%;
-        height: 46px;
-        font-weight: 700;
+      .meal-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
         border-radius: 10px;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
       }
-      .menu-cards { display: flex; flex-direction: column; gap: 8px; }
+      .meal-title {
+        margin: 0;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+      }
+      .menu-cards, .menu-list-container {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
       .menu-card {
         border: 1px solid var(--border);
         border-radius: 8px;
@@ -696,6 +693,14 @@
       }
       .menu-card:hover { border-color: var(--border-focus); }
       .menu-card.selected { border-color: #22c55e; background: rgba(34, 197, 94, 0.12); }
+      .menu-card input[type="radio"] {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        accent-color: #22c55e;
+        margin: 0;
+        cursor: pointer;
+      }
       .menu-card-name {
         flex: 1;
         min-width: 0;
@@ -715,7 +720,7 @@
         color: var(--text-muted);
         word-break: break-word;
       }
-      .menu-stock {
+      .menu-card-stock {
         font-size: 10.5px;
         font-weight: 700;
         padding: 3px 8px;
@@ -751,19 +756,6 @@
       .order-loading { text-align: center; padding: 24px; color: var(--text-muted); font-size: 14px; font-weight: 600; }
       @keyframes wobble { 0%, 100% { transform: rotate(-12deg) scale(1); } 50% { transform: rotate(12deg) scale(1.15); } }
       @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
-      .order-history-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-      .order-history-table th, .order-history-table td {
-        text-align: left; padding: 8px 10px;
-        border-bottom: 1px solid var(--border);
-        vertical-align: middle;
-      }
-      .order-history-table th { font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; }
-      .btn-batal {
-        padding: 4px 10px; font-size: 11px; font-weight: 700;
-        background: #7f1d1d; color: #fca5a5;
-        border: none; border-radius: 6px; cursor: pointer; min-height: auto;
-      }
-      .btn-batal:hover { background: #991b1b; }
     </style>
   </head>
   <body data-step="home">
@@ -847,11 +839,6 @@
           <button id="o-close-x" type="button" style="position:absolute; right:0; top:50%; transform:translateY(-50%); width:36px; height:36px; min-height:36px; padding:0; border-radius:8px; border:1px solid var(--border); background:var(--surface-subtle); color:var(--text-muted); font-size:18px; font-weight:700; cursor:pointer;" aria-label="Tutup">✕</button>
         </div>
 
-        <div class="order-tabs">
-          <button class="order-tab active" data-tab="pesan">Pesan</button>
-          <button class="order-tab" data-tab="riwayat">Riwayat</button>
-        </div>
-
         <!-- Step: Login -->
         <div class="order-step active" id="ostep-login">
           <p style="margin:0; font-size:13px; opacity:.7;">Login dengan GEN ID dan password (tanggal lahir).</p>
@@ -872,47 +859,11 @@
 
         <!-- Step: Pilih Menu -->
         <div class="order-step" id="ostep-menu">
-          <div class="order-row">
-            <div class="order-row-fields">
-              <div>
-                <label class="order-label">Tanggal</label>
-                <input class="order-input" id="o-date" type="date">
-              </div>
-              <div>
-                <label class="order-label">Jadwal</label>
-                <select class="order-input" id="o-meal">
-                  <option value="2">Makan Siang</option>
-                  <option value="3">Makan Malam</option>
-                </select>
-              </div>
-            </div>
-            <button class="order-btn primary order-search-btn" id="o-load">Cari Menu</button>
-          </div>
+          <button id="o-load-menu" type="button" class="order-btn primary" style="width:100%; min-height:48px;">Muat Ulang Menu</button>
           <div class="menu-cards" id="o-menu-list"></div>
-          <div class="order-actions">
+          <div class="order-actions" style="margin-top:4px;">
             <button class="order-btn" id="o-logout">Logout</button>
             <button class="order-btn primary" id="o-submit" disabled>Simpan Pesanan</button>
-          </div>
-        </div>
-
-        <!-- Tab: Riwayat -->
-        <div class="order-step" id="ostep-history">
-          <div class="order-row">
-            <div class="order-row-fields">
-              <div>
-                <label class="order-label">Dari</label>
-                <input class="order-input" id="o-from" type="date">
-              </div>
-              <div>
-                <label class="order-label">Sampai</label>
-                <input class="order-input" id="o-to" type="date">
-              </div>
-            </div>
-            <button class="order-btn primary order-search-btn" id="o-history-load">Muat Riwayat</button>
-          </div>
-          <div id="o-history-content"><div class="order-loading">Pilih tanggal lalu klik Muat Riwayat.</div></div>
-          <div class="order-actions">
-            <button class="order-btn primary" id="o-history-close" style="grid-column:1/-1;">Tutup</button>
           </div>
         </div>
       </div>
@@ -1216,21 +1167,45 @@
         loadOrderMenu();
       }
 
-      document.querySelectorAll('.order-tab').forEach(btn => {
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('.order-tab').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          const tab = btn.dataset.tab;
-          if (tab === 'pesan') {
-            orderCreds ? showOrderMenu() : showOStep('login');
-          } else {
-            if (!orderCreds) { showOStep('login'); return; }
-            showOStep('history');
-            document.getElementById('o-from').value = oToday();
-            document.getElementById('o-to').value   = oToday();
-          }
-        });
-      });
+      // ── Fitur Pesan Menu ─────────────────────────────────────────────────
+      const ORDER_KEY = 'mers_order_creds_desktop';
+      let orderCreds = null;
+      let selectedMenus = new Map();
+      let initialOrders = new Set();
+      let canceledXids = new Set();
+
+      function orderToday() {
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+
+      function orderDateRange(startDateStr, daysCount = 6) {
+        const result = [];
+        const [y, m, d] = startDateStr.split('-').map(Number);
+        const curr = new Date(y, m - 1, d);
+        for (let i = 0; i < daysCount; i++) {
+          const next = new Date(curr);
+          next.setDate(curr.getDate() + i);
+          const ny = next.getFullYear();
+          const nm = String(next.getMonth() + 1).padStart(2, '0');
+          const nd = String(next.getDate()).padStart(2, '0');
+          result.push(`${ny}-${nm}-${nd}`);
+        }
+        return result;
+      }
+
+      function showOStep(step) {
+        document.querySelectorAll('.order-step').forEach(s => s.classList.remove('active'));
+        document.getElementById('ostep-' + step).classList.add('active');
+      }
+
+      function showOrderMenu() {
+        showOStep('menu');
+        loadOrderMenu();
+      }
 
       document.getElementById('pesan-btn').addEventListener('click', () => {
         try { orderCreds = JSON.parse(localStorage.getItem(ORDER_KEY)); } catch(_) {}
@@ -1259,8 +1234,6 @@
         btn.disabled = true; btn.textContent = 'Masuk...';
         try {
           orderCreds = { genId, password };
-          // ponytail: YAGNI. Validating login explicitly adds a slow roundtrip that causes timeouts. 
-          // Just save locally. Invalid logins will naturally fail when fetching the menu anyway.
           localStorage.setItem(ORDER_KEY, JSON.stringify(orderCreds));
           showOrderMenu();
         } catch(e) {
@@ -1296,71 +1269,107 @@
         return String(value || '').toLowerCase().includes('malam') ? '3' : '2';
       }
 
-      document.getElementById('o-load').addEventListener('click', loadOrderMenu);
+      document.getElementById('o-load-menu').addEventListener('click', loadOrderMenu);
 
       async function loadOrderMenu() {
         if (!orderCreds) return;
-        const date    = document.getElementById('o-date').value;
-        const meal_id = document.getElementById('o-meal').value;
-        if (!date) return;
+        const dates = orderDateRange(orderToday(), 6);
         const list = document.getElementById('o-menu-list');
         list.innerHTML = '<div class="order-loading"><div style="font-size:42px; display:inline-block; animation: wobble 1.5s infinite ease-in-out;">🍱</div><div style="margin-top:12px; animation: pulse 1.5s infinite; letter-spacing: 0.5px;">Memuat menu...</div></div>';
-        selectedMenuId = null;
+        selectedMenus = new Map();
+        canceledXids.clear();
         document.getElementById('o-submit').disabled = true;
         try {
-          const data = await invoke('order_menu_range', { genId: orderCreds.genId, password: orderCreds.password, server: serverUrl(), dates: [date] });
+          const data = await invoke('order_menu_range', { genId: orderCreds.genId, password: orderCreds.password, server: serverUrl(), dates });
           const history = await invoke('order_history', {
             genId: orderCreds.genId, password: orderCreds.password,
-            server: serverUrl(), from: date, to: date
+            server: serverUrl(), from: dates[0], to: dates[dates.length - 1]
           }).catch(() => ({ rows: [] }));
           
-          const orderedRow = (history.rows || []).find(row => {
-            const rDate = row.tanggal_iso || historyDate(row.tanggal);
-            return rDate === date && historyMeal(row.jadwal) === meal_id;
-          });
+          const ordered = new Map((history.rows || []).map(row => [`${row.tanggal_iso || historyDate(row.tanggal)}|${historyMeal(row.jadwal)}`, row]));
 
-          canceledXid = null;
-          initialXid = orderedRow ? orderedRow.xid : null;
-
-          const menus = data.days?.[0]?.meals?.find(meal => String(meal.meal_id) === meal_id)?.menus || [];
-          if (!menus.length) {
-            list.innerHTML = '<div style="padding:16px; border-radius:10px; border:1px solid var(--border); background:var(--surface-subtle); text-align:center; color:var(--text-muted); font-size:13px; font-weight:600;">Menu tidak tersedia</div>'; return;
+          if (!data.days?.length) {
+            list.innerHTML = '<div class="day-card" style="text-align:center; padding:24px;"><div style="font-size:32px; margin-bottom:8px;">🍽️</div><div style="font-weight:700; color:var(--text-muted);">Menu tidak tersedia</div></div>';
+            return;
           }
-          list.innerHTML = menus.map(item => {
-            const bal   = parseInt(item.qty_balance, 10);
-            const cls   = bal > 20 ? 'stock-ok' : bal > 0 ? 'stock-low' : 'stock-out';
-            const isOrdered = orderedRow && isMenuMatch(item.name, orderedRow.menu);
-            if (isOrdered) {
-              selectedMenuId = item.id;
+
+          list.innerHTML = data.days.map(day => `
+            <div class="day-card">
+              <h4 class="day-title">${esc(day.date)}</h4>
+              <div class="day-meals">
+                ${(day.meals || []).map(meal => `
+                  <div class="meal-card">
+                    <h5 class="meal-title">${esc(meal.meal_name)}</h5>
+                    <div class="menu-list-container">
+                      ${(meal.menus || []).length ? meal.menus.map(item => {
+                        const bal = parseInt(item.qty_balance, 10) || 0;
+                        const cls = bal > 20 ? 'stock-ok' : bal > 0 ? 'stock-low' : 'stock-out';
+                        const label = bal > 0 ? `${bal} sisa` : 'Habis';
+                        const key = `${day.date}|${meal.meal_id}`;
+                        const existing = ordered.get(key);
+                        const isOrdered = existing && isMenuMatch(item.name, existing.menu);
+                        const cardCls = isOrdered ? 'menu-card selected' : 'menu-card';
+                        let badgeCls = cls;
+                        let labelText = label;
+                        const status = existing ? (existing.status || 'Belum Diambil') : '';
+                        const isTaken = isOrdered && status.toLowerCase().includes('sudah');
+                        if (isOrdered) {
+                          labelText = `✔️ ${status}`;
+                          badgeCls = status.toLowerCase().includes('sudah') ? 'stock-ok' : 'stock-low';
+                        }
+                        const isDisabled = (!isOrdered && bal === 0) || isTaken;
+                        const xidAttr = existing && existing.xid ? `data-xid="${esc(existing.xid)}"` : '';
+                        return `
+                          <label class="${cardCls}" data-key="${esc(key)}" data-id="${esc(item.id)}" data-date="${esc(day.date)}" data-meal="${esc(meal.meal_id)}" ${xidAttr} ${isDisabled ? 'style="opacity:.4;pointer-events:none"' : ''}>
+                            <input type="radio" name="order-${esc(key)}" ${isOrdered ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}>
+                            <span class="menu-card-name">${esc(item.name)}${item.detail ? `<small>${esc(item.detail)}</small>` : ''}</span>
+                            <span class="menu-card-stock ${badgeCls}">${labelText}</span>
+                          </label>`;
+                      }).join('') : '<div class="meal-card" style="text-align:center; padding:12px; background:var(--surface-subtle);"><span style="font-size:12px; font-weight:600; color:var(--text-muted);">Menu tidak tersedia</span></div>'}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `).join('');
+
+          initialOrders.clear();
+          
+          document.querySelectorAll('.menu-card').forEach(card => {
+            if (card.classList.contains('selected')) {
+              initialOrders.add(card.dataset.key);
+              selectedMenus.set(card.dataset.key, { id: card.dataset.id, date: card.dataset.date, meal_id: card.dataset.meal });
             }
-            // ponytail: show taken status (Sudah/Belum Diambil) with appropriate badge colors
-            let badgeCls = cls;
-            let labelText = bal > 0 ? bal + ' sisa' : 'Habis';
-            const status = orderedRow ? (orderedRow.status || 'Belum Diambil') : '';
-            const isTaken = isOrdered && status.toLowerCase().includes('sudah');
-            if (isOrdered) {
-              labelText = `✔️ ${status}`;
-              badgeCls = status.toLowerCase().includes('sudah') ? 'stock-ok' : 'stock-low';
-            }
-            const isDisabled = (!isOrdered && bal === 0) || isTaken;
-            return `<button class="menu-card ${isOrdered ? 'selected' : ''}" data-id="${esc(item.id)}" ${isDisabled ? 'disabled style="opacity:.4"' : ''}>
-              <span class="menu-card-name">${isOrdered ? '✅ ' : ''}${esc(item.name)}${item.detail ? `<small>${esc(item.detail)}</small>` : ''}</span>
-              <span class="menu-stock ${badgeCls}">${labelText}</span>
-            </button>`;
-          }).join('');
-          document.querySelectorAll('.menu-card:not([disabled])').forEach(card => {
-            card.addEventListener('click', () => {
+
+            card.addEventListener('click', (e) => {
+              if (card.style.pointerEvents === 'none') return;
               const isAlreadySelected = card.classList.contains('selected');
               if (isAlreadySelected) {
+                e.preventDefault();
+                const input = card.querySelector('input');
+                if (input) input.checked = false;
                 card.classList.remove('selected');
-                selectedMenuId = null;
-                if (initialXid) canceledXid = initialXid;
-              } else {
-                document.querySelectorAll('.menu-card').forEach(c => c.classList.remove('selected'));
-                card.classList.add('selected');
-                selectedMenuId = card.dataset.id;
-                canceledXid = null;
+                selectedMenus.delete(card.dataset.key);
+
+                const xid = card.dataset.xid;
+                if (xid) {
+                  canceledXids.add(xid);
+                }
+                document.getElementById('o-submit').disabled = false;
               }
+            });
+
+            card.querySelector('input')?.addEventListener('change', () => {
+              document.querySelectorAll('.menu-card').forEach(c => {
+                if (c.dataset.key === card.dataset.key) c.classList.remove('selected');
+              });
+              card.classList.add('selected');
+              selectedMenus.set(card.dataset.key, { id: card.dataset.id, date: card.dataset.date, meal_id: card.dataset.meal });
+
+              document.querySelectorAll(`.menu-card[data-key="${card.dataset.key}"]`).forEach(c => {
+                if (c.dataset.xid) canceledXids.delete(c.dataset.xid);
+              });
+
               document.getElementById('o-submit').disabled = false;
             });
           });
@@ -1426,101 +1435,45 @@
         if (!orderCreds) return;
         const btn = document.getElementById('o-submit');
         
-        let res;
-        if (selectedMenuId) {
-          const date    = document.getElementById('o-date').value;
-          const meal_id = document.getElementById('o-meal').value;
-          const jadwal  = meal_id === '2' ? 'Makan Siang' : 'Makan Malam';
-          if (!await mrsConfirm(`Pesan untuk ${jadwal} tanggal ${date}?`)) return;
-          
-          btn.disabled = true; btn.textContent = 'Menyimpan...';
-          try {
-            res = await invoke('order_submit', {
+        const orders = [...selectedMenus.values()].filter(
+          menu => !initialOrders.has(`${menu.date}|${menu.meal_id}`)
+        );
+        const cancels = [...canceledXids];
+
+        if (!orders.length && !cancels.length) return;
+
+        if (!await mrsConfirm(`Simpan perubahan pesanan Anda (Simpan: ${orders.length}, Batalkan: ${cancels.length})?`)) return;
+
+        btn.disabled = true; btn.textContent = 'Menyimpan...';
+
+        try {
+          const results = [];
+          for (const order of orders) {
+            const res = await invoke('order_submit', {
               genId: orderCreds.genId, password: orderCreds.password,
-              server: serverUrl(), date, mealId: meal_id, menuId: selectedMenuId
+              server: serverUrl(), date: order.date, mealId: order.meal_id, menuId: order.id
             });
-          } catch(e) { await mrsAlert('❌ Error: ' + e); btn.disabled = false; btn.textContent = 'Simpan Pesanan'; return; }
-        } else if (canceledXid) {
-          const date    = document.getElementById('o-date').value;
-          const meal_id = document.getElementById('o-meal').value;
-          const jadwal  = meal_id === '2' ? 'Makan Siang' : 'Makan Malam';
-          if (!await mrsConfirm(`Batalkan pesanan untuk ${jadwal} tanggal ${date}?`)) return;
-          
-          btn.disabled = true; btn.textContent = 'Membatalkan...';
-          try {
-            res = await invoke('order_cancel', {
+            results.push(res);
+          }
+          for (const xid of cancels) {
+            const res = await invoke('order_cancel', {
               genId: orderCreds.genId, password: orderCreds.password,
-              server: serverUrl(), xid: canceledXid
+              server: serverUrl(), xid
             });
-          } catch(e) { await mrsAlert('❌ Error: ' + e); btn.disabled = false; btn.textContent = 'Simpan Pesanan'; return; }
-        } else {
-          return;
-        }
-        
-        if (res.success) { 
-          await mrsAlert('✅ Perubahan berhasil disimpan!'); 
-          document.getElementById('order-modal').hidden = true; 
-        } else {
-          await mrsAlert('❌ Gagal: ' + (res.message || 'Error'));
+            results.push(res);
+          }
+          const failed = results.filter(item => !item.success);
+          if (!failed.length) {
+            await mrsAlert('✅ Pesanan berhasil disimpan!');
+            document.getElementById('order-modal').hidden = true;
+          } else {
+            await mrsAlert('❌ Gagal: ' + (failed[0].message || 'Sebagian pesanan gagal'));
+          }
+        } catch(e) {
+          await mrsAlert('❌ Error: ' + e);
         }
         btn.disabled = false; btn.textContent = 'Simpan Pesanan';
       });
-
-      document.getElementById('o-history-load').addEventListener('click', loadOrderHistory);
-      document.getElementById('o-history-close').addEventListener('click', () => {
-        document.getElementById('order-modal').hidden = true;
-      });
-
-      async function loadOrderHistory() {
-        if (!orderCreds) return;
-        const from = document.getElementById('o-from').value;
-        const to   = document.getElementById('o-to').value;
-        if (!from || !to) return;
-        const cont = document.getElementById('o-history-content');
-        cont.innerHTML = '<div class="order-loading"><div style="font-size:42px; display:inline-block; animation: wobble 1.5s infinite ease-in-out;">⏳</div><div style="margin-top:12px; animation: pulse 1.5s infinite; letter-spacing: 0.5px;">Memuat riwayat...</div></div>';
-        try {
-          const data = await invoke('order_history', {
-            genId: orderCreds.genId, password: orderCreds.password,
-            server: serverUrl(), from, to
-          });
-          if (!data.success || !data.rows?.length) {
-            cont.innerHTML = '<div class="order-loading">Tidak ada pesanan di rentang ini.</div>'; return;
-          }
-          cont.innerHTML = `<div style="overflow-x:auto">
-            <table class="order-history-table">
-              <thead><tr><th>Tgl</th><th>Jadwal</th><th>Menu</th><th>Status</th><th></th></tr></thead>
-              <tbody>${data.rows.map(row => {
-                const isSudah = row.status?.toLowerCase().includes('sudah');
-                const badge = isSudah
-                  ? 'background:#14291c;color:#bbf7d0;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700'
-                  : 'background:#32161c;color:#f87171;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700';
-                return `<tr>
-                  <td>${row.tanggal?.replace(/(\d+) (\w+) \d+/, '$1 $2') || ''}</td>
-                  <td>${(row.jadwal || '').replace('Makan ', '')}</td>
-                  <td><b>${row.menu || ''}</b></td>
-                  <td><span style="${badge}">${isSudah ? 'Sudah' : 'Belum'}</span></td>
-                  <td>${row.xid && !isSudah ? `<button class="btn-batal" data-xid="${row.xid}">Batal</button>` : ''}</td>
-                </tr>`;
-              }).join('')}</tbody>
-            </table></div>`;
-          document.querySelectorAll('.btn-batal').forEach(btn => {
-            btn.addEventListener('click', async () => {
-              if (!await mrsConfirm('Batalkan pesanan ini?')) return;
-              btn.disabled = true; btn.textContent = '...';
-              try {
-                const res = await invoke('order_cancel', {
-                  genId: orderCreds.genId, password: orderCreds.password,
-                  server: serverUrl(), xid: btn.dataset.xid
-                });
-                if (res.success) { await mrsAlert('✅ Pesanan dibatalkan.'); loadOrderHistory(); }
-                else await mrsAlert('❌ ' + (res.message || 'Gagal'));
-              } catch(e) { await mrsAlert('❌ Error: ' + e); }
-            });
-          });
-        } catch(e) {
-          cont.innerHTML = `<div class="order-loading" style="color:#f87171">Gagal: ${e}</div>`;
-        }
-      }
     </script>
     <!-- Custom Modal Dialog -->
     <div id="mrs-dialog-modal" class="modal" hidden style="z-index: 9999;">
