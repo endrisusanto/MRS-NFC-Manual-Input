@@ -3,5 +3,5 @@ services:
     build: .
     container_name: mers-pwa
     ports:
-      - "7465:80"
+      - "7465:3000"
     restart: unless-stopped
