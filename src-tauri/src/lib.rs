@@ -72,6 +72,22 @@ fn server_url(server: &str) -> String {
     }
 }
 
+fn gateway_ws_url(url: &str) -> String {
+    let trimmed = url.trim().trim_end_matches('/');
+    if trimmed.is_empty() {
+        return "wss://makan.endrisusanto.my.id".to_string();
+    }
+    if trimmed.starts_with("https://") {
+        format!("wss://{}", &trimmed[8..])
+    } else if trimmed.starts_with("http://") {
+        format!("ws://{}", &trimmed[7..])
+    } else if !trimmed.starts_with("ws://") && !trimmed.starts_with("wss://") {
+        format!("wss://{trimmed}")
+    } else {
+        trimmed.to_string()
+    }
+}
+
 fn scanner_uid(uid: &str) -> String {
     let raw = uid.trim();
     if raw.contains(':') {
@@ -1046,8 +1062,9 @@ fn save_agent_config(
     let config_dir = app_handle.path().app_data_dir().unwrap_or_default();
     let _ = std::fs::create_dir_all(&config_dir);
     let config_file = config_dir.join("agent_config.json");
+    let normalized_ws = gateway_ws_url(&gateway_url);
     let new_config = serde_json::json!({
-        "gateway_url": gateway_url.trim(),
+        "gateway_url": normalized_ws,
         "device_id": device_id.trim(),
         "server_url": server_url.trim()
     });
@@ -1100,8 +1117,8 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
                     let url = json
                         .get("gateway_url")
                         .and_then(|v| v.as_str())
-                        .unwrap_or("wss://makan.endrisusanto.my.id")
-                        .to_string();
+                        .map(gateway_ws_url)
+                        .unwrap_or_else(|| "wss://makan.endrisusanto.my.id".to_string());
                     let dev = json
                         .get("device_id")
                         .and_then(|v| v.as_str())

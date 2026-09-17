@@ -295,14 +295,23 @@
         font-size: 13px;
       }
       
+      .home-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      
       .server-btn {
-        display: block;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         width: 100%;
-        height: 40px;
-        margin: 0 auto 12px;
-        border-radius: 8px;
+        height: 44px;
+        border-radius: 10px;
         font-size: 13px;
         font-weight: 700;
+        margin: 0;
       }
       
       .summary {
@@ -654,7 +663,22 @@
         letter-spacing: normal;
       }
       .order-input:focus { border-color: var(--border-focus); }
-      .order-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; }
+      .order-row {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .order-row-fields {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .order-search-btn {
+        width: 100%;
+        height: 46px;
+        font-weight: 700;
+        border-radius: 10px;
+      }
       .menu-cards { display: flex; flex-direction: column; gap: 8px; }
       .menu-card {
         border: 1px solid var(--border);
@@ -753,8 +777,10 @@
       <section class="home">
         <h1>MeRS Desktop</h1>
         <p>Masukkan GEN 8 digit atau ID kartu 10 digit yang akan dieksekusi.</p>
-        <button class="server-btn" id="settings">Server</button>
-        <button class="server-btn" id="pesan-btn" style="background:#16a34a;color:#fff;border-color:#16a34a;width:auto;padding:0 14px;">🍽 Pesan Menu</button>
+        <div class="home-actions">
+          <button class="server-btn" id="settings">⚙️ Server</button>
+          <button class="server-btn" id="pesan-btn" style="background:#16a34a;color:#fff;border-color:#16a34a;">🍽 Pesan Menu</button>
+        </div>
         <input id="uid" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="1696235068" autofocus>
         <div class="cards">
           <button class="card" id="tap"><strong>Tap In Scanner</strong><span>Masuk ke pilihan loket untuk ID ini.</span></button>
@@ -788,6 +814,10 @@
     </main>
     <div id="config" class="modal" hidden>
       <form>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; position:relative;">
+          <h3 style="margin:0; font-size:18px; font-weight:800; color:var(--text-main); flex:1; text-align:center;">Konfigurasi Server</h3>
+          <button id="config-close-x" type="button" style="position:absolute; right:0; top:50%; transform:translateY(-50%); width:36px; height:36px; min-height:36px; padding:0; border-radius:8px; border:1px solid var(--border); background:var(--surface-subtle); color:var(--text-muted); font-size:18px; font-weight:700; cursor:pointer;" aria-label="Tutup">✕</button>
+        </div>
         <label for="server-url">URL Server MeRS</label>
         <input id="server-url" placeholder="https://seinp.sec.samsung.net/MERS">
         
@@ -804,7 +834,7 @@
         
         <div class="modal-actions">
           <button id="cancel-settings" type="button">Batal</button>
-          <button id="save-settings" type="button">Simpan</button>
+          <button id="save-settings" type="button" class="order-btn primary" style="background:var(--primary);color:#fff;border-color:var(--primary);">Simpan</button>
         </div>
       </form>
     </div>
@@ -843,18 +873,20 @@
         <!-- Step: Pilih Menu -->
         <div class="order-step" id="ostep-menu">
           <div class="order-row">
-            <div>
-              <label class="order-label">Tanggal</label>
-              <input class="order-input" id="o-date" type="date">
+            <div class="order-row-fields">
+              <div>
+                <label class="order-label">Tanggal</label>
+                <input class="order-input" id="o-date" type="date">
+              </div>
+              <div>
+                <label class="order-label">Jadwal</label>
+                <select class="order-input" id="o-meal">
+                  <option value="2">Makan Siang</option>
+                  <option value="3">Makan Malam</option>
+                </select>
+              </div>
             </div>
-            <div>
-              <label class="order-label">Jadwal</label>
-              <select class="order-input" id="o-meal">
-                <option value="2">Makan Siang</option>
-                <option value="3">Makan Malam</option>
-              </select>
-            </div>
-            <button class="order-btn primary" id="o-load" style="height:48px;">Cari</button>
+            <button class="order-btn primary order-search-btn" id="o-load">Cari Menu</button>
           </div>
           <div class="menu-cards" id="o-menu-list"></div>
           <div class="order-actions">
@@ -866,17 +898,19 @@
         <!-- Tab: Riwayat -->
         <div class="order-step" id="ostep-history">
           <div class="order-row">
-            <div>
-              <label class="order-label">Dari</label>
-              <input class="order-input" id="o-from" type="date">
+            <div class="order-row-fields">
+              <div>
+                <label class="order-label">Dari</label>
+                <input class="order-input" id="o-from" type="date">
+              </div>
+              <div>
+                <label class="order-label">Sampai</label>
+                <input class="order-input" id="o-to" type="date">
+              </div>
             </div>
-            <div>
-              <label class="order-label">Sampai</label>
-              <input class="order-input" id="o-to" type="date">
-            </div>
-            <button class="order-btn primary" id="o-history-load" style="height:48px;">Muat</button>
+            <button class="order-btn primary order-search-btn" id="o-history-load">Muat Riwayat</button>
           </div>
-          <div id="o-history-content"><div class="order-loading">Pilih tanggal lalu klik Muat.</div></div>
+          <div id="o-history-content"><div class="order-loading">Pilih tanggal lalu klik Muat Riwayat.</div></div>
           <div class="order-actions">
             <button class="order-btn primary" id="o-history-close" style="grid-column:1/-1;">Tutup</button>
           </div>
@@ -1088,6 +1122,9 @@
         document.getElementById('config').hidden = false;
       });
       document.getElementById('cancel-settings').addEventListener('click', () => {
+        document.getElementById('config').hidden = true;
+      });
+      document.getElementById('config-close-x').addEventListener('click', () => {
         document.getElementById('config').hidden = true;
       });
       document.getElementById('preset-prod').addEventListener('click', () => {
