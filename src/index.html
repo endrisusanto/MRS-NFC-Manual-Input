@@ -245,7 +245,7 @@
         display: flex;
       }
       
-      .selected {
+      .uid-selected {
         margin: 0 0 10px;
         padding: 12px;
         border-radius: 10px;
@@ -257,7 +257,7 @@
         font-weight: 700;
       }
       
-      .selected b {
+      .uid-selected b {
         display: block;
         margin-top: 4px;
         font-family: var(--font-mono);
@@ -586,8 +586,8 @@
         p { margin-bottom: 8px; }
         input { height: 44px; margin-bottom: 8px; font-size: 20px; }
         .card { min-height: 80px; padding: 12px; }
-        .selected { padding: 8px; margin-bottom: 8px; }
-        .selected b { font-size: 20px; }
+        .uid-selected { padding: 8px; margin-bottom: 8px; }
+        .uid-selected b { font-size: 20px; }
         .loket { height: 48px; font-size: 16px; }
         .bento-card { min-height: 52px; padding: 6px; }
         .bento-name { font-size: 11px; }
@@ -600,16 +600,17 @@
 
       /* ── Order Modal ── */
       .order-modal-inner {
-        width: min(680px, 95%);
+        width: min(800px, 94%);
         max-height: 90vh;
         overflow-y: auto;
-        padding: 20px;
+        padding: 22px;
         border-radius: 16px;
         border: 1px solid var(--border);
         background: var(--surface);
         display: flex;
         flex-direction: column;
         gap: 16px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
       }
       .order-step { display: none; flex-direction: column; gap: 14px; }
       .order-step.active { display: flex; }
@@ -655,12 +656,13 @@
         font-weight: 800;
         color: var(--text-main);
         text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
       .meal-card {
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: 10px;
-        padding: 10px;
+        padding: 12px;
         display: flex;
         flex-direction: column;
         gap: 8px;
@@ -668,9 +670,10 @@
       .meal-title {
         margin: 0;
         font-size: 12px;
-        font-weight: 700;
+        font-weight: 750;
         color: var(--text-muted);
         text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
       .menu-cards, .menu-list-container {
         display: flex;
@@ -680,19 +683,29 @@
       .menu-card {
         border: 1px solid var(--border);
         border-radius: 8px;
-        padding: 10px 12px;
+        padding: 10px 14px;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 10px;
+        gap: 12px;
         background: var(--surface-subtle);
         color: var(--text-main);
         min-height: auto;
         min-width: 0;
+        text-align: left !important;
+        margin: 0 !important;
+        box-sizing: border-box;
+        transition: border-color 0.15s ease, background-color 0.15s ease;
       }
-      .menu-card:hover { border-color: var(--border-focus); }
-      .menu-card.selected { border-color: #22c55e; background: rgba(34, 197, 94, 0.12); }
+      .menu-card:hover { border-color: var(--border-focus); background: var(--surface); }
+      .menu-card.selected {
+        border-color: #22c55e !important;
+        background: rgba(34, 197, 94, 0.12) !important;
+        text-align: left !important;
+        padding: 10px 14px !important;
+        margin: 0 !important;
+      }
       .menu-card input[type="radio"] {
         width: 18px;
         height: 18px;
@@ -702,32 +715,34 @@
         cursor: pointer;
       }
       .menu-card-name {
-        flex: 1;
+        flex: 1 1 auto;
         min-width: 0;
-        font-size: 12.5px;
+        font-size: 13px;
         font-weight: 700;
         line-height: 1.35;
         color: var(--text-main);
         word-break: break-word;
-        text-align: left;
+        text-align: left !important;
       }
       .menu-card-name small {
         display: block;
-        margin-top: 2px;
+        margin-top: 3px;
         font-size: 11px;
         font-weight: 500;
-        line-height: 1.3;
+        line-height: 1.35;
         color: var(--text-muted);
         word-break: break-word;
+        text-align: left !important;
       }
       .menu-card-stock {
-        font-size: 10.5px;
-        font-weight: 700;
-        padding: 3px 8px;
+        font-size: 11px;
+        font-weight: 750;
+        padding: 4px 10px;
         border-radius: 6px;
         white-space: nowrap;
         flex-shrink: 0;
         align-self: center;
+        text-align: center;
       }
       .stock-ok  { background: #064e3b; color: #6ee7b7; border: none; }
       .stock-low { background: #78350f; color: #fde68a; border: none; }
@@ -781,7 +796,7 @@
       </section>
       <section class="tap">
         <h1>Tap In Scanner</h1>
-        <div class="selected">ID yang akan dieksekusi<b id="selected"></b></div>
+        <div class="uid-selected">ID yang akan dieksekusi<b id="selected"></b></div>
         <div class="lokets">
           <button class="loket" data-loket="1">Loket 1</button>
           <button class="loket" data-loket="2">Loket 2</button>
@@ -794,7 +809,7 @@
       </section>
       <section class="result">
         <h1 id="result-title">Detail</h1>
-        <div class="selected">ID<b id="result-id"></b></div>
+        <div class="uid-selected">ID<b id="result-id"></b></div>
         <div id="result-summary" class="summary"></div>
         <details id="api-details">
           <summary>API Response</summary>
@@ -831,7 +846,7 @@
         <input id="master-pass" type="password" placeholder="••••••••" autocomplete="off">
         
         <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Versi: <b id="config-version-label" style="color:var(--text-main); font-family:var(--font-mono);">v1.0.131</b></span>
+          <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Versi: <b id="config-version-label" style="color:var(--text-main); font-family:var(--font-mono);">v1.0.132</b></span>
           <button id="config-check-update-btn" type="button" class="pill" style="min-height: auto; padding: 6px 12px; font-size: 11px; margin: 0; cursor: pointer;">Periksa Pembaruan <span id="config-update-badge" class="pill ok" style="display:none; padding:1px 6px; font-size:10px; margin-left:4px; font-weight:800; background:#22c55e; color:#fff;">Baru</span></button>
         </div>
 
@@ -855,7 +870,7 @@
           <div style="padding:16px; border-radius:12px; background:var(--surface-subtle); border:1px solid var(--border); display:flex; flex-direction:column; gap:10px;">
             <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:600;">
               <span style="color:var(--text-muted);">Versi Terpasang:</span>
-              <span id="update-current-ver" style="font-family:var(--font-mono); font-weight:700; padding:2px 8px; border-radius:6px; background:var(--surface); border:1px solid var(--border);">v1.0.131</span>
+              <span id="update-current-ver" style="font-family:var(--font-mono); font-weight:700; padding:2px 8px; border-radius:6px; background:var(--surface); border:1px solid var(--border);">v1.0.132</span>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:600;">
               <span style="color:var(--text-muted);">Rilis Terbaru:</span>
@@ -918,10 +933,13 @@
 
         <!-- Step: Pilih Menu -->
         <div class="order-step" id="ostep-menu">
-          <button id="o-load-menu" type="button" class="order-btn primary" style="width:100%; min-height:48px;">Muat Ulang Menu</button>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+            <button id="o-load-menu" type="button" class="order-btn" style="flex:1; min-height:44px; font-size:13px;">🔄 Muat Ulang Menu</button>
+            <button id="o-logout" type="button" class="order-btn" style="min-height:44px; padding:0 18px; font-size:13px;">Logout</button>
+          </div>
           <div class="menu-cards" id="o-menu-list"></div>
-          <div class="order-actions" style="margin-top:4px;">
-            <button class="order-btn" id="o-logout">Logout</button>
+          <div class="order-actions" style="margin-top:6px;">
+            <button class="order-btn" id="o-cancel-menu" type="button">Tutup</button>
             <button class="order-btn primary" id="o-submit" disabled>Simpan Pesanan</button>
           </div>
         </div>
@@ -1202,7 +1220,7 @@
         runAction('tap_in', { uid, loket: button.dataset.loket }, `Tap In Scanner - Loket ${button.dataset.loket}`);
       }));
 
-      let currentAppVersion = '1.0.131';
+      let currentAppVersion = '1.0.132';
       let latestReleaseData = null;
 
       async function openLink(url) {
@@ -1382,6 +1400,9 @@
       document.getElementById('o-cancel').addEventListener('click', () => {
         document.getElementById('order-modal').hidden = true;
       });
+      document.getElementById('o-cancel-menu')?.addEventListener('click', () => {
+        document.getElementById('order-modal').hidden = true;
+      });
       document.getElementById('o-close-x').addEventListener('click', () => {
         document.getElementById('order-modal').hidden = true;
       });
@@ -1494,7 +1515,7 @@
                             <span class="menu-card-name">${esc(item.name)}${item.detail ? `<small>${esc(item.detail)}</small>` : ''}</span>
                             <span class="menu-card-stock ${badgeCls}">${labelText}</span>
                           </label>`;
-                      }).join('') : '<div class="meal-card" style="text-align:center; padding:12px; background:var(--surface-subtle);"><span style="font-size:12px; font-weight:600; color:var(--text-muted);">Menu tidak tersedia</span></div>'}
+                      }).join('') : '<div style="text-align:center; padding:10px 0; color:var(--text-muted); font-size:12px; font-weight:600;">Menu tidak tersedia</div>'}
                     </div>
                   </div>
                 `).join('')}
