@@ -68,37 +68,26 @@ jobs:
           if ($wix) { echo $wix.FullName | Out-File -Append -FilePath $env:GITHUB_PATH }
           else { choco install wixtoolset -y --no-progress }
 
-      - name: Prepare signing key
-        shell: powershell
-        env:
-          KEY_INPUT: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-        run: |
-          if ($env:KEY_INPUT) {
-            $rawKey = $env:KEY_INPUT.Trim()
-            if ($rawKey.StartsWith("dW50") -or -not $rawKey.StartsWith("untrusted comment")) {
-              try {
-                $decoded = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($rawKey))
-                if ($decoded.StartsWith("untrusted comment")) {
-                  $rawKey = $decoded
-                }
-              } catch {
-                # keep as is if not valid base64
-              }
-            }
-            $keyPath = Join-Path $PWD "tauri_signer.key"
-            [System.IO.File]::WriteAllText($keyPath, $rawKey, [System.Text.Encoding]::ASCII)
-            Write-Host "Signing key file generated at: $keyPath (Length: $($rawKey.Length))"
-          }
-
       - name: Build MSI
         shell: powershell
         env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ github.workspace }}\tauri_signer.key
-          TAURI_PRIVATE_KEY: ${{ github.workspace }}\tauri_signer.key
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          SIGNING_KEY_RAW: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          SIGNING_PASS_RAW: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run dist:win
+        run: |
+          if ($env:SIGNING_KEY_RAW) {
+            $cleanKey = ($env:SIGNING_KEY_RAW.Trim() -replace '\s+', '')
+            $env:TAURI_SIGNING_PRIVATE_KEY = $cleanKey
+            $env:TAURI_PRIVATE_KEY = $cleanKey
+          }
+          if ($env:SIGNING_PASS_RAW) {
+            $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = $env:SIGNING_PASS_RAW
+            $env:TAURI_KEY_PASSWORD = $env:SIGNING_PASS_RAW
+          } else {
+            $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = ""
+            $env:TAURI_KEY_PASSWORD = ""
+          }
+          npm run dist:win
 
       - name: Debug bundle output
         if: always()
