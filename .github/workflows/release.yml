@@ -86,13 +86,15 @@ jobs:
               }
             }
             $keyPath = Join-Path $PWD "tauri_signer.key"
-            [System.IO.File]::WriteAllText($keyPath, $rawKey)
-            "TAURI_SIGNING_PRIVATE_KEY=$keyPath" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+            [System.IO.File]::WriteAllText($keyPath, $rawKey, [System.Text.Encoding]::ASCII)
+            Write-Host "Signing key file generated at: $keyPath (Length: $($rawKey.Length))"
           }
 
       - name: Build MSI
         shell: powershell
         env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ github.workspace }}\tauri_signer.key
+          TAURI_PRIVATE_KEY: ${{ github.workspace }}\tauri_signer.key
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
