@@ -68,11 +68,33 @@ jobs:
           if ($wix) { echo $wix.FullName | Out-File -Append -FilePath $env:GITHUB_PATH }
           else { choco install wixtoolset -y --no-progress }
 
+      - name: Prepare signing key
+        shell: powershell
+        env:
+          KEY_INPUT: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if ($env:KEY_INPUT) {
+            $rawKey = $env:KEY_INPUT.Trim()
+            if ($rawKey.StartsWith("dW50") -or -not $rawKey.StartsWith("untrusted comment")) {
+              try {
+                $decoded = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($rawKey))
+                if ($decoded.StartsWith("untrusted comment")) {
+                  $rawKey = $decoded
+                }
+              } catch {
+                # keep as is if not valid base64
+              }
+            }
+            $keyPath = Join-Path $PWD "tauri_signer.key"
+            [System.IO.File]::WriteAllText($keyPath, $rawKey)
+            "TAURI_SIGNING_PRIVATE_KEY=$keyPath" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+          }
+
       - name: Build MSI
         shell: powershell
         env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run dist:win
 
