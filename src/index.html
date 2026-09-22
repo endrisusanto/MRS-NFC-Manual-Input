@@ -772,9 +772,6 @@
         <div class="home-actions">
           <button class="server-btn" id="settings">⚙️ Server</button>
           <button class="server-btn" id="pesan-btn" style="background:#16a34a;color:#fff;border-color:#16a34a;">🍽 Pesan Menu</button>
-          <button class="server-btn" id="update-btn" style="position:relative;">
-            🚀 Update <span id="update-badge" class="pill ok" style="display:none; padding:1px 6px; font-size:10px; margin-left:4px; font-weight:800; background:#22c55e; color:#fff;">Baru</span>
-          </button>
         </div>
         <input id="uid" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="1696235068" autofocus>
         <div class="cards">
@@ -834,8 +831,8 @@
         <input id="master-pass" type="password" placeholder="••••••••" autocomplete="off">
         
         <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Versi: <b id="config-version-label" style="color:var(--text-main); font-family:var(--font-mono);">v1.0.130</b></span>
-          <button id="config-check-update-btn" type="button" class="pill" style="min-height: auto; padding: 6px 12px; font-size: 11px; margin: 0; cursor: pointer;">Periksa Pembaruan</button>
+          <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Versi: <b id="config-version-label" style="color:var(--text-main); font-family:var(--font-mono);">v1.0.131</b></span>
+          <button id="config-check-update-btn" type="button" class="pill" style="min-height: auto; padding: 6px 12px; font-size: 11px; margin: 0; cursor: pointer;">Periksa Pembaruan <span id="config-update-badge" class="pill ok" style="display:none; padding:1px 6px; font-size:10px; margin-left:4px; font-weight:800; background:#22c55e; color:#fff;">Baru</span></button>
         </div>
 
         <div class="modal-actions" style="margin-top: 14px;">
@@ -858,7 +855,7 @@
           <div style="padding:16px; border-radius:12px; background:var(--surface-subtle); border:1px solid var(--border); display:flex; flex-direction:column; gap:10px;">
             <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:600;">
               <span style="color:var(--text-muted);">Versi Terpasang:</span>
-              <span id="update-current-ver" style="font-family:var(--font-mono); font-weight:700; padding:2px 8px; border-radius:6px; background:var(--surface); border:1px solid var(--border);">v1.0.130</span>
+              <span id="update-current-ver" style="font-family:var(--font-mono); font-weight:700; padding:2px 8px; border-radius:6px; background:var(--surface); border:1px solid var(--border);">v1.0.131</span>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:600;">
               <span style="color:var(--text-muted);">Rilis Terbaru:</span>
@@ -1205,7 +1202,7 @@
         runAction('tap_in', { uid, loket: button.dataset.loket }, `Tap In Scanner - Loket ${button.dataset.loket}`);
       }));
 
-      let currentAppVersion = '1.0.130';
+      let currentAppVersion = '1.0.131';
       let latestReleaseData = null;
 
       async function openLink(url) {
@@ -1224,7 +1221,7 @@
         }
 
         try {
-          const ver = await invoke('get_app_version').catch(() => '1.0.129');
+          const ver = await invoke('get_app_version').catch(() => '1.0.131');
           if (ver) {
             currentAppVersion = ver;
             const cfgVerEl = document.getElementById('config-version-label');
@@ -1239,7 +1236,7 @@
           const latVerEl = document.getElementById('update-latest-ver');
           if (latVerEl) latVerEl.textContent = res.latest_version ? `v${res.latest_version}` : '-';
 
-          const badge = document.getElementById('update-badge');
+          const cfgBadge = document.getElementById('config-update-badge');
           const statusMsg = document.getElementById('update-status-msg');
           const changelogWrap = document.getElementById('update-changelog-wrap');
           const changelog = document.getElementById('update-changelog');
@@ -1247,9 +1244,9 @@
           const assetsList = document.getElementById('update-assets-list');
 
           if (res.has_update) {
-            if (badge) {
-              badge.style.display = 'inline-block';
-              badge.textContent = `⚡ v${res.latest_version}`;
+            if (cfgBadge) {
+              cfgBadge.style.display = 'inline-block';
+              cfgBadge.textContent = `⚡ v${res.latest_version}`;
             }
             if (statusMsg) {
               statusMsg.innerHTML = `<span style="color:#22c55e; font-weight:800;">✨ Versi baru v${esc(res.latest_version)} tersedia!</span>`;
@@ -1275,7 +1272,7 @@
               }).join('');
             }
           } else {
-            if (badge) badge.style.display = 'none';
+            if (cfgBadge) cfgBadge.style.display = 'none';
             if (statusMsg) {
               statusMsg.innerHTML = '<span style="color:var(--text-muted);">✅ Aplikasi Anda sudah menggunakan versi terbaru.</span>';
             }
@@ -1293,7 +1290,6 @@
         }
       }
 
-      document.getElementById('update-btn').addEventListener('click', () => checkForUpdates(true));
       document.getElementById('config-check-update-btn').addEventListener('click', () => {
         document.getElementById('config').hidden = true;
         checkForUpdates(true);
