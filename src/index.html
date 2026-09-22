@@ -846,7 +846,7 @@
         <input id="master-pass" type="password" placeholder="••••••••" autocomplete="off">
         
         <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Versi: <b id="config-version-label" style="color:var(--text-main); font-family:var(--font-mono);">v1.0.132</b></span>
+          <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Versi: <b id="config-version-label" style="color:var(--text-main); font-family:var(--font-mono);">v1.0.133</b></span>
           <button id="config-check-update-btn" type="button" class="pill" style="min-height: auto; padding: 6px 12px; font-size: 11px; margin: 0; cursor: pointer;">Periksa Pembaruan <span id="config-update-badge" class="pill ok" style="display:none; padding:1px 6px; font-size:10px; margin-left:4px; font-weight:800; background:#22c55e; color:#fff;">Baru</span></button>
         </div>
 
@@ -870,7 +870,7 @@
           <div style="padding:16px; border-radius:12px; background:var(--surface-subtle); border:1px solid var(--border); display:flex; flex-direction:column; gap:10px;">
             <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:600;">
               <span style="color:var(--text-muted);">Versi Terpasang:</span>
-              <span id="update-current-ver" style="font-family:var(--font-mono); font-weight:700; padding:2px 8px; border-radius:6px; background:var(--surface); border:1px solid var(--border);">v1.0.132</span>
+              <span id="update-current-ver" style="font-family:var(--font-mono); font-weight:700; padding:2px 8px; border-radius:6px; background:var(--surface); border:1px solid var(--border);">v1.0.133</span>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:600;">
               <span style="color:var(--text-muted);">Rilis Terbaru:</span>
@@ -881,24 +881,36 @@
             </div>
           </div>
 
+          <!-- Progress Bar (for integrated update) -->
+          <div id="update-progress-wrap" style="display:none; flex-direction:column; gap:6px;">
+            <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700;">
+              <span id="update-progress-status" style="color:var(--primary);">Mengunduh pembaruan...</span>
+              <span id="update-progress-percent" style="font-family:var(--font-mono);">0%</span>
+            </div>
+            <div style="width:100%; height:8px; background:var(--surface); border:1px solid var(--border); border-radius:999px; overflow:hidden;">
+              <div id="update-progress-bar" style="width:0%; height:100%; background:linear-gradient(90deg, #3b82f6, #22c55e); transition:width 0.2s ease;"></div>
+            </div>
+          </div>
+
           <!-- Changelog -->
           <div id="update-changelog-wrap" style="display:none; flex-direction:column; gap:6px;">
             <label style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted);">Catatan Rilis (Changelog):</label>
             <div id="update-changelog" style="padding:12px 14px; border-radius:10px; background:var(--bg); border:1px solid var(--border); font-size:12px; font-family:var(--font-mono); color:var(--text-main); max-height:160px; overflow-y:auto; white-space:pre-line; line-height:1.5;"></div>
           </div>
 
-          <!-- Direct Download Assets -->
+          <!-- Direct Download Assets (Fallback) -->
           <div id="update-assets-wrap" style="display:none; flex-direction:column; gap:8px;">
-            <label style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted);">Download Paket Pembaruan:</label>
+            <label style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted);">Download Manual (Opsional):</label>
             <div id="update-assets-list" style="display:flex; flex-direction:column; gap:8px;"></div>
           </div>
 
           <!-- Actions -->
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:6px; padding-top:10px; border-top:1px solid var(--border);">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:6px; padding-top:10px; border-top:1px solid var(--border); flex-wrap:wrap;">
             <button id="update-refresh-btn" type="button" style="min-height:42px; padding:0 14px; font-size:13px;">🔄 Periksa Ulang</button>
-            <div style="display:flex; gap:8px;">
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button id="update-install-btn" type="button" class="order-btn primary" style="display:none; min-height:42px; padding:0 18px; font-size:13px; background:#22c55e; color:#fff; font-weight:800;">⚡ Pasang & Mulai Ulang</button>
               <button id="update-release-btn" type="button" class="order-btn" style="min-height:42px; padding:0 14px; font-size:13px;">🌐 Buka GitHub</button>
-              <button id="update-close-btn" type="button" class="order-btn primary" style="min-height:42px; padding:0 18px; font-size:13px; background:var(--primary); color:#fff;">Tutup</button>
+              <button id="update-close-btn" type="button" class="order-btn" style="min-height:42px; padding:0 18px; font-size:13px; background:var(--surface); color:var(--text-main);">Tutup</button>
             </div>
           </div>
         </div>
@@ -1220,7 +1232,7 @@
         runAction('tap_in', { uid, loket: button.dataset.loket }, `Tap In Scanner - Loket ${button.dataset.loket}`);
       }));
 
-      let currentAppVersion = '1.0.132';
+      let currentAppVersion = '1.0.133';
       let latestReleaseData = null;
 
       async function openLink(url) {
@@ -1231,15 +1243,20 @@
         }
       }
 
+      let downloadedBytes = 0;
+      let totalBytesToDownload = 0;
+
       async function checkForUpdates(openModal = false) {
         if (openModal) {
           document.getElementById('update-modal').hidden = false;
           document.getElementById('update-status-msg').innerHTML = '<span style="color:var(--primary);">⏳ Memeriksa rilis terbaru...</span>';
           document.getElementById('update-refresh-btn').disabled = true;
+          document.getElementById('update-install-btn').style.display = 'none';
+          document.getElementById('update-progress-wrap').style.display = 'none';
         }
 
         try {
-          const ver = await invoke('get_app_version').catch(() => '1.0.131');
+          const ver = await invoke('get_app_version').catch(() => '1.0.133');
           if (ver) {
             currentAppVersion = ver;
             const cfgVerEl = document.getElementById('config-version-label');
@@ -1248,11 +1265,21 @@
             if (curVerEl) curVerEl.textContent = `v${currentAppVersion}`;
           }
 
-          const res = await invoke('check_app_update', { currentVersion: currentAppVersion });
-          latestReleaseData = res;
+          let tauriUpdate = null;
+          try {
+            tauriUpdate = await invoke('tauri_check_update');
+          } catch (te) {
+            console.log('Tauri updater check info:', te);
+          }
+
+          const ghRelease = await invoke('check_app_update', { currentVersion: currentAppVersion }).catch(() => null);
+          latestReleaseData = ghRelease;
+
+          const hasUpdate = (tauriUpdate && tauriUpdate.has_update) || (ghRelease && ghRelease.has_update);
+          const latestVersion = tauriUpdate?.version || ghRelease?.latest_version || currentAppVersion;
 
           const latVerEl = document.getElementById('update-latest-ver');
-          if (latVerEl) latVerEl.textContent = res.latest_version ? `v${res.latest_version}` : '-';
+          if (latVerEl) latVerEl.textContent = latestVersion ? `v${latestVersion}` : '-';
 
           const cfgBadge = document.getElementById('config-update-badge');
           const statusMsg = document.getElementById('update-status-msg');
@@ -1260,24 +1287,31 @@
           const changelog = document.getElementById('update-changelog');
           const assetsWrap = document.getElementById('update-assets-wrap');
           const assetsList = document.getElementById('update-assets-list');
+          const installBtn = document.getElementById('update-install-btn');
 
-          if (res.has_update) {
+          if (hasUpdate) {
             if (cfgBadge) {
               cfgBadge.style.display = 'inline-block';
-              cfgBadge.textContent = `⚡ v${res.latest_version}`;
+              cfgBadge.textContent = `⚡ v${latestVersion}`;
             }
             if (statusMsg) {
-              statusMsg.innerHTML = `<span style="color:#22c55e; font-weight:800;">✨ Versi baru v${esc(res.latest_version)} tersedia!</span>`;
+              statusMsg.innerHTML = `<span style="color:#22c55e; font-weight:800;">✨ Versi baru v${esc(latestVersion)} tersedia!</span>`;
             }
 
-            if (res.body && changelog && changelogWrap) {
-              changelog.textContent = res.body;
+            if (installBtn) {
+              installBtn.style.display = 'inline-block';
+              installBtn.textContent = `⚡ Pasang v${latestVersion} & Mulai Ulang`;
+            }
+
+            const releaseNotes = tauriUpdate?.body || ghRelease?.body;
+            if (releaseNotes && changelog && changelogWrap) {
+              changelog.textContent = releaseNotes;
               changelogWrap.style.display = 'flex';
             }
 
-            if (res.assets && res.assets.length && assetsList && assetsWrap) {
+            if (ghRelease?.assets && ghRelease.assets.length && assetsList && assetsWrap) {
               assetsWrap.style.display = 'flex';
-              assetsList.innerHTML = res.assets.map(asset => {
+              assetsList.innerHTML = ghRelease.assets.map(asset => {
                 const icon = asset.kind === 'windows' ? '🪟' : asset.kind === 'android' ? '📱' : asset.kind === 'extension' ? '🧩' : '📦';
                 const label = asset.kind === 'windows' ? 'Windows Installer (.msi)' : asset.kind === 'android' ? 'Android Remote (.apk)' : asset.kind === 'extension' ? 'Chrome Extension (.zip)' : asset.name;
                 const sizeStr = asset.size ? `(${(asset.size / (1024 * 1024)).toFixed(1)} MB)` : '';
@@ -1294,6 +1328,7 @@
             if (statusMsg) {
               statusMsg.innerHTML = '<span style="color:var(--text-muted);">✅ Aplikasi Anda sudah menggunakan versi terbaru.</span>';
             }
+            if (installBtn) installBtn.style.display = 'none';
             if (changelogWrap) changelogWrap.style.display = 'none';
             if (assetsWrap) assetsWrap.style.display = 'none';
           }
@@ -1308,10 +1343,46 @@
         }
       }
 
+      async function installAppUpdate() {
+        const installBtn = document.getElementById('update-install-btn');
+        const refreshBtn = document.getElementById('update-refresh-btn');
+        const closeBtn = document.getElementById('update-close-btn');
+        const progressWrap = document.getElementById('update-progress-wrap');
+        const progressBar = document.getElementById('update-progress-bar');
+        const progressPercent = document.getElementById('update-progress-percent');
+        const progressStatus = document.getElementById('update-progress-status');
+        const statusMsg = document.getElementById('update-status-msg');
+
+        try {
+          if (installBtn) installBtn.disabled = true;
+          if (refreshBtn) refreshBtn.disabled = true;
+          if (closeBtn) closeBtn.disabled = true;
+          if (progressWrap) progressWrap.style.display = 'flex';
+          if (progressBar) progressBar.style.width = '0%';
+          if (progressPercent) progressPercent.textContent = '0%';
+          if (progressStatus) progressStatus.textContent = 'Menghubungi server update & mengunduh paket...';
+          downloadedBytes = 0;
+          totalBytesToDownload = 0;
+
+          await invoke('tauri_install_update');
+          if (progressStatus) progressStatus.textContent = 'Pembaruan berhasil dipasang! Memuat ulang aplikasi...';
+        } catch (e) {
+          console.error('Update install error:', e);
+          if (statusMsg) {
+            statusMsg.innerHTML = `<span style="color:#f87171;">⚠️ Gagal memasang pembaruan otomatis: ${esc(e)}</span>`;
+          }
+          if (progressStatus) progressStatus.textContent = 'Gagal memasang pembaruan.';
+          if (installBtn) installBtn.disabled = false;
+          if (refreshBtn) refreshBtn.disabled = false;
+          if (closeBtn) closeBtn.disabled = false;
+        }
+      }
+
       document.getElementById('config-check-update-btn').addEventListener('click', () => {
         document.getElementById('config').hidden = true;
         checkForUpdates(true);
       });
+      document.getElementById('update-install-btn').addEventListener('click', installAppUpdate);
       document.getElementById('update-close-x').addEventListener('click', () => {
         document.getElementById('update-modal').hidden = true;
       });
@@ -1338,6 +1409,42 @@
               lastGatewayKind = status === 'online' ? 'ok' : status === 'connecting' ? 'warn' : 'bad';
               setBadge('gateway-status', lastGatewayStatus, lastGatewayKind);
             }
+          });
+
+          window.__TAURI__.event.listen('update-download-progress', (event) => {
+            const payload = event.payload || {};
+            const chunk = payload.chunk || 0;
+            const total = payload.total || 0;
+            if (total > 0) {
+              totalBytesToDownload = total;
+            }
+            downloadedBytes += chunk;
+
+            const progressBar = document.getElementById('update-progress-bar');
+            const progressPercent = document.getElementById('update-progress-percent');
+            const progressStatus = document.getElementById('update-progress-status');
+
+            if (totalBytesToDownload > 0) {
+              const pct = Math.min(100, Math.round((downloadedBytes / totalBytesToDownload) * 100));
+              const downMB = (downloadedBytes / (1024 * 1024)).toFixed(1);
+              const totMB = (totalBytesToDownload / (1024 * 1024)).toFixed(1);
+              if (progressBar) progressBar.style.width = `${pct}%`;
+              if (progressPercent) progressPercent.textContent = `${pct}% (${downMB} / ${totMB} MB)`;
+              if (progressStatus) progressStatus.textContent = `Mengunduh pembaruan (${pct}%)...`;
+            } else {
+              const downMB = (downloadedBytes / (1024 * 1024)).toFixed(1);
+              if (progressBar) progressBar.style.width = '60%';
+              if (progressPercent) progressPercent.textContent = `${downMB} MB`;
+            }
+          });
+
+          window.__TAURI__.event.listen('update-download-finished', () => {
+            const progressBar = document.getElementById('update-progress-bar');
+            const progressPercent = document.getElementById('update-progress-percent');
+            const progressStatus = document.getElementById('update-progress-status');
+            if (progressBar) progressBar.style.width = '100%';
+            if (progressPercent) progressPercent.textContent = '100%';
+            if (progressStatus) progressStatus.textContent = 'Menginstal dan memulai ulang aplikasi...';
           });
         }
         await checkStatuses();

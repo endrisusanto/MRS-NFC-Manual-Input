@@ -1219,6 +1219,57 @@ async fn check_app_update(current_version: Option<String>) -> Result<serde_json:
 }
 
 #[tauri::command]
+async fn tauri_check_update(app_handle: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    use tauri_plugin_updater::UpdaterExt;
+    let updater = app_handle.updater().map_err(|e| e.to_string())?;
+    let update = updater.check().await.map_err(|e| e.to_string())?;
+    
+    if let Some(update) = update {
+        Ok(serde_json::json!({
+            "has_update": true,
+            "version": update.version,
+            "body": update.body.clone().unwrap_or_else(|| "Perbaikan bug dan peningkatan performa.".to_string()),
+            "date": update.date.map(|d| d.to_string()).unwrap_or_default(),
+            "target": update.target.clone(),
+        }))
+    } else {
+        Ok(serde_json::json!({
+            "has_update": false,
+            "current_version": env!("CARGO_PKG_VERSION")
+        }))
+    }
+}
+
+#[tauri::command]
+async fn tauri_install_update(app_handle: tauri::AppHandle) -> Result<(), String> {
+    use tauri_plugin_updater::UpdaterExt;
+
+    let updater = app_handle.updater().map_err(|e| e.to_string())?;
+    let update = updater.check().await.map_err(|e| e.to_string())?;
+
+    if let Some(update) = update {
+        let app_clone = app_handle.clone();
+        update.download_and_install(
+            move |chunk_len, content_len| {
+                let _ = app_clone.emit("update-download-progress", serde_json::json!({
+                    "chunk": chunk_len,
+                    "total": content_len
+                }));
+            },
+            {
+                let app_clone2 = app_handle.clone();
+                move || {
+                    let _ = app_clone2.emit("update-download-finished", ());
+                }
+            }
+        ).await.map_err(|e| e.to_string())?;
+
+        app_handle.restart();
+    }
+    Ok(())
+}
+
+#[tauri::command]
 fn open_browser_url(app_handle: tauri::AppHandle, url: String) -> Result<(), String> {
     use tauri_plugin_opener::OpenerExt;
     app_handle.opener().open_url(&url, None::<&str>).map_err(|e| e.to_string())
@@ -1544,6 +1595,8 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .invoke_handler(tauri::generate_handler![
             ping_server,
             cek_pesanan,
@@ -1560,6 +1613,8 @@ pub fn run() {
             order_history,
             get_app_version,
             check_app_update,
+            tauri_check_update,
+            tauri_install_update,
             open_browser_url,
         ])
         .on_window_event(|window, event| {

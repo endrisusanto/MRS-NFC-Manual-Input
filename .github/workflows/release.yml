@@ -70,6 +70,10 @@ jobs:
 
       - name: Build MSI
         shell: powershell
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run dist:win
 
       - name: Debug bundle output
@@ -83,7 +87,7 @@ jobs:
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force dist | Out-Null
-          Copy-Item src-tauri/target/release/bundle/msi/*.msi dist/
+          Get-ChildItem src-tauri/target/release/bundle -Recurse -Include *.msi, *.zip, *.sig, latest.json | Copy-Item -Destination dist/ -Force
           Compress-Archive -Path manifest.json,bridge.js,content.css,content.js,help.html,popup.html,popup.js,icons -DestinationPath "dist/mers-nfc-tauri-extension-${{ github.ref_name }}.zip" -Force
 
       - name: Upload Windows artifact
