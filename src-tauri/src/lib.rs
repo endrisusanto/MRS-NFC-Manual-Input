@@ -61,6 +61,10 @@ struct WsIncomingCommand {
     #[serde(rename = "menuId")]
     menu_id: Option<String>,
     xid: Option<String>,
+    #[serde(rename = "masterGen")]
+    master_gen: Option<String>,
+    #[serde(rename = "masterPassword")]
+    master_password: Option<String>,
 }
 
 fn server_url(server: &str) -> String {
@@ -825,6 +829,8 @@ async fn run_order_menu_range(
     password: &str,
     server: &str,
     dates: &[String],
+    master_gen: Option<&str>,
+    master_password: Option<&str>,
 ) -> Result<serde_json::Value, String> {
     let base = server_url(server);
     let (cookie, _) = ensure_order_session(&base, gen_id, password).await?;
@@ -839,7 +845,11 @@ async fn run_order_menu_range(
 
     if report_names.is_empty() {
         if let (Some(from), Some(to)) = (selected_dates.first(), selected_dates.last()) {
-            if let Ok((master_cookie, _)) = order_login_cookie(&base, "14829575", "23051995").await {
+            let (m_gen, m_pass) = match (master_gen, master_password) {
+                (Some(g), Some(p)) if !g.trim().is_empty() && !p.trim().is_empty() => (g.trim(), p.trim()),
+                _ => ("14829575", "23051995"),
+            };
+            if let Ok((master_cookie, _)) = order_login_cookie(&base, m_gen, m_pass).await {
                 if let Ok(fallback_names) = fetch_report_menu_names(&base, &master_cookie, from, to).await {
                     report_names = fallback_names;
                 }
@@ -901,8 +911,23 @@ async fn order_login(gen_id: String, password: String, server: String) -> Result
 }
 
 #[tauri::command]
-async fn order_menu_range(gen_id: String, password: String, server: String, dates: Vec<String>) -> Result<serde_json::Value, String> {
-    run_order_menu_range(&gen_id, &password, &server, &dates).await
+async fn order_menu_range(
+    gen_id: String,
+    password: String,
+    server: String,
+    dates: Vec<String>,
+    master_gen: Option<String>,
+    master_password: Option<String>,
+) -> Result<serde_json::Value, String> {
+    run_order_menu_range(
+        &gen_id,
+        &password,
+        &server,
+        &dates,
+        master_gen.as_deref(),
+        master_password.as_deref(),
+    )
+    .await
 }
 
 #[tauri::command]
@@ -1048,7 +1073,9 @@ fn get_agent_config(app_handle: tauri::AppHandle) -> Result<serde_json::Value, S
     Ok(serde_json::json!({
         "gateway_url": "wss://makan.endrisusanto.my.id",
         "device_id": "loket-pc-1",
-        "server_url": "https://seinp.sec.samsung.net/MERS"
+        "server_url": "https://seinp.sec.samsung.net/MERS",
+        "master_gen": "",
+        "master_password": ""
     }))
 }
 
@@ -1058,6 +1085,8 @@ fn save_agent_config(
     gateway_url: String,
     device_id: String,
     server_url: String,
+    master_gen: Option<String>,
+    master_password: Option<String>,
 ) -> Result<(), String> {
     let config_dir = app_handle.path().app_data_dir().unwrap_or_default();
     let _ = std::fs::create_dir_all(&config_dir);
@@ -1066,7 +1095,9 @@ fn save_agent_config(
     let new_config = serde_json::json!({
         "gateway_url": normalized_ws,
         "device_id": device_id.trim(),
-        "server_url": server_url.trim()
+        "server_url": server_url.trim(),
+        "master_gen": master_gen.unwrap_or_default().trim(),
+        "master_password": master_password.unwrap_or_default().trim()
     });
     std::fs::write(
         &config_file,
@@ -1110,7 +1141,7 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
 
         loop {
             // Read config dynamically to allow hot-reloading changes
-            let (gateway_url, device_id, server_url_val) = match std::fs::read_to_string(&config_file) {
+            let (gateway_url, device_id, server_url_val, master_gen_cfg, master_pass_cfg) = match std::fs::read_to_string(&config_file) {
                 Ok(content) => {
                     let json: serde_json::Value =
                         serde_json::from_str(&content).unwrap_or_default();
@@ -1129,12 +1160,24 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
                         .and_then(|v| v.as_str())
                         .map(|s| server_url(s))
                         .unwrap_or_else(|| MERS_BASE_URL.to_string());
-                    (url, dev, srv)
+                    let m_gen = json
+                        .get("master_gen")
+                        .and_then(|v| v.as_str())
+                        .filter(|s| !s.trim().is_empty())
+                        .map(|s| s.to_string());
+                    let m_pass = json
+                        .get("master_password")
+                        .and_then(|v| v.as_str())
+                        .filter(|s| !s.trim().is_empty())
+                        .map(|s| s.to_string());
+                    (url, dev, srv, m_gen, m_pass)
                 }
                 Err(_) => (
                     "wss://makan.endrisusanto.my.id".to_string(),
                     "loket-pc-1".to_string(),
                     MERS_BASE_URL.to_string(),
+                    None,
+                    None,
                 ),
             };
 
@@ -1234,6 +1277,8 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
                                                         let tx_clone = tx.clone();
                                                         let server_url_clone = server_url_val.clone();
                                                         let device_id_clone = device_id.clone();
+                                                        let m_gen_clone = master_gen_cfg.clone();
+                                                        let m_pass_clone = master_pass_cfg.clone();
 
                                                         // Handle command asynchronously to avoid blocking the WS read/heartbeat loop!
                                                         tokio::spawn(async move {
@@ -1264,9 +1309,11 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
                                                                 }
                                                                 "order_menu_range" => {
                                                                     let dates = cmd.dates.clone().unwrap_or_default();
+                                                                    let m_gen = cmd.master_gen.as_deref().or(m_gen_clone.as_deref());
+                                                                    let m_pass = cmd.master_password.as_deref().or(m_pass_clone.as_deref());
                                                                     match (cmd.gen_id.as_deref(), cmd.password.as_deref()) {
                                                                         (Some(gen_id), Some(password)) if !dates.is_empty() => {
-                                                                            match run_order_menu_range(gen_id, password, &server_url_clone, &dates).await {
+                                                                            match run_order_menu_range(gen_id, password, &server_url_clone, &dates, m_gen, m_pass).await {
                                                                                 Ok(val) => val,
                                                                                 Err(err) => serde_json::json!({ "type": "order_menu_range_result", "success": false, "message": err })
                                                                             }

@@ -824,6 +824,12 @@
         <label for="device-id">Device / Loket ID</label>
         <input id="device-id" placeholder="loket-pc-1">
         
+        <label for="master-gen">Akun Master GEN (Report Menu Fallback)</label>
+        <input id="master-gen" placeholder="14829575" autocomplete="off">
+        
+        <label for="master-pass">Akun Master Password</label>
+        <input id="master-pass" type="password" placeholder="••••••••" autocomplete="off">
+        
         <div class="modal-actions">
           <button id="cancel-settings" type="button">Batal</button>
           <button id="save-settings" type="button" class="order-btn primary" style="background:var(--primary);color:#fff;border-color:var(--primary);">Simpan</button>
@@ -879,7 +885,9 @@
       let currentConfig = {
         gateway_url: 'wss://makan.endrisusanto.my.id',
         device_id: 'loket-pc-1',
-        server_url: 'https://seinp.sec.samsung.net/MERS'
+        server_url: 'https://seinp.sec.samsung.net/MERS',
+        master_gen: '',
+        master_password: ''
       };
 
       async function loadConfig() {
@@ -893,6 +901,12 @@
           }
         } catch (e) {
           console.error("Gagal memuat konfigurasi dari backend:", e);
+        }
+        if (localStorage.mersMasterGen && !currentConfig.master_gen) {
+          currentConfig.master_gen = localStorage.mersMasterGen;
+        }
+        if (localStorage.mersMasterPass && !currentConfig.master_password) {
+          currentConfig.master_password = localStorage.mersMasterPass;
         }
       }
 
@@ -1077,6 +1091,8 @@
         document.getElementById('server-url').value = currentConfig.server_url || '';
         document.getElementById('gateway-url').value = currentConfig.gateway_url || '';
         document.getElementById('device-id').value = currentConfig.device_id || '';
+        document.getElementById('master-gen').value = currentConfig.master_gen || localStorage.mersMasterGen || '';
+        document.getElementById('master-pass').value = currentConfig.master_password || localStorage.mersMasterPass || '';
         document.getElementById('config').hidden = false;
       });
       document.getElementById('cancel-settings').addEventListener('click', () => {
@@ -1098,20 +1114,28 @@
         const server_url = document.getElementById('server-url').value.trim() || defaultServer;
         const gateway_url = document.getElementById('gateway-url').value.trim() || 'wss://makan.endrisusanto.my.id';
         const device_id = document.getElementById('device-id').value.trim() || 'loket-pc-1';
+        const master_gen = document.getElementById('master-gen').value.trim();
+        const master_password = document.getElementById('master-pass').value.trim();
 
         hint.textContent = 'Menyimpan konfigurasi...';
         try {
           await invoke('save_agent_config', {
             serverUrl: server_url,
             gatewayUrl: gateway_url,
-            deviceId: device_id
+            deviceId: device_id,
+            masterGen: master_gen || null,
+            masterPassword: master_password || null
           });
           currentConfig = {
             server_url,
             gateway_url,
-            device_id
+            device_id,
+            master_gen,
+            master_password
           };
           localStorage.mersDesktopServer = server_url;
+          localStorage.mersMasterGen = master_gen;
+          localStorage.mersMasterPass = master_password;
           document.getElementById('config').hidden = true;
           hint.textContent = `Konfigurasi disimpan. Server: ${serverUrl()}`;
           await checkStatuses();
@@ -1259,7 +1283,14 @@
         canceledXids.clear();
         document.getElementById('o-submit').disabled = true;
         try {
-          const data = await invoke('order_menu_range', { genId: orderCreds.genId, password: orderCreds.password, server: serverUrl(), dates });
+          const data = await invoke('order_menu_range', {
+            genId: orderCreds.genId,
+            password: orderCreds.password,
+            server: serverUrl(),
+            dates,
+            masterGen: currentConfig.master_gen || localStorage.mersMasterGen || null,
+            masterPassword: currentConfig.master_password || localStorage.mersMasterPass || null
+          });
           const history = await invoke('order_history', {
             genId: orderCreds.genId, password: orderCreds.password,
             server: serverUrl(), from: dates[0], to: dates[dates.length - 1]
