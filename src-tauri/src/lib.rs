@@ -137,7 +137,7 @@ fn reverse_hex_bytes(hex: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{apply_report_menu_names, enrich_order_from_schedule, html_menu_labels, menu_detail, menu_name, order_history_rows, order_loket, report_menu_names, scanner_uid, MenuLabel};
+    use super::{apply_report_menu_names, compare_semver, enrich_order_from_schedule, html_menu_labels, menu_detail, menu_name, order_history_rows, order_loket, report_menu_names, scanner_uid, MenuLabel};
     use std::collections::HashMap;
 
     #[test]
@@ -260,6 +260,14 @@ mod tests {
         let mut other = serde_json::json!({ "menu_name": "AYAM KECAP" });
         enrich_order_from_schedule(&mut other, &schedule);
         assert!(other["carbo_name"].is_null());
+    }
+
+    #[test]
+    fn semver_comparison_works() {
+        assert_eq!(compare_semver("1.0.129", "1.0.130"), std::cmp::Ordering::Less);
+        assert_eq!(compare_semver("v1.0.130", "1.0.129"), std::cmp::Ordering::Greater);
+        assert_eq!(compare_semver("1.0.129", "1.0.129"), std::cmp::Ordering::Equal);
+        assert_eq!(compare_semver("1.1", "1.0.99"), std::cmp::Ordering::Greater);
     }
 
     #[test]
@@ -1109,6 +1117,113 @@ fn save_agent_config(
     Ok(())
 }
 
+fn parse_semver(v: &str) -> Vec<u64> {
+    v.trim()
+        .trim_start_matches('v')
+        .split('.')
+        .map(|s| s.chars().take_while(|c| c.is_ascii_digit()).collect::<String>())
+        .map(|s| s.parse::<u64>().unwrap_or(0))
+        .collect()
+}
+
+fn compare_semver(v1: &str, v2: &str) -> std::cmp::Ordering {
+    let p1 = parse_semver(v1);
+    let p2 = parse_semver(v2);
+    let len = p1.len().max(p2.len());
+    for i in 0..len {
+        let n1 = p1.get(i).copied().unwrap_or(0);
+        let n2 = p2.get(i).copied().unwrap_or(0);
+        if n1 != n2 {
+            return n1.cmp(&n2);
+        }
+    }
+    std::cmp::Ordering::Equal
+}
+
+#[tauri::command]
+fn get_app_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
+}
+
+#[tauri::command]
+async fn check_app_update(current_version: Option<String>) -> Result<serde_json::Value, String> {
+    let current_ver = current_version
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or_else(|| env!("CARGO_PKG_VERSION").to_string());
+
+    let client = mers_http_client(8, true)?;
+    let url = "https://api.github.com/repos/endrisusanto/MRS-NFC-Manual-Input/releases/latest";
+    let res = client
+        .get(url)
+        .header("User-Agent", "mers-nfc-tauri")
+        .header("Accept", "application/vnd.github.v3+json")
+        .send()
+        .await
+        .map_err(|e| format!("Koneksi ke GitHub gagal: {e}"))?;
+
+    if !res.status().is_success() {
+        return Ok(serde_json::json!({
+            "current_version": current_ver,
+            "latest_version": current_ver,
+            "has_update": false,
+            "body": "Belum ada rilis baru yang tersedia di GitHub.",
+            "html_url": "https://github.com/endrisusanto/MRS-NFC-Manual-Input/releases",
+            "assets": []
+        }));
+    }
+
+    let json: serde_json::Value = res.json().await.map_err(|e| format!("Format respon GitHub tidak valid: {e}"))?;
+    let tag_name = json.get("tag_name").and_then(|v| v.as_str()).unwrap_or("");
+    let latest_ver = tag_name.trim_start_matches('v').to_string();
+    let body = json.get("body").and_then(|v| v.as_str()).unwrap_or("Perbaikan bug dan peningkatan performa.");
+    let published_at = json.get("published_at").and_then(|v| v.as_str()).unwrap_or("");
+    let html_url = json.get("html_url").and_then(|v| v.as_str()).unwrap_or("https://github.com/endrisusanto/MRS-NFC-Manual-Input/releases");
+
+    let has_update = compare_semver(&current_ver, &latest_ver) == std::cmp::Ordering::Less;
+
+    let mut assets = Vec::new();
+    if let Some(arr) = json.get("assets").and_then(|v| v.as_array()) {
+        for item in arr {
+            let name = item.get("name").and_then(|v| v.as_str()).unwrap_or("");
+            let download_url = item.get("browser_download_url").and_then(|v| v.as_str()).unwrap_or("");
+            let size = item.get("size").and_then(|v| v.as_u64()).unwrap_or(0);
+            let kind = if name.ends_with(".msi") || name.ends_with(".exe") {
+                "windows"
+            } else if name.ends_with(".apk") {
+                "android"
+            } else if name.ends_with(".zip") {
+                "extension"
+            } else {
+                "other"
+            };
+            assets.push(serde_json::json!({
+                "name": name,
+                "download_url": download_url,
+                "size": size,
+                "kind": kind
+            }));
+        }
+    }
+
+    Ok(serde_json::json!({
+        "current_version": current_ver,
+        "latest_version": latest_ver,
+        "tag_name": tag_name,
+        "name": json.get("name").and_then(|v| v.as_str()).unwrap_or(tag_name),
+        "body": body,
+        "published_at": published_at,
+        "html_url": html_url,
+        "has_update": has_update,
+        "assets": assets
+    }))
+}
+
+#[tauri::command]
+fn open_browser_url(app_handle: tauri::AppHandle, url: String) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+    app_handle.opener().open_url(&url, None::<&str>).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 fn get_ws_status() -> String {
     match WS_STATUS.load(Ordering::Relaxed) {
@@ -1443,6 +1558,9 @@ pub fn run() {
             order_submit,
             order_cancel,
             order_history,
+            get_app_version,
+            check_app_update,
+            open_browser_url,
         ])
         .on_window_event(|window, event| {
             match event {
