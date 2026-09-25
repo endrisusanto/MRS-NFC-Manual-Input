@@ -9,7 +9,7 @@
     "web:dev": "python3 -m http.server 4173 -d web",
     "android:debug": "./scripts/android-debug.sh",
     "order:cancel": "node scripts/cancel_order.js",
-    "dist:win": "tauri build --bundles msi"
+    "dist:win": "tauri build"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2"
