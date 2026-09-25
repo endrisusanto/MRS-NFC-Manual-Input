@@ -39,7 +39,7 @@ class AutoOrderWorker(context: Context, params: WorkerParameters) : Worker(conte
         private const val SERVER_URL = "https://makan.endrisusanto.my.id"
         private const val CHANNEL_ID = "mers_auto_order_channel"
         private val ZONE = ZoneId.of("Asia/Jakarta")
-        private val TARGET_TIME = LocalTime.of(7, 30) // 07:30 WIB
+        private val TARGET_TIME = LocalTime.of(6, 0) // 06:00 WIB
 
         fun schedule(context: Context) {
             enqueueNext(context, ExistingWorkPolicy.REPLACE)

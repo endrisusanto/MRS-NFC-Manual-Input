@@ -644,6 +644,65 @@
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
         animation: modalSlideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       }
+
+      .pref-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        gap: 8px;
+        user-select: none;
+        -webkit-user-select: none;
+        transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+                    background-color 0.15s ease,
+                    border-color 0.15s ease,
+                    box-shadow 0.15s ease,
+                    opacity 0.15s ease;
+      }
+
+      .pref-card.is-dragging {
+        opacity: 0.35;
+        border: 1px dashed var(--primary);
+        transform: scale(0.98);
+      }
+
+      .pref-card.is-dragover {
+        border-color: var(--primary);
+        background: var(--surface-subtle);
+        box-shadow: 0 0 0 1px var(--primary);
+      }
+
+      .pref-card .drag-handle {
+        cursor: grab;
+        cursor: -webkit-grab;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 28px;
+        color: var(--text-muted);
+        opacity: 0.6;
+        transition: opacity 0.12s ease, color 0.12s ease;
+        touch-action: none;
+        flex-shrink: 0;
+      }
+
+      .pref-card .drag-handle:hover,
+      .pref-card .drag-handle:active {
+        opacity: 1;
+        color: var(--primary);
+      }
+
+      .pref-card.is-active-touch {
+        background: var(--surface-subtle);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+        border-color: var(--primary);
+        z-index: 10;
+      }
+
       .order-step { display: none; flex-direction: column; gap: 14px; }
       .order-step.active { display: flex; }
       .order-label {
@@ -1003,7 +1062,7 @@
           <!-- Status Info Banner -->
           <div style="padding:12px 14px; border-radius:12px; background:var(--surface-subtle); border:1px solid var(--border); font-size:12px; line-height:1.4;">
             <div style="font-weight:700; margin-bottom:3px; color:var(--text-main);">Automasi Hari Kerja (Senin – Jumat)</div>
-            <div style="color:var(--text-muted);">Sistem mengecek & memesan menu Makan Siang setiap pukul <b>07:30 WIB</b> jika belum ada pesanan aktif.</div>
+            <div style="color:var(--text-muted);">Sistem mengecek & memesan menu Makan Siang setiap pukul <b>06:00 WIB</b> jika belum ada pesanan aktif.</div>
           </div>
 
           <!-- Master Toggle -->
@@ -1870,6 +1929,9 @@
       ];
 
       let currentAutoOrderPrefs = [...DEFAULT_AUTO_ORDER_PREFS];
+      let draggedPrefIndex = null;
+      let touchDraggedIndex = null;
+      let touchOverIndex = null;
 
       function renderAutoOrderPrefList() {
         const listEl = document.getElementById('auto-order-pref-list');
@@ -1878,16 +1940,26 @@
           const isFirst = idx === 0;
           const isLast = idx === currentAutoOrderPrefs.length - 1;
           return `
-            <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-radius:10px; background:var(--surface); border:1px solid var(--border); gap:8px;">
-              <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
-                <span style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:6px; background:var(--surface-subtle); border:1px solid var(--border); font-size:11px; font-weight:800; font-family:var(--font-mono); color:var(--text-muted);">${idx + 1}</span>
-                <input type="checkbox" id="pref-enable-${idx}" ${pref.enabled !== false ? 'checked' : ''} onchange="togglePrefEnabled(${idx}, this.checked)" style="width:18px; height:18px; cursor:pointer; accent-color:var(--primary);">
+            <div class="pref-card" data-idx="${idx}" draggable="true" ondragstart="onPrefDragStart(event, ${idx})" ondragover="onPrefDragOver(event, ${idx})" ondragleave="onPrefDragLeave(event, ${idx})" ondrop="onPrefDrop(event, ${idx})" ondragend="onPrefDragEnd(event)">
+              <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:0;">
+                <div class="drag-handle" data-idx="${idx}" title="Geser untuk mengubah urutan" aria-label="Geser urutan">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="9" cy="5" r="1.2"></circle>
+                    <circle cx="9" cy="12" r="1.2"></circle>
+                    <circle cx="9" cy="19" r="1.2"></circle>
+                    <circle cx="15" cy="5" r="1.2"></circle>
+                    <circle cx="15" cy="12" r="1.2"></circle>
+                    <circle cx="15" cy="19" r="1.2"></circle>
+                  </svg>
+                </div>
+                <span style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:6px; background:var(--surface-subtle); border:1px solid var(--border); font-size:11px; font-weight:800; font-family:var(--font-mono); color:var(--text-muted); flex-shrink:0;">${idx + 1}</span>
+                <input type="checkbox" id="pref-enable-${idx}" ${pref.enabled !== false ? 'checked' : ''} onchange="togglePrefEnabled(${idx}, this.checked)" style="width:18px; height:18px; cursor:pointer; accent-color:var(--primary); flex-shrink:0;">
                 <div style="display:flex; flex-direction:column; min-width:0;">
                   <span style="font-weight:700; font-size:12.5px; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${pref.label}</span>
                   <span style="font-size:10.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${pref.keywords.join(', ')}</span>
                 </div>
               </div>
-              <div style="display:flex; gap:4px;">
+              <div style="display:flex; gap:4px; flex-shrink:0;">
                 <button type="button" class="pill" onclick="movePref(${idx}, -1)" ${isFirst ? 'disabled style="opacity:0.3; pointer-events:none;"' : ''} style="min-height:30px; padding:0 8px; font-size:11px;" title="Naikkan Prioritas" aria-label="Naikkan Prioritas">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
                 </button>
@@ -1898,6 +1970,90 @@
             </div>
           `;
         }).join('');
+
+        setupPrefTouchDrag();
+      }
+
+      window.onPrefDragStart = function(e, idx) {
+        draggedPrefIndex = idx;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', idx);
+        setTimeout(() => {
+          e.target.classList.add('is-dragging');
+        }, 0);
+      };
+
+      window.onPrefDragOver = function(e, idx) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        const card = e.currentTarget;
+        if (!card.classList.contains('is-dragover') && idx !== draggedPrefIndex) {
+          card.classList.add('is-dragover');
+        }
+      };
+
+      window.onPrefDragLeave = function(e, idx) {
+        e.currentTarget.classList.remove('is-dragover');
+      };
+
+      window.onPrefDrop = function(e, targetIdx) {
+        e.preventDefault();
+        e.currentTarget.classList.remove('is-dragover');
+        if (draggedPrefIndex === null || draggedPrefIndex === targetIdx) return;
+        const item = currentAutoOrderPrefs.splice(draggedPrefIndex, 1)[0];
+        currentAutoOrderPrefs.splice(targetIdx, 0, item);
+        draggedPrefIndex = null;
+        renderAutoOrderPrefList();
+      };
+
+      window.onPrefDragEnd = function(e) {
+        draggedPrefIndex = null;
+        document.querySelectorAll('.pref-card').forEach(el => {
+          el.classList.remove('is-dragging', 'is-dragover');
+        });
+      };
+
+      function setupPrefTouchDrag() {
+        const listEl = document.getElementById('auto-order-pref-list');
+        if (!listEl) return;
+        const handles = listEl.querySelectorAll('.drag-handle');
+
+        handles.forEach(handle => {
+          const idx = parseInt(handle.dataset.idx, 10);
+          const card = handle.closest('.pref-card');
+
+          handle.ontouchstart = (e) => {
+            touchDraggedIndex = idx;
+            touchOverIndex = idx;
+            card.classList.add('is-active-touch');
+          };
+
+          handle.ontouchmove = (e) => {
+            if (touchDraggedIndex === null) return;
+            const touch = e.touches[0];
+            const elem = document.elementFromPoint(touch.clientX, touch.clientY);
+            const targetCard = elem?.closest('.pref-card');
+            
+            listEl.querySelectorAll('.pref-card').forEach(c => c.classList.remove('is-dragover'));
+            if (targetCard && targetCard !== card) {
+              targetCard.classList.add('is-dragover');
+              touchOverIndex = parseInt(targetCard.dataset.idx, 10);
+            }
+            e.preventDefault();
+          };
+
+          handle.ontouchend = () => {
+            card.classList.remove('is-active-touch');
+            listEl.querySelectorAll('.pref-card').forEach(c => c.classList.remove('is-dragover'));
+            if (touchDraggedIndex !== null && touchOverIndex !== null && !isNaN(touchOverIndex) && touchDraggedIndex !== touchOverIndex) {
+              const item = currentAutoOrderPrefs.splice(touchDraggedIndex, 1)[0];
+              currentAutoOrderPrefs.splice(touchOverIndex, 0, item);
+              renderAutoOrderPrefList();
+            }
+            touchDraggedIndex = null;
+            touchOverIndex = null;
+          };
+        });
       }
 
       window.togglePrefEnabled = function(idx, enabled) {
