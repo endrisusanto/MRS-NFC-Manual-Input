@@ -107,19 +107,27 @@ class AutoOrderWorker(context: Context, params: WorkerParameters) : Worker(conte
         }
 
         val now = LocalDateTime.now(ZONE)
-        if (weekdaysOnly && (now.dayOfWeek == DayOfWeek.SATURDAY || now.dayOfWeek == DayOfWeek.SUNDAY)) {
+        val startDate = now.toLocalDate()
+
+        // Scan rentang hari kerja aktif (H s/d H+5)
+        val targetDates = (0..5).map { startDate.plusDays(it.toLong()) }.filter { date ->
+            if (weekdaysOnly) {
+                date.dayOfWeek != DayOfWeek.SATURDAY && date.dayOfWeek != DayOfWeek.SUNDAY
+            } else true
+        }
+
+        if (targetDates.isEmpty()) {
             prefs.edit()
-                .putString("last_status", "Skip: Akhir pekan (Sabtu/Minggu)")
+                .putString("last_status", "Skip: Tidak ada hari kerja aktif dalam jadwal")
                 .putLong("last_run_timestamp", System.currentTimeMillis())
                 .apply()
             enqueueNext(applicationContext, ExistingWorkPolicy.REPLACE)
             return Result.success()
         }
 
-        val todayIso = now.toLocalDate().format(DateTimeFormatter.ISO_LOCAL_DATE)
-
         return try {
-            // 1. Cek apakah sudah ada pesanan makan siang hari ini
+            // 1. Ambil daftar pesanan aktif
+            val existingLunchOrders = mutableMapOf<String, String>()
             val syncUrl = URL("$SERVER_URL/mers-proxy/widget-sync?genId=$genId")
             val syncJson = httpGetJson(syncUrl)
             if (syncJson != null && syncJson.optBoolean("success", false)) {
@@ -131,29 +139,45 @@ class AutoOrderWorker(context: Context, params: WorkerParameters) : Worker(conte
                     val mealId = ord.optString("meal_id", "")
                     val menuName = ord.optString("menu_name", ord.optString("item_name", "Menu"))
 
-                    if (ordDate.contains(todayIso) && (mealId == "2" || mealName.contains("Siang", ignoreCase = true))) {
-                        // Sudah memesan makan siang!
-                        prefs.edit()
-                            .putString("last_status", "Sudah memesan: $menuName ($todayIso)")
-                            .putString("last_order_date", todayIso)
-                            .putLong("last_run_timestamp", System.currentTimeMillis())
-                            .apply()
-                        return Result.success()
+                    val isLunch = mealId == "2" || mealName.contains("Siang", ignoreCase = true)
+                    if (isLunch && ordDate.isNotBlank()) {
+                        val dateMatch = Regex("\\d{4}-\\d{2}-\\d{2}").find(ordDate)?.value ?: ordDate.take(10)
+                        existingLunchOrders[dateMatch] = menuName
                     }
                 }
             }
 
-            // 2. Belum pesan makan siang -> Ambil stok & menu hari ini
-            val stockUrl = URL("$SERVER_URL/mers-proxy/stock?date=$todayIso&meal_id=2&genId=$genId&password=$password")
-            val stockJson = httpGetJson(stockUrl)
+            // 2. Baca preferensi menu pengguna
+            val preferencesRaw = prefs.getString("preferences", "") ?: ""
+            val allowFallback = prefs.getBoolean("allow_fallback", true)
+            val prefsList = parsePreferences(preferencesRaw)
 
-            val namesUrl = URL("$SERVER_URL/mers-proxy/menu-names?date=$todayIso&meal_id=2&genId=$genId&password=$password")
-            val namesJson = httpGetJson(namesUrl)
+            val bookedResults = mutableListOf<String>()
+            val failedResults = mutableListOf<String>()
+            val skippedAlreadyOrdered = mutableListOf<String>()
+            val noAvailableMenuDays = mutableListOf<String>()
 
-            val menuItems = mutableListOf<MenuItem>()
-            val namesObj = namesJson?.optJSONObject("names") ?: JSONObject()
+            // 3. Cek dan pesan setiap hari kerja yang belum ada pesanan
+            for (targetDate in targetDates) {
+                val dateIso = targetDate.format(DateTimeFormatter.ISO_LOCAL_DATE)
 
-            if (stockJson != null && stockJson.optBoolean("success", false)) {
+                if (existingLunchOrders.containsKey(dateIso)) {
+                    skippedAlreadyOrdered.add("$dateIso (${existingLunchOrders[dateIso]})")
+                    continue
+                }
+
+                // Ambil stok & nama menu untuk tanggal targetDate
+                val stockUrl = URL("$SERVER_URL/mers-proxy/stock?date=$dateIso&meal_id=2&genId=$genId&password=$password")
+                val stockJson = httpGetJson(stockUrl)
+                if (stockJson == null || !stockJson.optBoolean("success", false)) {
+                    continue
+                }
+
+                val namesUrl = URL("$SERVER_URL/mers-proxy/menu-names?date=$dateIso&meal_id=2&genId=$genId&password=$password")
+                val namesJson = httpGetJson(namesUrl)
+                val namesObj = namesJson?.optJSONObject("names") ?: JSONObject()
+
+                val menuItems = mutableListOf<MenuItem>()
                 val stockArray = stockJson.optJSONArray("data") ?: JSONArray()
                 for (i in 0 until stockArray.length()) {
                     val item = stockArray.optJSONObject(i) ?: continue
@@ -164,83 +188,98 @@ class AutoOrderWorker(context: Context, params: WorkerParameters) : Worker(conte
                     val avail = item.optBoolean("is_available", balance > 0)
                     menuItems.add(MenuItem(menuId, name, balance, avail))
                 }
-            }
 
-            val availableMenus = menuItems.filter { it.isAvailable && it.qtyBalance > 0 }
-            if (availableMenus.isEmpty()) {
-                val msg = "Semua menu Makan Siang untuk hari ini ($todayIso) sudah habis atau tidak tersedia."
-                sendNotification("Peringatan: Stok Menu Habis", msg)
-                prefs.edit()
-                    .putString("last_status", "Gagal: Stok menu habis")
-                    .putLong("last_run_timestamp", System.currentTimeMillis())
-                    .apply()
-                return Result.success()
-            }
-
-            // 3. Cocokkan dengan Urutan Preferensi Pengguna
-            val preferencesRaw = prefs.getString("preferences", "") ?: ""
-            val allowFallback = prefs.getBoolean("allow_fallback", true)
-            var selectedMenu: MenuItem? = null
-            var matchedCategory = ""
-
-            val prefsList = parsePreferences(preferencesRaw)
-            for (pref in prefsList) {
-                if (!pref.enabled) continue
-                val match = availableMenus.firstOrNull { menu ->
-                    val lowerName = menu.name.lowercase()
-                    pref.keywords.any { kw -> lowerName.contains(kw.lowercase().trim()) }
+                val availableMenus = menuItems.filter { it.isAvailable && it.qtyBalance > 0 }
+                if (availableMenus.isEmpty()) {
+                    noAvailableMenuDays.add(dateIso)
+                    continue
                 }
-                if (match != null) {
-                    selectedMenu = match
-                    matchedCategory = pref.label
-                    break
-                }
-            }
 
-            // Jika tidak ada preferensi yang cocok, gunakan fallback jika diizinkan
-            if (selectedMenu == null) {
-                if (allowFallback) {
-                    selectedMenu = availableMenus.first()
-                    matchedCategory = "Fallback (Menu Pertama Tersedia)"
+                // 4. Cocokkan dengan Urutan Preferensi Pengguna
+                var selectedMenu: MenuItem? = null
+                var matchedCategory = ""
+
+                for (pref in prefsList) {
+                    if (!pref.enabled) continue
+                    val match = availableMenus.firstOrNull { menu ->
+                        val lowerName = menu.name.lowercase()
+                        pref.keywords.any { kw -> lowerName.contains(kw.lowercase().trim()) }
+                    }
+                    if (match != null) {
+                        selectedMenu = match
+                        matchedCategory = pref.label
+                        break
+                    }
+                }
+
+                // Gunakan fallback jika tidak ada preferensi cocok
+                if (selectedMenu == null) {
+                    if (allowFallback) {
+                        selectedMenu = availableMenus.first()
+                        matchedCategory = "Fallback"
+                    } else {
+                        continue
+                    }
+                }
+
+                // 5. Eksekusi Pemesanan Otomatis
+                val orderUrl = URL("$SERVER_URL/mers-proxy/order")
+                val orderPayload = JSONObject().apply {
+                    put("genId", genId)
+                    put("password", password)
+                    put("xtanggal", dateIso)
+                    put("xjadwal", "2")
+                    put("menusaya", selectedMenu.id)
+                }
+
+                val orderRes = httpPostJson(orderUrl, orderPayload.toString())
+                val orderSuccess = orderRes?.optBoolean("success", false) == true
+
+                if (orderSuccess) {
+                    existingLunchOrders[dateIso] = selectedMenu.name
+                    bookedResults.add("$dateIso: ${selectedMenu.name} ($matchedCategory)")
                 } else {
-                    val msg = "Tidak ada menu yang sesuai dengan preferensi Anda untuk hari ini ($todayIso)."
-                    sendNotification("Peringatan: Preferensi Tidak Ditemukan", msg)
+                    val errMsg = orderRes?.optString("message", "Gagal submit order") ?: "Gagal submit order"
+                    failedResults.add("$dateIso: $errMsg")
+                }
+            }
+
+            // 6. Ringkasan Status & Notifikasi
+            when {
+                bookedResults.isNotEmpty() -> {
+                    val notifyBody = bookedResults.joinToString("\n")
+                    sendNotification("Makan Siang Berhasil Dipesan", notifyBody)
                     prefs.edit()
-                        .putString("last_status", "Dilewati: Tidak ada yang cocok preferensi")
+                        .putString("last_status", "Berhasil: " + bookedResults.joinToString(", "))
+                        .putString("last_order_date", bookedResults.last().substringBefore(":"))
                         .putLong("last_run_timestamp", System.currentTimeMillis())
                         .apply()
-                    return Result.success()
                 }
-            }
-
-            // 4. Lakukan Pemesanan Otomatis
-            val orderUrl = URL("$SERVER_URL/mers-proxy/order")
-            val orderPayload = JSONObject().apply {
-                put("genId", genId)
-                put("password", password)
-                put("xtanggal", todayIso)
-                put("xjadwal", "2")
-                put("menusaya", selectedMenu.id)
-            }
-
-            val orderRes = httpPostJson(orderUrl, orderPayload.toString())
-            val orderSuccess = orderRes?.optBoolean("success", false) == true
-
-            if (orderSuccess) {
-                val successMsg = "Berhasil memesan ${selectedMenu.name} ($matchedCategory) untuk Makan Siang hari ini."
-                sendNotification("Makan Siang Berhasil Dipesan", successMsg)
-                prefs.edit()
-                    .putString("last_status", "Berhasil: ${selectedMenu.name}")
-                    .putString("last_order_date", todayIso)
-                    .putLong("last_run_timestamp", System.currentTimeMillis())
-                    .apply()
-            } else {
-                val errMsg = orderRes?.optString("message", "Gagal submit order") ?: "Gagal submit order"
-                sendNotification("Gagal Auto-Pesan Makan Siang", "$errMsg (${selectedMenu.name})")
-                prefs.edit()
-                    .putString("last_status", "Gagal: $errMsg")
-                    .putLong("last_run_timestamp", System.currentTimeMillis())
-                    .apply()
+                failedResults.isNotEmpty() -> {
+                    val errBody = failedResults.joinToString("\n")
+                    sendNotification("Gagal Auto-Pesan Makan Siang", errBody)
+                    prefs.edit()
+                        .putString("last_status", "Gagal: " + failedResults.joinToString(", "))
+                        .putLong("last_run_timestamp", System.currentTimeMillis())
+                        .apply()
+                }
+                skippedAlreadyOrdered.size == targetDates.size -> {
+                    prefs.edit()
+                        .putString("last_status", "Semua sudah dipesan (${skippedAlreadyOrdered.size} hari kerja)")
+                        .putLong("last_run_timestamp", System.currentTimeMillis())
+                        .apply()
+                }
+                else -> {
+                    val statusText = if (skippedAlreadyOrdered.isNotEmpty()) {
+                        "Sudah pesan (${skippedAlreadyOrdered.size} hari), hari lain belum buka/stok kosong"
+                    } else {
+                        "Menu belum buka / stok kosong untuk hari mendatang"
+                    }
+                    prefs.edit()
+                        .putString("last_status", statusText)
+                        .putLong("last_run_timestamp", System.currentTimeMillis())
+                        .apply()
+                }
             }
 
             Result.success()
@@ -264,11 +303,13 @@ class AutoOrderWorker(context: Context, params: WorkerParameters) : Worker(conte
 
     private fun parsePreferences(raw: String): List<PreferenceCategory> {
         val defaultList = listOf(
-            PreferenceCategory("daging", "Daging / Sapi", listOf("daging", "sapi", "rendang", "empal", "rawon", "gulai sapi", "beef"), true),
-            PreferenceCategory("ayam", "Ayam", listOf("ayam", "chicken", "bebek", "unggas"), true),
-            PreferenceCategory("ikan", "Ikan / Seafood", listOf("ikan", "tongkol", "lele", "nila", "gurame", "udang", "cumi", "seafood"), true),
-            PreferenceCategory("telur", "Telur", listOf("telur", "egg", "dadar", "ceplok", "balado telur"), true)
+            PreferenceCategory("daging", "Daging / Sapi", listOf("daging", "sapi", "rendang", "empal", "rawon", "gulai sapi", "beef", "kambing", "bistik", "iga", "rolade", "semur daging"), true),
+            PreferenceCategory("ayam", "Ayam", listOf("ayam", "chicken", "bebek", "unggas", "fillet ayam", "katsu"), true),
+            PreferenceCategory("ikan", "Ikan / Seafood", listOf("ikan", "tongkol", "lele", "nila", "gurame", "udang", "cumi", "seafood", "kakap", "tuna", "patin", "bandeng", "salmon", "dori"), true),
+            PreferenceCategory("telur", "Telur", listOf("telur", "egg", "dadar", "ceplok", "balado telur", "omelet", "martabak"), true)
         )
+
+        val defaultKeywordMap = defaultList.associate { it.id to it.keywords }
 
         if (raw.isBlank()) return defaultList
 
@@ -281,11 +322,14 @@ class AutoOrderWorker(context: Context, params: WorkerParameters) : Worker(conte
                 val label = obj.optString("label", id)
                 val enabled = obj.optBoolean("enabled", true)
                 val kwArr = obj.optJSONArray("keywords") ?: JSONArray()
-                val kws = mutableListOf<String>()
+                val kws = mutableSetOf<String>()
                 for (j in 0 until kwArr.length()) {
-                    kws.add(kwArr.optString(j))
+                    val kw = kwArr.optString(j).trim()
+                    if (kw.isNotEmpty()) kws.add(kw)
                 }
-                list.add(PreferenceCategory(id, label, kws, enabled))
+                defaultKeywordMap[id]?.let { kws.addAll(it) }
+
+                list.add(PreferenceCategory(id, label, kws.toList(), enabled))
             }
             if (list.isEmpty()) defaultList else list
         } catch (e: Exception) {
