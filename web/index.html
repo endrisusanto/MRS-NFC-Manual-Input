@@ -803,6 +803,20 @@
         <button id="install" type="button" class="settings-section" hidden>Install PWA</button>
         <label for="device" style="margin-top:10px">Device / Room</label>
         <input id="device" placeholder="loket-pc-1">
+
+        <!-- Desktop Agent Remote Update Control -->
+        <div class="settings-section" style="display:flex; flex-direction:column; gap:8px; padding:12px; border-radius:10px; background:var(--surface-subtle); border:1px solid var(--border); margin-top:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label style="font-weight:700; font-size:12px; margin:0; color:var(--text-main);">Desktop Agent Control</label>
+            <span id="web-agent-update-badge" class="pill" style="font-size:10.5px; padding:2px 6px;">Idle</span>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button id="web-check-agent-update" type="button" class="pill" style="flex:1; min-height:36px; font-size:11.5px;">Cek Update Desktop</button>
+            <button id="web-trigger-agent-update" type="button" class="pill" style="flex:1; min-height:36px; font-size:11.5px; background:var(--primary); color:#fff; border-color:var(--primary); font-weight:700;">Trigger Silent Install</button>
+          </div>
+          <div id="web-agent-update-status" style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono); white-space:pre-wrap; line-height:1.4;">Siap mengirim perintah ke agent desktop.</div>
+        </div>
+
         <div class="settings-section">
           <label>Debug</label>
           <pre id="debug-output">Belum ada response.</pre>
@@ -1465,6 +1479,46 @@
       });
       $('preset-local5').addEventListener('click', () => {
         $('ws').value = 'http://localhost:3005/';
+      });
+
+      $('web-check-agent-update')?.addEventListener('click', async () => {
+        const statusEl = $('web-agent-update-status');
+        const badgeEl = $('web-agent-update-badge');
+        if (statusEl) statusEl.textContent = 'Memeriksa update ke desktop agent...';
+        try {
+          const res = await orderWsRequest({ action: 'check_update' });
+          if (res.success && res.data) {
+            const d = res.data;
+            if (d.has_update) {
+              if (badgeEl) { badgeEl.textContent = `v${d.version} Ada`; badgeEl.className = 'pill ok'; }
+              if (statusEl) statusEl.textContent = `Versi baru v${d.version} tersedia!\n${d.body || ''}`;
+            } else {
+              if (badgeEl) { badgeEl.textContent = 'Up to date'; badgeEl.className = 'pill'; }
+              if (statusEl) statusEl.textContent = `Desktop agent sudah versi terbaru (v${d.current_version || '-'}).`;
+            }
+          } else {
+            if (statusEl) statusEl.textContent = res.message || 'Gagal memeriksa update.';
+          }
+        } catch (e) {
+          if (statusEl) statusEl.textContent = `Error: ${e.message}`;
+        }
+      });
+
+      $('web-trigger-agent-update')?.addEventListener('click', async () => {
+        const statusEl = $('web-agent-update-status');
+        const badgeEl = $('web-agent-update-badge');
+        if (statusEl) statusEl.textContent = 'Mengirim sinyal silent update ke desktop agent...';
+        try {
+          const res = await orderWsRequest({ action: 'self_update' });
+          if (res.success) {
+            if (badgeEl) { badgeEl.textContent = 'Updating...'; badgeEl.className = 'pill warn'; }
+            if (statusEl) statusEl.textContent = 'Perintah terkirim! Desktop agent sedang mengunduh paket & melakukan silent install di background.';
+          } else {
+            if (statusEl) statusEl.textContent = res.message || 'Gagal mengirim perintah.';
+          }
+        } catch (e) {
+          if (statusEl) statusEl.textContent = `Error: ${e.message}`;
+        }
       });
 
       if (location.protocol === 'http:' || location.protocol === 'https:') navigator.serviceWorker?.register('sw.js').catch(() => {});

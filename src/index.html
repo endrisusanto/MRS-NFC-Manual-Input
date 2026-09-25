@@ -950,58 +950,55 @@
 
     <!-- ── Update Modal ── -->
     <div id="update-modal" class="modal" hidden>
-      <div class="order-modal-inner" style="width: min(540px, 95%); max-height: 90vh;">
+      <div class="order-modal-inner" style="width: min(500px, 95%); max-height: 90vh;">
         <div style="display:flex; align-items:center; justify-content:space-between; position:relative;">
           <h3 style="margin:0; font-size:18px; font-weight:800; color:var(--text-main); flex:1; text-align:center;">Pembaruan Aplikasi</h3>
           <button id="update-close-x" type="button" style="position:absolute; right:0; top:50%; transform:translateY(-50%); width:36px; height:36px; min-height:36px; padding:0; border-radius:8px; border:1px solid var(--border); background:var(--surface-subtle); color:var(--text-muted); font-size:18px; font-weight:700; cursor:pointer;" aria-label="Tutup">✕</button>
         </div>
 
-        <div style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; flex-direction:column; gap:14px; margin-top:8px;">
           <!-- Status Card -->
-          <div style="padding:16px; border-radius:12px; background:var(--surface-subtle); border:1px solid var(--border); display:flex; flex-direction:column; gap:10px;">
+          <div style="padding:14px 16px; border-radius:12px; background:var(--surface-subtle); border:1px solid var(--border); display:flex; flex-direction:column; gap:10px;">
             <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:600;">
-              <span style="color:var(--text-muted);">Versi Terpasang:</span>
-              <span id="update-current-ver" style="font-family:var(--font-mono); font-weight:700; padding:2px 8px; border-radius:6px; background:var(--surface); border:1px solid var(--border);">v1.0.133</span>
+              <span style="color:var(--text-muted);">Versi Saat Ini:</span>
+              <span id="update-current-ver" style="font-family:var(--font-mono); font-weight:700; padding:2px 8px; border-radius:6px; background:var(--surface); border:1px solid var(--border); color:var(--text-main);">-</span>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:600;">
-              <span style="color:var(--text-muted);">Rilis Terbaru:</span>
+              <span style="color:var(--text-muted);">Versi Terbaru:</span>
               <span id="update-latest-ver" style="font-family:var(--font-mono); font-weight:700; padding:2px 8px; border-radius:6px; background:rgba(37,99,235,0.1); color:#3b82f6; border:1px solid rgba(37,99,235,0.2);">-</span>
             </div>
-            <div id="update-status-box" style="padding-top:8px; border-top:1px solid var(--border); font-size:12.5px; font-weight:600; display:flex; align-items:center; gap:8px;">
-              <span id="update-status-msg">Memeriksa pembaruan dari GitHub...</span>
+            <div id="update-status-box" style="padding-top:8px; border-top:1px solid var(--border); font-size:12px; font-weight:600; display:flex; align-items:center; gap:8px;">
+              <span id="update-status-msg">Memeriksa pembaruan dari server...</span>
             </div>
           </div>
 
-          <!-- Progress Bar (for integrated update) -->
-          <div id="update-progress-wrap" style="display:none; flex-direction:column; gap:6px;">
-            <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700;">
-              <span id="update-progress-status" style="color:var(--primary);">Mengunduh pembaruan...</span>
-              <span id="update-progress-percent" style="font-family:var(--font-mono);">0%</span>
+          <!-- Realtime Download Progress Card -->
+          <div id="update-progress-wrap" style="display:none; flex-direction:column; gap:8px; padding:14px 16px; border-radius:12px; background:var(--bg); border:1px solid var(--primary); box-shadow:0 4px 16px rgba(37,99,235,0.1);">
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; font-weight:700;">
+              <span id="update-progress-status" style="color:var(--primary);">Mengunduh paket pembaruan...</span>
+              <span id="update-progress-percent" style="font-family:var(--font-mono); font-weight:800; color:var(--text-main);">0%</span>
             </div>
-            <div style="width:100%; height:8px; background:var(--surface); border:1px solid var(--border); border-radius:999px; overflow:hidden;">
-              <div id="update-progress-bar" style="width:0%; height:100%; background:linear-gradient(90deg, #3b82f6, #22c55e); transition:width 0.2s ease;"></div>
+            <div style="width:100%; height:10px; background:var(--surface); border:1px solid var(--border); border-radius:999px; overflow:hidden; position:relative;">
+              <div id="update-progress-bar" style="width:0%; height:100%; background:linear-gradient(90deg, #3b82f6, #22c55e); border-radius:999px; transition:width 0.15s ease;"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">
+              <span id="update-progress-bytes">0 MB / 0 MB</span>
+              <span>Silent Install Otomatis</span>
             </div>
           </div>
 
           <!-- Changelog -->
           <div id="update-changelog-wrap" style="display:none; flex-direction:column; gap:6px;">
             <label style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted);">Catatan Rilis (Changelog):</label>
-            <div id="update-changelog" style="padding:12px 14px; border-radius:10px; background:var(--bg); border:1px solid var(--border); font-size:12px; font-family:var(--font-mono); color:var(--text-main); max-height:160px; overflow-y:auto; white-space:pre-line; line-height:1.5;"></div>
-          </div>
-
-          <!-- Direct Download Assets (Fallback) -->
-          <div id="update-assets-wrap" style="display:none; flex-direction:column; gap:8px;">
-            <label style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted);">Download Manual (Opsional):</label>
-            <div id="update-assets-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+            <div id="update-changelog" style="padding:12px 14px; border-radius:10px; background:var(--bg); border:1px solid var(--border); font-size:12px; font-family:var(--font-mono); color:var(--text-main); max-height:140px; overflow-y:auto; white-space:pre-line; line-height:1.5;"></div>
           </div>
 
           <!-- Actions -->
           <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:6px; padding-top:10px; border-top:1px solid var(--border); flex-wrap:wrap;">
-            <button id="update-refresh-btn" type="button" style="min-height:42px; padding:0 14px; font-size:13px;">Periksa Ulang</button>
+            <button id="update-refresh-btn" type="button" class="pill" style="min-height:40px; padding:0 14px; font-size:12.5px;">Periksa Ulang</button>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <button id="update-install-btn" type="button" class="order-btn primary" style="display:none; min-height:42px; padding:0 18px; font-size:13px; background:#22c55e; color:#fff; font-weight:800;">Pasang & Mulai Ulang</button>
-              <button id="update-release-btn" type="button" class="order-btn" style="min-height:42px; padding:0 14px; font-size:13px;">Buka GitHub</button>
-              <button id="update-close-btn" type="button" class="order-btn" style="min-height:42px; padding:0 18px; font-size:13px; background:var(--surface); color:var(--text-main);">Tutup</button>
+              <button id="update-install-btn" type="button" class="order-btn primary" style="display:none; min-height:40px; padding:0 18px; font-size:13px; background:#22c55e; border-color:#22c55e; color:#fff; font-weight:800;">Pasang & Mulai Ulang</button>
+              <button id="update-close-btn" type="button" class="order-btn" style="min-height:40px; padding:0 18px; font-size:13px; background:var(--surface); color:var(--text-main);">Tutup</button>
             </div>
           </div>
         </div>
@@ -1457,20 +1454,6 @@
               changelog.textContent = releaseNotes;
               changelogWrap.style.display = 'flex';
             }
-
-            if (ghRelease?.assets && ghRelease.assets.length && assetsList && assetsWrap) {
-              assetsWrap.style.display = 'flex';
-              assetsList.innerHTML = ghRelease.assets.map(asset => {
-                const label = asset.kind === 'windows' ? 'Windows Installer (.msi)' : asset.kind === 'android' ? 'Android Remote (.apk)' : asset.kind === 'extension' ? 'Chrome Extension (.zip)' : asset.name;
-                const sizeStr = asset.size ? `(${(asset.size / (1024 * 1024)).toFixed(1)} MB)` : '';
-                return `
-                  <button type="button" class="order-btn" style="display:flex; justify-content:space-between; align-items:center; text-align:left; padding:10px 14px; width:100%;" onclick="openLink('${esc(asset.download_url)}')">
-                    <span style="font-weight:700;">${esc(label)}</span>
-                    <span style="font-size:11px; opacity:0.8; font-family:var(--font-mono);">${sizeStr} Unduh</span>
-                  </button>
-                `;
-              }).join('');
-            }
           } else {
             if (cfgBadge) cfgBadge.style.display = 'none';
             if (statusMsg) {
@@ -1478,7 +1461,6 @@
             }
             if (installBtn) installBtn.style.display = 'none';
             if (changelogWrap) changelogWrap.style.display = 'none';
-            if (assetsWrap) assetsWrap.style.display = 'none';
           }
         } catch (e) {
           const statusMsg = document.getElementById('update-status-msg');
@@ -1498,6 +1480,7 @@
         const progressWrap = document.getElementById('update-progress-wrap');
         const progressBar = document.getElementById('update-progress-bar');
         const progressPercent = document.getElementById('update-progress-percent');
+        const progressBytes = document.getElementById('update-progress-bytes');
         const progressStatus = document.getElementById('update-progress-status');
         const statusMsg = document.getElementById('update-status-msg');
 
@@ -1508,9 +1491,8 @@
           if (progressWrap) progressWrap.style.display = 'flex';
           if (progressBar) progressBar.style.width = '0%';
           if (progressPercent) progressPercent.textContent = '0%';
+          if (progressBytes) progressBytes.textContent = '0 MB / 0 MB';
           if (progressStatus) progressStatus.textContent = 'Menghubungi server update & mengunduh paket...';
-          downloadedBytes = 0;
-          totalBytesToDownload = 0;
 
           await invoke('tauri_install_update');
           if (progressStatus) progressStatus.textContent = 'Pembaruan berhasil dipasang! Memuat ulang aplikasi...';
@@ -1538,10 +1520,6 @@
         document.getElementById('update-modal').hidden = true;
       });
       document.getElementById('update-refresh-btn').addEventListener('click', () => checkForUpdates(true));
-      document.getElementById('update-release-btn').addEventListener('click', () => {
-        const url = latestReleaseData?.html_url || 'https://github.com/endrisusanto/MRS-NFC-Manual-Input/releases';
-        openLink(url);
-      });
 
       async function init() {
         await loadConfig();
@@ -1561,28 +1539,29 @@
 
           window.__TAURI__.event.listen('update-download-progress', (event) => {
             const payload = event.payload || {};
-            const chunk = payload.chunk || 0;
+            const downloaded = payload.downloaded || 0;
             const total = payload.total || 0;
-            if (total > 0) {
-              totalBytesToDownload = total;
-            }
-            downloadedBytes += chunk;
 
+            const progressWrap = document.getElementById('update-progress-wrap');
             const progressBar = document.getElementById('update-progress-bar');
             const progressPercent = document.getElementById('update-progress-percent');
+            const progressBytes = document.getElementById('update-progress-bytes');
             const progressStatus = document.getElementById('update-progress-status');
 
-            if (totalBytesToDownload > 0) {
-              const pct = Math.min(100, Math.round((downloadedBytes / totalBytesToDownload) * 100));
-              const downMB = (downloadedBytes / (1024 * 1024)).toFixed(1);
-              const totMB = (totalBytesToDownload / (1024 * 1024)).toFixed(1);
+            if (progressWrap) progressWrap.style.display = 'flex';
+
+            const downMB = (downloaded / (1024 * 1024)).toFixed(2);
+            if (total > 0) {
+              const totMB = (total / (1024 * 1024)).toFixed(2);
+              const pct = Math.min(100, Math.round((downloaded / total) * 100));
               if (progressBar) progressBar.style.width = `${pct}%`;
-              if (progressPercent) progressPercent.textContent = `${pct}% (${downMB} / ${totMB} MB)`;
+              if (progressPercent) progressPercent.textContent = `${pct}%`;
+              if (progressBytes) progressBytes.textContent = `${downMB} MB / ${totMB} MB`;
               if (progressStatus) progressStatus.textContent = `Mengunduh pembaruan (${pct}%)...`;
             } else {
-              const downMB = (downloadedBytes / (1024 * 1024)).toFixed(1);
               if (progressBar) progressBar.style.width = '60%';
               if (progressPercent) progressPercent.textContent = `${downMB} MB`;
+              if (progressBytes) progressBytes.textContent = `${downMB} MB`;
             }
           });
 
@@ -1592,7 +1571,7 @@
             const progressStatus = document.getElementById('update-progress-status');
             if (progressBar) progressBar.style.width = '100%';
             if (progressPercent) progressPercent.textContent = '100%';
-            if (progressStatus) progressStatus.textContent = 'Menginstal dan memulai ulang aplikasi...';
+            if (progressStatus) progressStatus.textContent = 'Unduhan selesai! Memasang pembaruan secara silent & memuat ulang...';
           });
         }
         await checkStatuses();

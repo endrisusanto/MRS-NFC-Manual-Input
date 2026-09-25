@@ -1248,22 +1248,29 @@ async fn tauri_install_update(app_handle: tauri::AppHandle) -> Result<(), String
     let update = updater.check().await.map_err(|e| e.to_string())?;
 
     if let Some(update) = update {
+        let downloaded = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+        let dl_clone = downloaded.clone();
         let app_clone = app_handle.clone();
+
         update.download_and_install(
             move |chunk_len, content_len| {
+                let cur = dl_clone.fetch_add(chunk_len as u64, Ordering::SeqCst) + (chunk_len as u64);
                 let _ = app_clone.emit("update-download-progress", serde_json::json!({
                     "chunk": chunk_len,
+                    "downloaded": cur,
                     "total": content_len
                 }));
             },
             {
                 let app_clone2 = app_handle.clone();
                 move || {
-                    let _ = app_clone2.emit("update-download-finished", ());
+                    let _ = app_clone2.emit("update-download-finished", serde_json::json!({ "status": "installing" }));
                 }
             }
         ).await.map_err(|e| e.to_string())?;
 
+        // Small delay to let final event flush before process exit
+        tokio::time::sleep(Duration::from_millis(500)).await;
         // Exit gracefully so the installer can overwrite binary files without file lock conflicts
         app_handle.exit(0);
     }
@@ -1446,6 +1453,7 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
                                                         let device_id_clone = device_id.clone();
                                                         let m_gen_clone = master_gen_cfg.clone();
                                                         let m_pass_clone = master_pass_cfg.clone();
+                                                        let app_handle_cmd = app_handle.clone();
 
                                                         // Handle command asynchronously to avoid blocking the WS read/heartbeat loop!
                                                         tokio::spawn(async move {
@@ -1531,6 +1539,28 @@ fn start_ws_client_loop(app_handle: tauri::AppHandle) {
                                                                         }
                                                                         _ => serde_json::json!({ "success": false, "message": "UID wajib diisi", "orders": [] })
                                                                     }
+                                                                }
+                                                                "check_update" => {
+                                                                    match tauri_check_update(app_handle_cmd.clone()).await {
+                                                                        Ok(val) => serde_json::json!({
+                                                                            "success": true,
+                                                                            "data": val
+                                                                        }),
+                                                                        Err(e) => serde_json::json!({
+                                                                            "success": false,
+                                                                            "message": e
+                                                                        })
+                                                                    }
+                                                                }
+                                                                "self_update" => {
+                                                                    let app_clone = app_handle_cmd.clone();
+                                                                    tokio::spawn(async move {
+                                                                        let _ = tauri_install_update(app_clone).await;
+                                                                    });
+                                                                    serde_json::json!({
+                                                                        "success": true,
+                                                                        "message": "Pembaruan otomatis dimulai di latar belakang."
+                                                                    })
                                                                 }
                                                                 _ => serde_json::json!({ "success": false, "message": "Command tidak dikenali" })
                                                             };
