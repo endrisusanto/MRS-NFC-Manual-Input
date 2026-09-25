@@ -790,6 +790,7 @@
           <span id="web-status" class="pill warn">web...</span>
           <span id="bridge-status" class="pill warn">bridge...</span>
           <span id="mers-status" class="pill warn">mers...</span>
+          <span id="agent-status" class="pill warn">agent...</span>
           <span id="conn" class="pill bad">ws offline</span>
         </div>
         <label for="ws">WebSocket Gateway</label>
@@ -1201,18 +1202,28 @@
           if (window.AndroidNfc?.pingMers) {
             if (!window.AndroidNfc.pingMers(orderProxyBase() + '/mers-ping')) throw new Error('MERS offline');
             setBadge('mers-status', 'mers online', 'ok');
-            return;
+          } else {
+            const controller = new AbortController();
+            timer = setTimeout(() => controller.abort(), 3500);
+            const res = await fetch(orderProxyBase() + '/mers-ping', { cache: 'no-store', signal: controller.signal });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            setBadge('mers-status', 'mers online', 'ok');
           }
-          const controller = new AbortController();
-          timer = setTimeout(() => controller.abort(), 3500);
-          const res = await fetch(orderProxyBase() + '/mers-ping', { cache: 'no-store', signal: controller.signal });
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          setBadge('mers-status', 'mers online', 'ok');
         } catch {
           setBadge('mers-status', 'mers offline', 'bad');
         } finally {
           clearTimeout(timer);
         }
+
+        // Check Desktop Agent status via HTTP
+        try {
+          const dev = (state.config.device || 'loket-pc-1').trim().toLowerCase();
+          const aRes = await fetch(orderProxyBase() + '/agent-status?device=' + encodeURIComponent(dev), { cache: 'no-store' });
+          if (aRes.ok) {
+            const aJson = await aRes.json();
+            setBadge('agent-status', aJson.online ? 'agent online' : 'agent offline', aJson.online ? 'ok' : 'bad');
+          }
+        } catch (_) {}
       }
 
       function disconnect() {
@@ -1228,6 +1239,7 @@
         disconnect();
         if (!state.config.url) {
           setConn('offline');
+          setBadge('agent-status', 'agent offline', 'bad');
           setStatus('WebSocket belum diatur. Buka Server untuk mengaktifkan.', 'warn');
           return;
         }
@@ -1237,15 +1249,19 @@
           state.ws.onopen = () => {
             state.retryMs = 2500;
             setConn('online');
-            state.ws.send(JSON.stringify({ type: 'join', role: 'mobile', device: state.config.device }));
+            state.ws.send(JSON.stringify({ type: 'join', role: 'mobile', device: (state.config.device || 'loket-pc-1').trim().toLowerCase() }));
           };
           state.ws.onclose = () => {
             setConn('offline');
+            setBadge('agent-status', 'agent offline', 'bad');
             clearTimeout(state.reconnectTimer);
             state.reconnectTimer = setTimeout(connect, state.retryMs);
             state.retryMs = Math.min(state.retryMs * 2, 30000);
           };
-          state.ws.onerror = () => setConn('offline');
+          state.ws.onerror = () => {
+            setConn('offline');
+            setBadge('agent-status', 'agent offline', 'bad');
+          };
           state.ws.onmessage = event => {
             let data;
             try {
@@ -1255,11 +1271,13 @@
             }
             if (!data || typeof data !== 'object') return;
 
-            // Ignore background system signals
+            // Handle background system signals
             if (data.type === 'pong' || data.type === 'ping' || data.type === 'heartbeat' || data.pong) {
+              setBadge('agent-status', 'agent online', 'ok');
               return;
             }
             if (data.type === 'status') {
+              setBadge('agent-status', data.status === 'online' ? 'agent online' : 'agent offline', data.status === 'online' ? 'ok' : 'bad');
               setStatus(data.message, data.status === 'online' ? 'ok' : 'bad');
               return;
             }

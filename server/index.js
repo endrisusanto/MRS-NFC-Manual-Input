@@ -45,31 +45,60 @@ const clients = new Map();
 // requestId -> requesting mobile WebSocket
 const pendingRequests = new Map();
 
-function addClient(device, ws) {
-  if (!clients.has(device)) {
-    clients.set(device, new Set());
+function normalizeDevice(dev) {
+  return String(dev || "loket-pc-1").trim().toLowerCase();
+}
+
+function getAgentForDevice(device) {
+  const norm = normalizeDevice(device);
+  if (agents.has(norm)) {
+    const a = agents.get(norm);
+    if (a && a.readyState === 1) return a;
   }
-  clients.get(device).add(ws);
-  console.log(`[WS] Client joined device: ${device}`);
+  // Case-insensitive lookup fallback
+  for (const [d, a] of agents.entries()) {
+    if (d.toLowerCase() === norm && a && a.readyState === 1) {
+      return a;
+    }
+  }
+  // Global single-agent fallback: If there is an active agent, serve it
+  for (const a of agents.values()) {
+    if (a && a.readyState === 1) {
+      return a;
+    }
+  }
+  return null;
+}
+
+function addClient(device, ws) {
+  const norm = normalizeDevice(device);
+  if (!clients.has(norm)) {
+    clients.set(norm, new Set());
+  }
+  clients.get(norm).add(ws);
+  console.log(`[WS] Client joined device: ${norm}`);
 }
 
 function removeClient(device, ws) {
-  if (clients.has(device)) {
-    clients.get(device).delete(ws);
-    if (clients.get(device).size === 0) {
-      clients.delete(device);
+  const norm = normalizeDevice(device);
+  if (clients.has(norm)) {
+    clients.get(norm).delete(ws);
+    if (clients.get(norm).size === 0) {
+      clients.delete(norm);
     }
   }
   for (const [requestId, client] of pendingRequests) {
     if (client === ws) pendingRequests.delete(requestId);
   }
-  console.log(`[WS] Client disconnected from device: ${device}`);
+  console.log(`[WS] Client disconnected from device: ${norm}`);
 }
 
 wss.on("connection", (ws, req) => {
   const url = new URL(req.url, "http://localhost");
   const path = url.pathname;
   console.log(`[WS] New connection established on path: ${path}`);
+  ws.isAlive = true;
+  ws.on("pong", () => { ws.isAlive = true; });
 
   let currentDevice = null;
   let currentRole = null;
@@ -79,7 +108,7 @@ wss.on("connection", (ws, req) => {
       const msg = JSON.parse(raw.toString());
 
       if (msg.type === "join") {
-        currentDevice = msg.device || "loket-pc-1";
+        currentDevice = normalizeDevice(msg.device);
         currentRole = msg.role || "mobile";
 
         if (currentRole === "agent") {
@@ -90,7 +119,8 @@ wss.on("connection", (ws, req) => {
         } else {
           addClient(currentDevice, ws);
           // Let client know if the agent is online
-          const agentOnline = agents.has(currentDevice) && agents.get(currentDevice).readyState === 1; // 1 represents WebSocket.OPEN
+          const agent = getAgentForDevice(currentDevice);
+          const agentOnline = agent !== null && agent.readyState === 1;
           ws.send(JSON.stringify({
             type: "status",
             success: true,
@@ -98,9 +128,15 @@ wss.on("connection", (ws, req) => {
             message: agentOnline ? "Agent online." : "Agent offline. Silakan buka aplikasi MeRS Agent di PC kantor."
           }));
         }
+      } else if (msg.type === "heartbeat") {
+        if (msg.device) currentDevice = normalizeDevice(msg.device);
+        if (currentRole === "agent" && currentDevice) {
+          agents.set(currentDevice, ws);
+        }
+        ws.send(JSON.stringify({ type: "pong", pong: true }));
       } else if (msg.type === "command") {
         // Forward client command to the corresponding desktop agent
-        const targetAgent = agents.get(currentDevice);
+        const targetAgent = getAgentForDevice(currentDevice);
         if (targetAgent && targetAgent.readyState === 1) { // 1 represents WebSocket.OPEN
           console.log(`[WS] Forwarding command from client to agent (${currentDevice}): ${msg.action} for UID ${msg.uid}`);
           if (msg.requestId) {
@@ -148,13 +184,33 @@ wss.on("connection", (ws, req) => {
   });
 });
 
+// Periodic ping keep-alive
+const wsKeepAliveInterval = setInterval(() => {
+  wss.clients.forEach((ws) => {
+    if (ws.isAlive === false) return ws.terminate();
+    ws.isAlive = false;
+    try { ws.ping(); } catch (_) {}
+  });
+}, 30000);
+wss.on("close", () => clearInterval(wsKeepAliveInterval));
+
 function broadcastToClients(device, data) {
-  const deviceClients = clients.get(device);
+  const norm = normalizeDevice(device);
+  const deviceClients = clients.get(norm);
+  const payload = JSON.stringify(data);
   if (deviceClients) {
-    const payload = JSON.stringify(data);
     for (const client of deviceClients) {
       if (client.readyState === 1) { // OPEN
         client.send(payload);
+      }
+    }
+  } else {
+    // If no exact match, broadcast to all active mobile clients
+    for (const clientSet of clients.values()) {
+      for (const client of clientSet) {
+        if (client.readyState === 1) {
+          client.send(payload);
+        }
       }
     }
   }
@@ -162,7 +218,7 @@ function broadcastToClients(device, data) {
 
 function requestAgent(device, payload, timeoutMs = 30000) {
   return new Promise((resolve, reject) => {
-    const targetAgent = agents.get(device);
+    const targetAgent = getAgentForDevice(device);
     if (!targetAgent || targetAgent.readyState !== 1) {
       reject(new Error("PC Agent MeRS offline atau tidak terdeteksi."));
       return;
@@ -505,6 +561,20 @@ app.get("/mers-ping", (_, res) => {
   res.json({ success: true, online: true, agentsCount: agents.size });
 });
 app.head("/mers-ping", (_, res) => res.sendStatus(204));
+
+// Desktop Agent status check
+app.get("/agent-status", (req, res) => {
+  const device = req.query.device || "loket-pc-1";
+  const agent = getAgentForDevice(device);
+  const online = agent !== null && agent.readyState === 1;
+  res.json({
+    success: true,
+    online,
+    device,
+    agentsCount: agents.size,
+    message: online ? "Agent online." : "Agent offline."
+  });
+});
 
 server.listen(PORT, () => {
   console.log(`MeRS Gateway Server running on http://localhost:${PORT}`);
