@@ -3,6 +3,7 @@ package id.endri.mersremote
 import android.Manifest
 import android.app.Activity
 import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
@@ -57,6 +58,7 @@ class MainActivity : Activity() {
 
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
         requestNotificationPermission()
+        AutoOrderWorker.schedule(this)
         pendingIntent = PendingIntent.getActivity(
             this,
             0,
@@ -150,6 +152,79 @@ class MainActivity : Activity() {
                 stream?.bufferedReader()?.use { it.readText() } ?: "{}"
             } catch (e: Exception) {
                 """{"success":false,"message":${(e.message ?: "HTTP request gagal").js()}}"""
+            }
+        }
+
+        @JavascriptInterface
+        fun getAutoOrderConfig(): String {
+            val prefs = getSharedPreferences(AutoOrderWorker.PREFS_NAME, Context.MODE_PRIVATE)
+            val json = org.json.JSONObject().apply {
+                put("enabled", prefs.getBoolean("enabled", false))
+                put("weekdays_only", prefs.getBoolean("weekdays_only", true))
+                put("gen_id", prefs.getString("gen_id", ""))
+                put("has_password", (prefs.getString("password", "") ?: "").isNotEmpty())
+                put("preferences", prefs.getString("preferences", "[]"))
+                put("allow_fallback", prefs.getBoolean("allow_fallback", true))
+                put("last_status", prefs.getString("last_status", "Belum pernah berjalan"))
+                put("last_order_date", prefs.getString("last_order_date", "-"))
+                put("last_run_timestamp", prefs.getLong("last_run_timestamp", 0))
+            }
+            return json.toString()
+        }
+
+        @JavascriptInterface
+        fun saveAutoOrderConfig(jsonStr: String): Boolean {
+            return try {
+                val obj = org.json.JSONObject(jsonStr)
+                val prefs = getSharedPreferences(AutoOrderWorker.PREFS_NAME, Context.MODE_PRIVATE)
+                val editor = prefs.edit()
+
+                if (obj.has("enabled")) editor.putBoolean("enabled", obj.optBoolean("enabled"))
+                if (obj.has("weekdays_only")) editor.putBoolean("weekdays_only", obj.optBoolean("weekdays_only", true))
+                if (obj.has("gen_id")) editor.putString("gen_id", obj.optString("gen_id"))
+                if (obj.has("password") && obj.optString("password").isNotEmpty()) {
+                    editor.putString("password", obj.optString("password"))
+                }
+                if (obj.has("preferences")) editor.putString("preferences", obj.optString("preferences"))
+                if (obj.has("allow_fallback")) editor.putBoolean("allow_fallback", obj.optBoolean("allow_fallback", true))
+
+                editor.apply()
+
+                if (prefs.getBoolean("enabled", false)) {
+                    AutoOrderWorker.schedule(this@MainActivity)
+                } else {
+                    AutoOrderWorker.cancel(this@MainActivity)
+                }
+                true
+            } catch (e: Exception) {
+                false
+            }
+        }
+
+        @JavascriptInterface
+        fun syncAutoOrderCredentials(genId: String, pass: String): Boolean {
+            return try {
+                val prefs = getSharedPreferences(AutoOrderWorker.PREFS_NAME, Context.MODE_PRIVATE)
+                prefs.edit()
+                    .putString("gen_id", genId)
+                    .putString("password", pass)
+                    .apply()
+                if (prefs.getBoolean("enabled", false)) {
+                    AutoOrderWorker.schedule(this@MainActivity)
+                }
+                true
+            } catch (e: Exception) {
+                false
+            }
+        }
+
+        @JavascriptInterface
+        fun triggerAutoOrderNow(): String {
+            return try {
+                AutoOrderWorker.runNow(this@MainActivity)
+                """{"success":true,"message":"Proses auto-order dijalankan di background"}"""
+            } catch (e: Exception) {
+                """{"success":false,"message":${(e.message ?: "Gagal menjalankan worker").js()}}"""
             }
         }
     }

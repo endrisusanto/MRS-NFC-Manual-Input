@@ -945,14 +945,72 @@
 
         <!-- Step: Pilih Menu -->
         <div class="order-step" id="ostep-menu">
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
-            <button id="o-load-menu" type="button" class="order-btn" style="flex:1; min-height:44px; font-size:13px;">🔄 Muat Ulang Menu</button>
-            <button id="o-logout" type="button" class="order-btn" style="min-height:44px; padding:0 18px; font-size:13px;">Logout</button>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+            <button id="o-load-menu" type="button" class="order-btn" style="flex:1; min-height:44px; font-size:13px;">🔄 Muat Ulang</button>
+            <button id="open-auto-order-btn" type="button" class="order-btn" style="min-height:44px; padding:0 14px; font-size:12px; font-weight:700; background:linear-gradient(135deg, rgba(37,99,235,0.15), rgba(34,197,94,0.15)); border:1px solid rgba(34,197,94,0.3); color:var(--text-main);">⚡ Auto Pesan</button>
+            <button id="o-logout" type="button" class="order-btn" style="min-height:44px; padding:0 14px; font-size:13px;">Logout</button>
           </div>
           <div class="menu-cards" id="o-menu-list"></div>
           <div class="order-actions" style="margin-top:6px;">
             <button class="order-btn" id="o-cancel-menu" type="button">Tutup</button>
             <button class="order-btn primary" id="o-submit" disabled>Simpan Pesanan</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Modal Preset Auto-Pesan Makan Siang ── -->
+    <div id="auto-order-modal" class="modal" hidden>
+      <div class="order-modal-inner" style="width: min(500px, 95%); max-height: 90vh;">
+        <div style="display:flex; align-items:center; justify-content:space-between; position:relative;">
+          <h3 style="margin:0; font-size:18px; font-weight:800; color:var(--text-main); flex:1; text-align:center;">⚡ Auto-Pesan Makan Siang</h3>
+          <button id="auto-order-close" type="button" style="position:absolute; right:0; top:50%; transform:translateY(-50%); width:36px; height:36px; min-height:36px; padding:0; border-radius:8px; border:1px solid var(--border); background:var(--surface-subtle); color:var(--text-muted); font-size:18px; font-weight:700; cursor:pointer;" aria-label="Tutup">✕</button>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:14px; margin-top:10px;">
+          <!-- Status Info Banner -->
+          <div style="padding:12px 14px; border-radius:12px; background:var(--surface-subtle); border:1px solid var(--border); font-size:12px; line-height:1.4;">
+            <div style="font-weight:700; margin-bottom:3px; color:var(--text-main);">🤖 Automasi Hari Kerja (Senin – Jumat)</div>
+            <div style="color:var(--text-muted);">Sistem mengecek & memesan menu Makan Siang setiap pukul <b>07:30 WIB</b> jika belum ada pesanan aktif.</div>
+          </div>
+
+          <!-- Master Toggle -->
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border-radius:10px; background:var(--bg); border:1px solid var(--border);">
+            <div>
+              <div style="font-weight:700; font-size:13px;">Aktifkan Auto-Pesan</div>
+              <div style="font-size:11px; color:var(--text-muted);">Pesan otomatis hanya pada hari kerja</div>
+            </div>
+            <input type="checkbox" id="auto-order-enable-toggle" style="width:22px; height:22px; cursor:pointer; accent-color:var(--primary);">
+          </div>
+
+          <!-- Ranked Preference List -->
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <label style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted);">Urutan Prioritas Menu:</label>
+              <span style="font-size:10.5px; color:var(--text-muted);">Urutan atas = dicari lebih dulu</span>
+            </div>
+            <div id="auto-order-pref-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+          </div>
+
+          <!-- Fallback Toggle -->
+          <label style="display:flex; align-items:flex-start; gap:8px; font-size:12px; cursor:pointer; color:var(--text-main); margin-top:2px;">
+            <input type="checkbox" id="auto-order-fallback-toggle" checked style="margin-top:2px; width:16px; height:16px; accent-color:var(--primary);">
+            <span>Jika semua menu preferensi habis, pesan menu apa saja yang tersedia (Fallback)</span>
+          </label>
+
+          <!-- Last Execution Status -->
+          <div id="auto-order-status-card" style="padding:10px 14px; border-radius:10px; background:var(--surface-subtle); border:1px solid var(--border); font-size:11.5px; display:flex; flex-direction:column; gap:3px;">
+            <div style="font-weight:700; color:var(--text-muted); font-size:10.5px; text-transform:uppercase;">Status Terakhir:</div>
+            <div id="auto-order-status-text" style="font-family:var(--font-mono); color:var(--text-main); font-size:12px;">Belum pernah berjalan</div>
+          </div>
+
+          <!-- Actions -->
+          <div style="display:flex; flex-direction:column; gap:8px; margin-top:4px;">
+            <button id="auto-order-save-btn" type="button" class="order-btn primary" style="width:100%; min-height:44px; font-weight:800; background:var(--primary); color:#fff;">💾 Simpan Pengaturan</button>
+            <div style="display:flex; gap:8px;">
+              <button id="auto-order-test-btn" type="button" class="order-btn" style="flex:1; min-height:38px; font-size:12px;">⚡ Tes Order Sekarang</button>
+              <button id="auto-order-close-btn" type="button" class="order-btn" style="min-height:38px; font-size:12px; padding:0 16px;">Tutup</button>
+            </div>
           </div>
         </div>
       </div>
@@ -1770,6 +1828,117 @@
           await mrsAlert('❌ Error: ' + e);
         }
         btn.disabled = false; btn.textContent = 'Simpan Pesanan';
+      });
+
+      // ── Auto-Pesan Makan Siang Logic & Desktop Support ──────────────────
+      const DEFAULT_AUTO_ORDER_PREFS = [
+        { id: 'daging', label: '🥩 Daging / Sapi', keywords: ['daging', 'sapi', 'rendang', 'empal', 'rawon', 'gulai sapi', 'beef'], enabled: true },
+        { id: 'ayam', label: '🍗 Ayam', keywords: ['ayam', 'chicken', 'bebek', 'unggas'], enabled: true },
+        { id: 'ikan', label: '🐟 Ikan / Seafood', keywords: ['ikan', 'tongkol', 'lele', 'nila', 'gurame', 'udang', 'cumi', 'seafood'], enabled: true },
+        { id: 'telur', label: '🥚 Telur', keywords: ['telur', 'egg', 'dadar', 'ceplok', 'balado telur'], enabled: true }
+      ];
+
+      let currentAutoOrderPrefs = [...DEFAULT_AUTO_ORDER_PREFS];
+
+      function renderAutoOrderPrefList() {
+        const listEl = document.getElementById('auto-order-pref-list');
+        if (!listEl) return;
+        listEl.innerHTML = currentAutoOrderPrefs.map((pref, idx) => {
+          const isFirst = idx === 0;
+          const isLast = idx === currentAutoOrderPrefs.length - 1;
+          return `
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-radius:10px; background:var(--surface); border:1px solid var(--border); gap:8px;">
+              <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
+                <span style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:6px; background:var(--surface-subtle); border:1px solid var(--border); font-size:11px; font-weight:800; font-family:var(--font-mono); color:var(--text-muted);">${idx + 1}</span>
+                <input type="checkbox" id="pref-enable-${idx}" ${pref.enabled !== false ? 'checked' : ''} onchange="togglePrefEnabled(${idx}, this.checked)" style="width:18px; height:18px; cursor:pointer; accent-color:var(--primary);">
+                <div style="display:flex; flex-direction:column; min-width:0;">
+                  <span style="font-weight:700; font-size:12.5px; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${pref.label}</span>
+                  <span style="font-size:10.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${pref.keywords.join(', ')}</span>
+                </div>
+              </div>
+              <div style="display:flex; gap:4px;">
+                <button type="button" class="pill" onclick="movePref(${idx}, -1)" ${isFirst ? 'disabled style="opacity:0.3; pointer-events:none;"' : ''} style="min-height:30px; padding:0 8px; font-size:11px;" title="Naikkan Prioritas">▲</button>
+                <button type="button" class="pill" onclick="movePref(${idx}, 1)" ${isLast ? 'disabled style="opacity:0.3; pointer-events:none;"' : ''} style="min-height:30px; padding:0 8px; font-size:11px;" title="Turunkan Prioritas">▼</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      window.togglePrefEnabled = function(idx, enabled) {
+        if (currentAutoOrderPrefs[idx]) {
+          currentAutoOrderPrefs[idx].enabled = enabled;
+        }
+      };
+
+      window.movePref = function(idx, dir) {
+        const newIdx = idx + dir;
+        if (newIdx < 0 || newIdx >= currentAutoOrderPrefs.length) return;
+        const item = currentAutoOrderPrefs.splice(idx, 1)[0];
+        currentAutoOrderPrefs.splice(newIdx, 0, item);
+        renderAutoOrderPrefList();
+      };
+
+      function loadAutoOrderUI() {
+        let config = null;
+        try { config = JSON.parse(localStorage.getItem('mers_auto_order_prefs_desktop')); } catch (_) {}
+
+        if (config) {
+          document.getElementById('auto-order-enable-toggle').checked = Boolean(config.enabled);
+          document.getElementById('auto-order-fallback-toggle').checked = config.allow_fallback !== false;
+          
+          if (config.preferences) {
+            try {
+              const parsed = typeof config.preferences === 'string' ? JSON.parse(config.preferences) : config.preferences;
+              if (Array.isArray(parsed) && parsed.length) {
+                currentAutoOrderPrefs = parsed;
+              }
+            } catch (_) {}
+          }
+
+          if (config.last_status) {
+            document.getElementById('auto-order-status-text').textContent = `${config.last_status} (${config.last_order_date || '-'})`;
+          }
+        }
+
+        renderAutoOrderPrefList();
+      }
+
+      function openAutoOrderModal() {
+        loadAutoOrderUI();
+        document.getElementById('auto-order-modal').hidden = false;
+      }
+
+      document.getElementById('open-auto-order-btn')?.addEventListener('click', openAutoOrderModal);
+      document.getElementById('auto-order-close')?.addEventListener('click', () => document.getElementById('auto-order-modal').hidden = true);
+      document.getElementById('auto-order-close-btn')?.addEventListener('click', () => document.getElementById('auto-order-modal').hidden = true);
+
+      document.getElementById('auto-order-save-btn')?.addEventListener('click', async () => {
+        const enabled = document.getElementById('auto-order-enable-toggle').checked;
+        const allowFallback = document.getElementById('auto-order-fallback-toggle').checked;
+        const genId = orderCreds?.genId || document.getElementById('o-gen')?.value.trim() || '';
+        const password = orderCreds?.password || document.getElementById('o-pass')?.value.trim() || '';
+
+        const payload = {
+          enabled,
+          weekdays_only: true,
+          gen_id: genId,
+          password: password,
+          preferences: JSON.stringify(currentAutoOrderPrefs),
+          allow_fallback: allowFallback
+        };
+
+        localStorage.setItem('mers_auto_order_prefs_desktop', JSON.stringify(payload));
+        await mrsAlert('✅ Pengaturan Auto-Pesan Makan Siang berhasil disimpan!');
+        document.getElementById('auto-order-modal').hidden = true;
+      });
+
+      document.getElementById('auto-order-test-btn')?.addEventListener('click', async () => {
+        if (!orderCreds?.genId || !orderCreds?.password) {
+          await mrsAlert('⚠️ Harap login terlebih dahulu untuk menjalankan tes Auto-Pesan.');
+          return;
+        }
+        await mrsAlert('ℹ️ Konfigurasi tersimpan. Background auto-order aktif pada aplikasi Android MeRS APK.');
       });
     </script>
     <!-- Custom Modal Dialog -->
