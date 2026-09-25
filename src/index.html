@@ -206,14 +206,23 @@
         justify-content: center;
         gap: 8px;
         padding: 0 16px;
+        transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1),
+                    background-color 0.14s ease,
+                    border-color 0.14s ease,
+                    opacity 0.14s ease;
       }
       
-      button:hover {
+      button:hover:not(:disabled) {
         background: var(--border);
       }
       
-      button:active {
-        opacity: 0.9;
+      button:active:not(:disabled) {
+        transform: scale(0.975);
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
       }
       
       .tap {
@@ -500,6 +509,26 @@
         color: var(--text-muted);
       }
       
+      @keyframes modalFade {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      @keyframes modalSlideUp {
+        from {
+          opacity: 0;
+          transform: translateY(10px) scale(0.985);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
       .modal {
         position: fixed;
         inset: 0;
@@ -508,6 +537,7 @@
         place-items: center;
         padding: 16px;
         background: rgba(0, 0, 0, 0.75);
+        animation: modalFade 0.18s cubic-bezier(0.16, 1, 0.3, 1);
       }
       
       .modal[hidden] {
@@ -520,6 +550,7 @@
         border-radius: 16px;
         border: 1px solid var(--border);
         background: var(--surface);
+        animation: modalSlideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       }
       
       .modal label {
@@ -611,6 +642,7 @@
         flex-direction: column;
         gap: 16px;
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+        animation: modalSlideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       }
       .order-step { display: none; flex-direction: column; gap: 14px; }
       .order-step.active { display: flex; }
@@ -785,8 +817,8 @@
         <h1>MeRS Desktop</h1>
         <p>Masukkan GEN 8 digit atau ID kartu 10 digit yang akan dieksekusi.</p>
         <div class="home-actions">
-          <button class="server-btn" id="settings">⚙️ Server</button>
-          <button class="server-btn" id="pesan-btn" style="background:#16a34a;color:#fff;border-color:#16a34a;">🍽 Pesan Menu</button>
+          <button class="server-btn" id="settings">Server</button>
+          <button class="server-btn" id="pesan-btn" style="background:#16a34a;color:#fff;border-color:#16a34a;">Pesan Menu</button>
         </div>
         <input id="uid" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="1696235068" autofocus>
         <div class="cards">
@@ -861,7 +893,7 @@
     <div id="update-modal" class="modal" hidden>
       <div class="order-modal-inner" style="width: min(540px, 95%); max-height: 90vh;">
         <div style="display:flex; align-items:center; justify-content:space-between; position:relative;">
-          <h3 style="margin:0; font-size:18px; font-weight:800; color:var(--text-main); flex:1; text-align:center;">🚀 Pembaruan Aplikasi</h3>
+          <h3 style="margin:0; font-size:18px; font-weight:800; color:var(--text-main); flex:1; text-align:center;">Pembaruan Aplikasi</h3>
           <button id="update-close-x" type="button" style="position:absolute; right:0; top:50%; transform:translateY(-50%); width:36px; height:36px; min-height:36px; padding:0; border-radius:8px; border:1px solid var(--border); background:var(--surface-subtle); color:var(--text-muted); font-size:18px; font-weight:700; cursor:pointer;" aria-label="Tutup">✕</button>
         </div>
 
@@ -906,10 +938,10 @@
 
           <!-- Actions -->
           <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:6px; padding-top:10px; border-top:1px solid var(--border); flex-wrap:wrap;">
-            <button id="update-refresh-btn" type="button" style="min-height:42px; padding:0 14px; font-size:13px;">🔄 Periksa Ulang</button>
+            <button id="update-refresh-btn" type="button" style="min-height:42px; padding:0 14px; font-size:13px;">Periksa Ulang</button>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <button id="update-install-btn" type="button" class="order-btn primary" style="display:none; min-height:42px; padding:0 18px; font-size:13px; background:#22c55e; color:#fff; font-weight:800;">⚡ Pasang & Mulai Ulang</button>
-              <button id="update-release-btn" type="button" class="order-btn" style="min-height:42px; padding:0 14px; font-size:13px;">🌐 Buka GitHub</button>
+              <button id="update-install-btn" type="button" class="order-btn primary" style="display:none; min-height:42px; padding:0 18px; font-size:13px; background:#22c55e; color:#fff; font-weight:800;">Pasang & Mulai Ulang</button>
+              <button id="update-release-btn" type="button" class="order-btn" style="min-height:42px; padding:0 14px; font-size:13px;">Buka GitHub</button>
               <button id="update-close-btn" type="button" class="order-btn" style="min-height:42px; padding:0 18px; font-size:13px; background:var(--surface); color:var(--text-main);">Tutup</button>
             </div>
           </div>
@@ -921,7 +953,7 @@
     <div id="order-modal" class="modal" hidden>
       <div class="order-modal-inner">
         <div style="display:flex; align-items:center; justify-content:space-between; position:relative;">
-          <h3 style="margin:0; font-size:18px; font-weight:800; color:var(--text-main); flex:1; text-align:center;">🍽 Pesan Menu</h3>
+          <h3 style="margin:0; font-size:18px; font-weight:800; color:var(--text-main); flex:1; text-align:center;">Pesan Menu</h3>
           <button id="o-close-x" type="button" style="position:absolute; right:0; top:50%; transform:translateY(-50%); width:36px; height:36px; min-height:36px; padding:0; border-radius:8px; border:1px solid var(--border); background:var(--surface-subtle); color:var(--text-muted); font-size:18px; font-weight:700; cursor:pointer;" aria-label="Tutup">✕</button>
         </div>
 
@@ -939,15 +971,15 @@
           <p class="order-msg" id="o-login-msg" hidden></p>
           <div class="order-actions">
             <button class="order-btn" id="o-cancel">Batal</button>
-            <button class="order-btn primary" id="o-login">Masuk →</button>
+            <button class="order-btn primary" id="o-login">Masuk &rarr;</button>
           </div>
         </div>
 
         <!-- Step: Pilih Menu -->
         <div class="order-step" id="ostep-menu">
           <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-            <button id="o-load-menu" type="button" class="order-btn" style="flex:1; min-height:44px; font-size:13px;">🔄 Muat Ulang</button>
-            <button id="open-auto-order-btn" type="button" class="order-btn" style="min-height:44px; padding:0 14px; font-size:12px; font-weight:700; background:linear-gradient(135deg, rgba(37,99,235,0.15), rgba(34,197,94,0.15)); border:1px solid rgba(34,197,94,0.3); color:var(--text-main);">⚡ Auto Pesan</button>
+            <button id="o-load-menu" type="button" class="order-btn" style="flex:1; min-height:44px; font-size:13px;">Muat Ulang</button>
+            <button id="open-auto-order-btn" type="button" class="order-btn" style="min-height:44px; padding:0 14px; font-size:12px; font-weight:700; background:linear-gradient(135deg, rgba(37,99,235,0.15), rgba(34,197,94,0.15)); border:1px solid rgba(34,197,94,0.3); color:var(--text-main);">Auto-Pesan</button>
             <button id="o-logout" type="button" class="order-btn" style="min-height:44px; padding:0 14px; font-size:13px;">Logout</button>
           </div>
           <div class="menu-cards" id="o-menu-list"></div>
@@ -963,14 +995,14 @@
     <div id="auto-order-modal" class="modal" hidden>
       <div class="order-modal-inner" style="width: min(500px, 95%); max-height: 90vh;">
         <div style="display:flex; align-items:center; justify-content:space-between; position:relative;">
-          <h3 style="margin:0; font-size:18px; font-weight:800; color:var(--text-main); flex:1; text-align:center;">⚡ Auto-Pesan Makan Siang</h3>
+          <h3 style="margin:0; font-size:18px; font-weight:800; color:var(--text-main); flex:1; text-align:center;">Auto-Pesan Makan Siang</h3>
           <button id="auto-order-close" type="button" style="position:absolute; right:0; top:50%; transform:translateY(-50%); width:36px; height:36px; min-height:36px; padding:0; border-radius:8px; border:1px solid var(--border); background:var(--surface-subtle); color:var(--text-muted); font-size:18px; font-weight:700; cursor:pointer;" aria-label="Tutup">✕</button>
         </div>
 
         <div style="display:flex; flex-direction:column; gap:14px; margin-top:10px;">
           <!-- Status Info Banner -->
           <div style="padding:12px 14px; border-radius:12px; background:var(--surface-subtle); border:1px solid var(--border); font-size:12px; line-height:1.4;">
-            <div style="font-weight:700; margin-bottom:3px; color:var(--text-main);">🤖 Automasi Hari Kerja (Senin – Jumat)</div>
+            <div style="font-weight:700; margin-bottom:3px; color:var(--text-main);">Automasi Hari Kerja (Senin – Jumat)</div>
             <div style="color:var(--text-muted);">Sistem mengecek & memesan menu Makan Siang setiap pukul <b>07:30 WIB</b> jika belum ada pesanan aktif.</div>
           </div>
 
@@ -1006,9 +1038,9 @@
 
           <!-- Actions -->
           <div style="display:flex; flex-direction:column; gap:8px; margin-top:4px;">
-            <button id="auto-order-save-btn" type="button" class="order-btn primary" style="width:100%; min-height:44px; font-weight:800; background:var(--primary); color:#fff;">💾 Simpan Pengaturan</button>
+            <button id="auto-order-save-btn" type="button" class="order-btn primary" style="width:100%; min-height:44px; font-weight:800; background:var(--primary); color:#fff;">Simpan Pengaturan</button>
             <div style="display:flex; gap:8px;">
-              <button id="auto-order-test-btn" type="button" class="order-btn" style="flex:1; min-height:38px; font-size:12px;">⚡ Tes Order Sekarang</button>
+              <button id="auto-order-test-btn" type="button" class="order-btn" style="flex:1; min-height:38px; font-size:12px;">Tes Order Sekarang</button>
               <button id="auto-order-close-btn" type="button" class="order-btn" style="min-height:38px; font-size:12px; padding:0 16px;">Tutup</button>
             </div>
           </div>
@@ -1307,7 +1339,7 @@
       async function checkForUpdates(openModal = false) {
         if (openModal) {
           document.getElementById('update-modal').hidden = false;
-          document.getElementById('update-status-msg').innerHTML = '<span style="color:var(--primary);">⏳ Memeriksa rilis terbaru...</span>';
+          document.getElementById('update-status-msg').innerHTML = '<span style="color:var(--primary); font-weight:600;">Memeriksa rilis terbaru...</span>';
           document.getElementById('update-refresh-btn').disabled = true;
           document.getElementById('update-install-btn').style.display = 'none';
           document.getElementById('update-progress-wrap').style.display = 'none';
@@ -1350,15 +1382,15 @@
           if (hasUpdate) {
             if (cfgBadge) {
               cfgBadge.style.display = 'inline-block';
-              cfgBadge.textContent = `⚡ v${latestVersion}`;
+              cfgBadge.textContent = `v${latestVersion}`;
             }
             if (statusMsg) {
-              statusMsg.innerHTML = `<span style="color:#22c55e; font-weight:800;">✨ Versi baru v${esc(latestVersion)} tersedia!</span>`;
+              statusMsg.innerHTML = `<span style="color:#22c55e; font-weight:800;">Versi baru v${esc(latestVersion)} tersedia!</span>`;
             }
 
             if (installBtn) {
               installBtn.style.display = 'inline-block';
-              installBtn.textContent = `⚡ Pasang v${latestVersion} & Mulai Ulang`;
+              installBtn.textContent = `Pasang v${latestVersion} & Mulai Ulang`;
             }
 
             const releaseNotes = tauriUpdate?.body || ghRelease?.body;
@@ -1370,13 +1402,12 @@
             if (ghRelease?.assets && ghRelease.assets.length && assetsList && assetsWrap) {
               assetsWrap.style.display = 'flex';
               assetsList.innerHTML = ghRelease.assets.map(asset => {
-                const icon = asset.kind === 'windows' ? '🪟' : asset.kind === 'android' ? '📱' : asset.kind === 'extension' ? '🧩' : '📦';
                 const label = asset.kind === 'windows' ? 'Windows Installer (.msi)' : asset.kind === 'android' ? 'Android Remote (.apk)' : asset.kind === 'extension' ? 'Chrome Extension (.zip)' : asset.name;
                 const sizeStr = asset.size ? `(${(asset.size / (1024 * 1024)).toFixed(1)} MB)` : '';
                 return `
                   <button type="button" class="order-btn" style="display:flex; justify-content:space-between; align-items:center; text-align:left; padding:10px 14px; width:100%;" onclick="openLink('${esc(asset.download_url)}')">
-                    <span style="font-weight:700;">${icon} ${esc(label)}</span>
-                    <span style="font-size:11px; opacity:0.8; font-family:var(--font-mono);">${sizeStr} ⬇️</span>
+                    <span style="font-weight:700;">${esc(label)}</span>
+                    <span style="font-size:11px; opacity:0.8; font-family:var(--font-mono);">${sizeStr} Unduh</span>
                   </button>
                 `;
               }).join('');
@@ -1384,7 +1415,7 @@
           } else {
             if (cfgBadge) cfgBadge.style.display = 'none';
             if (statusMsg) {
-              statusMsg.innerHTML = '<span style="color:var(--text-muted);">✅ Aplikasi Anda sudah menggunakan versi terbaru.</span>';
+              statusMsg.innerHTML = '<span style="color:var(--text-muted);">Aplikasi Anda sudah menggunakan versi terbaru.</span>';
             }
             if (installBtn) installBtn.style.display = 'none';
             if (changelogWrap) changelogWrap.style.display = 'none';
@@ -1393,7 +1424,7 @@
         } catch (e) {
           const statusMsg = document.getElementById('update-status-msg');
           if (statusMsg) {
-            statusMsg.innerHTML = `<span style="color:#f87171;">⚠️ Gagal memeriksa pembaruan: ${esc(e)}</span>`;
+            statusMsg.innerHTML = `<span style="color:#f87171;">Gagal memeriksa pembaruan: ${esc(e)}</span>`;
           }
         } finally {
           const refBtn = document.getElementById('update-refresh-btn');
@@ -1427,7 +1458,7 @@
         } catch (e) {
           console.error('Update install error:', e);
           if (statusMsg) {
-            statusMsg.innerHTML = `<span style="color:#f87171;">⚠️ Gagal memasang pembaruan otomatis: ${esc(e)}</span>`;
+            statusMsg.innerHTML = `<span style="color:#f87171;">Gagal memasang pembaruan otomatis: ${esc(e)}</span>`;
           }
           if (progressStatus) progressStatus.textContent = 'Gagal memasang pembaruan.';
           if (installBtn) installBtn.disabled = false;
@@ -1623,7 +1654,7 @@
         if (!orderCreds) return;
         const dates = orderDateRange(orderToday(), 6);
         const list = document.getElementById('o-menu-list');
-        list.innerHTML = '<div class="order-loading"><div style="font-size:42px; display:inline-block; animation: wobble 1.5s infinite ease-in-out;">🍱</div><div style="margin-top:12px; animation: pulse 1.5s infinite; letter-spacing: 0.5px;">Memuat menu...</div></div>';
+        list.innerHTML = '<div class="order-loading" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px 16px; gap:12px;"><div style="width:28px; height:28px; border:3px solid var(--border); border-top-color:var(--primary); border-radius:50%; animation:spin 0.8s linear infinite;"></div><div style="font-size:13px; font-weight:600; color:var(--text-muted);">Memuat menu...</div></div>';
         selectedMenus = new Map();
         canceledXids.clear();
         document.getElementById('o-submit').disabled = true;
@@ -1644,7 +1675,7 @@
           const ordered = new Map((history.rows || []).map(row => [`${row.tanggal_iso || historyDate(row.tanggal)}|${historyMeal(row.jadwal)}`, row]));
 
           if (!data.days?.length) {
-            list.innerHTML = '<div class="day-card" style="text-align:center; padding:24px;"><div style="font-size:32px; margin-bottom:8px;">🍽️</div><div style="font-weight:700; color:var(--text-muted);">Menu tidak tersedia</div></div>';
+            list.innerHTML = '<div class="day-card" style="text-align:center; padding:24px;"><div style="font-weight:700; color:var(--text-muted);">Menu tidak tersedia</div></div>';
             return;
           }
 
@@ -1669,7 +1700,7 @@
                         const status = existing ? (existing.status || 'Belum Diambil') : '';
                         const isTaken = isOrdered && status.toLowerCase().includes('sudah');
                         if (isOrdered) {
-                          labelText = `✔️ ${status}`;
+                          labelText = status;
                           badgeCls = status.toLowerCase().includes('sudah') ? 'stock-ok' : 'stock-low';
                         }
                         const isDisabled = (!isOrdered && bal === 0) || isTaken;
@@ -1819,23 +1850,23 @@
           }
           const failed = results.filter(item => !item.success);
           if (!failed.length) {
-            await mrsAlert('✅ Pesanan berhasil disimpan!');
+            await mrsAlert('Pesanan berhasil disimpan!');
             document.getElementById('order-modal').hidden = true;
           } else {
-            await mrsAlert('❌ Gagal: ' + (failed[0].message || 'Sebagian pesanan gagal'));
+            await mrsAlert('Gagal: ' + (failed[0].message || 'Sebagian pesanan gagal'));
           }
         } catch(e) {
-          await mrsAlert('❌ Error: ' + e);
+          await mrsAlert('Error: ' + e);
         }
         btn.disabled = false; btn.textContent = 'Simpan Pesanan';
       });
 
       // ── Auto-Pesan Makan Siang Logic & Desktop Support ──────────────────
       const DEFAULT_AUTO_ORDER_PREFS = [
-        { id: 'daging', label: '🥩 Daging / Sapi', keywords: ['daging', 'sapi', 'rendang', 'empal', 'rawon', 'gulai sapi', 'beef'], enabled: true },
-        { id: 'ayam', label: '🍗 Ayam', keywords: ['ayam', 'chicken', 'bebek', 'unggas'], enabled: true },
-        { id: 'ikan', label: '🐟 Ikan / Seafood', keywords: ['ikan', 'tongkol', 'lele', 'nila', 'gurame', 'udang', 'cumi', 'seafood'], enabled: true },
-        { id: 'telur', label: '🥚 Telur', keywords: ['telur', 'egg', 'dadar', 'ceplok', 'balado telur'], enabled: true }
+        { id: 'daging', label: 'Daging / Sapi', keywords: ['daging', 'sapi', 'rendang', 'empal', 'rawon', 'gulai sapi', 'beef'], enabled: true },
+        { id: 'ayam', label: 'Ayam', keywords: ['ayam', 'chicken', 'bebek', 'unggas'], enabled: true },
+        { id: 'ikan', label: 'Ikan / Seafood', keywords: ['ikan', 'tongkol', 'lele', 'nila', 'gurame', 'udang', 'cumi', 'seafood'], enabled: true },
+        { id: 'telur', label: 'Telur', keywords: ['telur', 'egg', 'dadar', 'ceplok', 'balado telur'], enabled: true }
       ];
 
       let currentAutoOrderPrefs = [...DEFAULT_AUTO_ORDER_PREFS];
@@ -1857,8 +1888,12 @@
                 </div>
               </div>
               <div style="display:flex; gap:4px;">
-                <button type="button" class="pill" onclick="movePref(${idx}, -1)" ${isFirst ? 'disabled style="opacity:0.3; pointer-events:none;"' : ''} style="min-height:30px; padding:0 8px; font-size:11px;" title="Naikkan Prioritas">▲</button>
-                <button type="button" class="pill" onclick="movePref(${idx}, 1)" ${isLast ? 'disabled style="opacity:0.3; pointer-events:none;"' : ''} style="min-height:30px; padding:0 8px; font-size:11px;" title="Turunkan Prioritas">▼</button>
+                <button type="button" class="pill" onclick="movePref(${idx}, -1)" ${isFirst ? 'disabled style="opacity:0.3; pointer-events:none;"' : ''} style="min-height:30px; padding:0 8px; font-size:11px;" title="Naikkan Prioritas" aria-label="Naikkan Prioritas">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                </button>
+                <button type="button" class="pill" onclick="movePref(${idx}, 1)" ${isLast ? 'disabled style="opacity:0.3; pointer-events:none;"' : ''} style="min-height:30px; padding:0 8px; font-size:11px;" title="Turunkan Prioritas" aria-label="Turunkan Prioritas">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
               </div>
             </div>
           `;
@@ -1929,16 +1964,16 @@
         };
 
         localStorage.setItem('mers_auto_order_prefs_desktop', JSON.stringify(payload));
-        await mrsAlert('✅ Pengaturan Auto-Pesan Makan Siang berhasil disimpan!');
+        await mrsAlert('Pengaturan Auto-Pesan Makan Siang berhasil disimpan.');
         document.getElementById('auto-order-modal').hidden = true;
       });
 
       document.getElementById('auto-order-test-btn')?.addEventListener('click', async () => {
         if (!orderCreds?.genId || !orderCreds?.password) {
-          await mrsAlert('⚠️ Harap login terlebih dahulu untuk menjalankan tes Auto-Pesan.');
+          await mrsAlert('Harap login terlebih dahulu untuk menjalankan tes Auto-Pesan.');
           return;
         }
-        await mrsAlert('ℹ️ Konfigurasi tersimpan. Background auto-order aktif pada aplikasi Android MeRS APK.');
+        await mrsAlert('Konfigurasi tersimpan. Background auto-order aktif pada aplikasi Android MeRS APK.');
       });
     </script>
     <!-- Custom Modal Dialog -->
