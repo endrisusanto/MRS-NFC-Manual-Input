@@ -109,8 +109,8 @@ class AutoOrderWorker(context: Context, params: WorkerParameters) : Worker(conte
         val now = LocalDateTime.now(ZONE)
         val startDate = now.toLocalDate()
 
-        // Scan rentang hari kerja aktif (H s/d H+5)
-        val targetDates = (0..5).map { startDate.plusDays(it.toLong()) }.filter { date ->
+        // Scan rentang hari kerja aktif (H s/d H+7)
+        val targetDates = (0..7).map { startDate.plusDays(it.toLong()) }.filter { date ->
             if (weekdaysOnly) {
                 date.dayOfWeek != DayOfWeek.SATURDAY && date.dayOfWeek != DayOfWeek.SUNDAY
             } else true
@@ -169,24 +169,37 @@ class AutoOrderWorker(context: Context, params: WorkerParameters) : Worker(conte
                 // Ambil stok & nama menu untuk tanggal targetDate
                 val stockUrl = URL("$SERVER_URL/mers-proxy/stock?date=$dateIso&meal_id=2&genId=$genId&password=$password")
                 val stockJson = httpGetJson(stockUrl)
-                if (stockJson == null || !stockJson.optBoolean("success", false)) {
+                val stockArray = when {
+                    stockJson == null -> null
+                    stockJson.has("data") -> stockJson.optJSONArray("data")
+                    stockJson.has("menus") -> stockJson.optJSONArray("menus")
+                    stockJson.has("items") -> stockJson.optJSONArray("items")
+                    else -> null
+                }
+
+                if (stockArray == null || stockArray.length() == 0) {
+                    noAvailableMenuDays.add(dateIso)
                     continue
                 }
 
                 val namesUrl = URL("$SERVER_URL/mers-proxy/menu-names?date=$dateIso&meal_id=2&genId=$genId&password=$password")
                 val namesJson = httpGetJson(namesUrl)
-                val namesObj = namesJson?.optJSONObject("names") ?: JSONObject()
+                val namesObj = namesJson?.optJSONObject("names") ?: namesJson?.optJSONObject("data") ?: JSONObject()
 
                 val menuItems = mutableListOf<MenuItem>()
-                val stockArray = stockJson.optJSONArray("data") ?: JSONArray()
                 for (i in 0 until stockArray.length()) {
                     val item = stockArray.optJSONObject(i) ?: continue
-                    val menuId = item.optString("schedule_menu_id", "")
+                    val menuId = item.optString("schedule_menu_id", item.optString("id", ""))
                     if (menuId.isEmpty()) continue
-                    val name = namesObj.optString(menuId, "Menu #$menuId")
-                    val balance = item.optInt("qty_balance", item.optInt("qty", 0))
-                    val avail = item.optBoolean("is_available", balance > 0)
-                    menuItems.add(MenuItem(menuId, name, balance, avail))
+                    val name = namesObj.optString(menuId, item.optString("name", item.optString("menu_name", "Menu #$menuId")))
+                    val balance = item.optInt("qty_balance", item.optInt("qty", item.optInt("balance", 0)))
+                    val isAvailRaw = if (item.has("is_available")) {
+                        val raw = item.opt("is_available")
+                        raw == true || raw == 1 || raw == "1" || raw?.toString().equals("true", true)
+                    } else {
+                        balance > 0
+                    }
+                    menuItems.add(MenuItem(menuId, name, balance, isAvailRaw && balance > 0))
                 }
 
                 val availableMenus = menuItems.filter { it.isAvailable && it.qtyBalance > 0 }
