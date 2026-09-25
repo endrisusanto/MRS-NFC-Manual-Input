@@ -98,6 +98,8 @@ jobs:
 
       - name: Collect artifacts
         shell: powershell
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
         run: |
           New-Item -ItemType Directory -Force dist | Out-Null
           
@@ -109,56 +111,8 @@ jobs:
 
           Compress-Archive -Path manifest.json,bridge.js,content.css,content.js,help.html,popup.html,popup.js,icons -DestinationPath "dist/mers-nfc-tauri-extension-${{ github.ref_name }}.zip" -Force
           
-          # Ensure latest.json manifest is present in dist
-          $tauriLatest = Get-ChildItem -Path "src-tauri/target/release/bundle" -Recurse -Filter "latest.json" -File | Select-Object -First 1
-          if ($tauriLatest) {
-            Copy-Item -Path $tauriLatest.FullName -Destination "dist/latest.json" -Force
-            Write-Host "Found Tauri-generated latest.json:"
-            Get-Content "dist/latest.json"
-          } else {
-            # Find the signed updater bundle (.zip or installer) and its .sig
-            $sigFile = Get-ChildItem -Path dist -Filter "*.sig" -File | Select-Object -First 1
-            $bundleFile = $null
-            if ($sigFile) {
-              $baseName = $sigFile.Name.Substring(0, $sigFile.Name.Length - 4)
-              if (Test-Path "dist/$baseName") {
-                $bundleFile = Get-Item "dist/$baseName"
-              }
-            }
-            if (-not $bundleFile) {
-              $bundleFile = Get-ChildItem -Path dist -File | Where-Object { $_.Extension -in '.zip', '.exe', '.msi' } | Select-Object -First 1
-            }
-            
-            if ($bundleFile -and $sigFile) {
-              $sigContent = (Get-Content -Path $sigFile.FullName -Raw).Trim()
-              $tag = "${{ github.ref_name }}"
-              $ver = $tag.TrimStart('v')
-              $date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
-              $fileName = $bundleFile.Name
-              $url = "https://github.com/endrisusanto/MRS-NFC-Manual-Input/releases/download/$tag/$fileName"
-              
-              $manifest = [PSCustomObject]@{
-                version = $ver
-                notes = "Release $tag"
-                pub_date = $date
-                platforms = [PSCustomObject]@{
-                  "windows-x86_64" = [PSCustomObject]@{
-                    signature = $sigContent
-                    url = $url
-                  }
-                  "windows-x64" = [PSCustomObject]@{
-                    signature = $sigContent
-                    url = $url
-                  }
-                }
-              }
-              $manifest | ConvertTo-Json -Depth 5 | Set-Content -Path "dist/latest.json" -Encoding utf8
-              Write-Host "Generated dist/latest.json for Tauri updater targeting $($fileName):"
-              Get-Content -Path "dist/latest.json"
-            } else {
-              Write-Warning "Bundle or SIG not found in dist, latest.json not generated."
-            }
-          }
+          # Generate latest.json without UTF-8 BOM via Node.js
+          node scripts/generate-updater-manifest.js
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
