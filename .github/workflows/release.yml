@@ -100,18 +100,23 @@ jobs:
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force dist | Out-Null
-          Get-ChildItem src-tauri/target/release/bundle -Recurse -Include *.msi, *.zip, *.sig, latest.json | Copy-Item -Destination dist/ -Force
+          Get-ChildItem src-tauri/target/release/bundle -Recurse -Include *.exe, *.msi, *.zip, *.sig, latest.json | Copy-Item -Destination dist/ -Force
           Compress-Archive -Path manifest.json,bridge.js,content.css,content.js,help.html,popup.html,popup.js,icons -DestinationPath "dist/mers-nfc-tauri-extension-${{ github.ref_name }}.zip" -Force
           
           # Generate latest.json manifest for Tauri updater
-          $msiFile = Get-ChildItem dist -Filter *.msi | Select-Object -First 1
-          $sigFile = Get-ChildItem dist -Filter *.sig | Select-Object -First 1
-          if ($msiFile -and $sigFile) {
+          # Prefer NSIS zip/installer or MSI installer with signature
+          $bundleFile = Get-ChildItem dist -Include *.nsis.zip, *.msi.zip, *.exe, *.msi | Where-Object { Test-Path "$($_.FullName).sig" } | Select-Object -First 1
+          if (-not $bundleFile) {
+            $bundleFile = Get-ChildItem dist -Include *.exe, *.msi | Select-Object -First 1
+          }
+          $sigFile = if ($bundleFile -and (Test-Path "$($bundleFile.FullName).sig")) { Get-Item "$($bundleFile.FullName).sig" } else { Get-ChildItem dist -Filter *.sig | Select-Object -First 1 }
+          
+          if ($bundleFile -and $sigFile) {
             $sigContent = (Get-Content $sigFile.FullName -Raw).Trim()
             $tag = "${{ github.ref_name }}"
             $ver = $tag.TrimStart('v')
             $date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
-            $fileName = $msiFile.Name
+            $fileName = $bundleFile.Name
             $url = "https://github.com/endrisusanto/MRS-NFC-Manual-Input/releases/download/$tag/$fileName"
             
             $manifest = [PSCustomObject]@{
@@ -130,10 +135,10 @@ jobs:
               }
             }
             $manifest | ConvertTo-Json -Depth 5 | Out-File -FilePath "dist/latest.json" -Encoding utf8
-            Write-Host "Generated dist/latest.json for Tauri updater:"
+            Write-Host "Generated dist/latest.json for Tauri updater targeting $($fileName):"
             Get-Content "dist/latest.json"
           } else {
-            Write-Warning "MSI or SIG not found in dist, latest.json not generated."
+            Write-Warning "Bundle or SIG not found in dist, latest.json not generated."
           }
 
       - name: Upload Windows artifact

@@ -1264,7 +1264,8 @@ async fn tauri_install_update(app_handle: tauri::AppHandle) -> Result<(), String
             }
         ).await.map_err(|e| e.to_string())?;
 
-        app_handle.restart();
+        // Exit gracefully so the installer can overwrite binary files without file lock conflicts
+        app_handle.exit(0);
     }
     Ok(())
 }

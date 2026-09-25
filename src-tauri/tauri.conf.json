@@ -17,6 +17,7 @@
     "active": true,
     "publisher": "endrisusanto",
     "targets": [
+      "nsis",
       "msi"
     ],
     "createUpdaterArtifacts": true,
