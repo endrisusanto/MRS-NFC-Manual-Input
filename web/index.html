@@ -215,14 +215,23 @@
         justify-content: center;
         gap: 8px;
         padding: 0 16px;
+        transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1),
+                    background-color 0.14s ease,
+                    border-color 0.14s ease,
+                    opacity 0.14s ease;
       }
 
-      button:hover {
+      button:hover:not(:disabled) {
         background: var(--border);
       }
 
-      button:active {
-        opacity: 0.9;
+      button:active:not(:disabled) {
+        transform: scale(0.975);
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
       }
 
       button.primary {
@@ -231,7 +240,7 @@
         color: #ffffff;
       }
 
-      button.primary:hover {
+      button.primary:hover:not(:disabled) {
         background: var(--primary-hover);
         border-color: var(--primary-hover);
       }
@@ -246,7 +255,18 @@
         text-transform: uppercase;
         letter-spacing: 0.04em;
         cursor: pointer;
-        border-radius: 10px;
+        border-radius: 12px;
+        transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1),
+                    box-shadow 0.14s ease,
+                    filter 0.14s ease;
+      }
+
+      .mode-button:hover {
+        filter: brightness(1.06);
+      }
+
+      .mode-button:active {
+        transform: scale(0.98);
       }
 
       .mode-button.cek-pesanan {
@@ -347,11 +367,34 @@
         justify-content: center;
         align-items: center;
         padding: 16px;
-        background: rgba(0, 0, 0, 0.75);
+        background: rgba(0, 0, 0, 0.72);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        animation: modalFade 0.16s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       }
 
       .modal[hidden] {
         display: none !important;
+      }
+
+      @keyframes modalFade {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      @keyframes modalSlideUp {
+        from {
+          opacity: 0;
+          transform: translateY(10px) scale(0.985);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
       }
 
       .modal form, .modal-form {
@@ -362,10 +405,12 @@
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: 16px;
-        padding: 20px;
+        padding: 22px;
         display: flex;
         flex-direction: column;
         gap: 16px;
+        box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.4);
+        animation: modalSlideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       }
 
       .modal-header {
@@ -659,7 +704,7 @@
       </section>
 
       <div class="foot">
-        <button id="pesan-menu-btn" type="button" class="mode-button pesan-menu" style="width:100%; margin-bottom:8px;">🍽 Pesan Menu</button>
+        <button id="pesan-menu-btn" type="button" class="mode-button pesan-menu" style="width:100%; margin-bottom:8px;">Pesan Menu</button>
         <div id="note" class="muted">Web NFC butuh Android Chrome + HTTPS.</div>
       </div>
     </main>
@@ -737,7 +782,7 @@
     <div id="order-modal" class="modal" hidden>
       <div class="modal-form">
         <div class="modal-header">
-          <h3>🍽 Pesan Menu</h3>
+          <h3>Pesan Menu</h3>
           <button id="order-modal-close" class="modal-close-btn" type="button" aria-label="Tutup">✕</button>
         </div>
 
@@ -751,15 +796,15 @@
           <p id="order-login-msg" style="margin:0; font-size:12px; color:#dc2626; display:none;"></p>
           <div class="actions">
             <button id="order-cancel-login" type="button">Batal</button>
-            <button id="order-do-login" type="button" class="primary">Masuk →</button>
+            <button id="order-do-login" type="button" class="primary">Masuk &rarr;</button>
           </div>
         </div>
 
         <!-- Step: Pilih Menu -->
         <div class="order-step" id="ostep-menu">
           <div style="display: flex; gap: 8px; width: 100%;">
-            <button id="order-load-menu" type="button" class="primary" style="flex: 1; min-height: 46px;">🔄 Muat Ulang</button>
-            <button id="open-auto-order-btn" type="button" class="pill" style="min-height: 46px; padding: 0 14px; font-size: 12px; font-weight: 700; background: linear-gradient(135deg, rgba(37,99,235,0.15), rgba(34,197,94,0.15)); border: 1px solid rgba(34,197,94,0.3); color: var(--text-main);">⚡ Auto Pesan</button>
+            <button id="order-load-menu" type="button" class="primary" style="flex: 1; min-height: 46px;">Muat Ulang</button>
+            <button id="open-auto-order-btn" type="button" class="pill" style="min-height: 46px; padding: 0 14px; font-size: 12px; font-weight: 700; background: linear-gradient(135deg, rgba(37,99,235,0.15), rgba(34,197,94,0.15)); border: 1px solid rgba(34,197,94,0.3); color: var(--text-main);">Auto-Pesan</button>
           </div>
           <div id="order-menu-list" class="menu-cards"></div>
           <div class="actions" style="margin-top:4px;">
@@ -774,14 +819,14 @@
     <div id="auto-order-modal" class="modal" hidden>
       <div class="modal-form" style="width: min(480px, 95%); max-height: 90vh; overflow-y: auto;">
         <div class="modal-header">
-          <h3>⚡ Auto-Pesan Makan Siang</h3>
+          <h3>Auto-Pesan Makan Siang</h3>
           <button id="auto-order-close" class="modal-close-btn" type="button" aria-label="Tutup">✕</button>
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 14px;">
           <!-- Status Info Banner -->
           <div style="padding: 12px 14px; border-radius: 12px; background: var(--surface-subtle); border: 1px solid var(--border); font-size: 12px; line-height: 1.4;">
-            <div style="font-weight: 700; margin-bottom: 3px; color: var(--text-main);">🤖 Automasi Hari Kerja (Senin – Jumat)</div>
+            <div style="font-weight: 700; margin-bottom: 3px; color: var(--text-main);">Automasi Hari Kerja (Senin – Jumat)</div>
             <div style="color: var(--text-muted);">Sistem mengecek & memesan menu Makan Siang setiap pukul <b>07:30 WIB</b> jika belum ada pesanan aktif.</div>
           </div>
 
@@ -818,9 +863,9 @@
 
           <!-- Actions -->
           <div class="actions" style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
-            <button id="auto-order-save-btn" type="button" class="primary" style="width: 100%; min-height: 44px; font-weight: 800;">💾 Simpan Pengaturan</button>
+            <button id="auto-order-save-btn" type="button" class="primary" style="width: 100%; min-height: 44px; font-weight: 800;">Simpan Pengaturan</button>
             <div style="display: flex; gap: 8px;">
-              <button id="auto-order-test-btn" type="button" class="pill" style="flex: 1; min-height: 38px; font-size: 12px;">⚡ Tes Order Sekarang</button>
+              <button id="auto-order-test-btn" type="button" class="pill" style="flex: 1; min-height: 38px; font-size: 12px;">Tes Order Sekarang</button>
               <button id="auto-order-close-btn" type="button" class="pill" style="min-height: 38px; font-size: 12px; padding: 0 16px;">Tutup</button>
             </div>
           </div>
@@ -1628,7 +1673,7 @@
         const dates = orderDateRange(orderToday(), 6);
 
         const list = $('order-menu-list');
-        list.innerHTML = '<div class="order-loading"><div style="font-size:42px; display:inline-block; animation: wobble 1.5s infinite ease-in-out;">🍱</div><div style="margin-top:12px; animation: pulse 1.5s infinite; letter-spacing: 0.5px;">Memuat menu...</div></div>';
+        list.innerHTML = '<div class="order-loading" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px 16px; gap:12px;"><div style="width:28px; height:28px; border:3px solid var(--border); border-top-color:var(--primary); border-radius:50%; animation:spin 0.8s linear infinite;"></div><div style="font-size:13px; font-weight:600; color:var(--text-muted);">Memuat menu...</div></div>';
         selectedMenus = new Map();
         $('order-submit').disabled = true;
 
@@ -1653,7 +1698,7 @@
           }
 
           if (!data.days?.length) {
-            list.innerHTML = '<div class="day-card" style="text-align:center; padding:24px;"><div style="font-size:32px; margin-bottom:8px;">🍽️</div><div style="font-weight:700; color:var(--text-muted);">Menu tidak tersedia</div></div>';
+            list.innerHTML = '<div class="day-card" style="text-align:center; padding:24px;"><div style="font-weight:700; color:var(--text-muted);">Menu tidak tersedia</div></div>';
             return;
           }
 
@@ -1679,7 +1724,7 @@
                         const status = existing ? (existing.status || 'Belum Diambil') : '';
                         const isTaken = isOrdered && status.toLowerCase().includes('sudah');
                         if (isOrdered) {
-                          labelText = `✔️ ${status}`;
+                          labelText = status;
                           badgeCls = status.toLowerCase().includes('sudah') ? 'stock-ok' : 'stock-low';
                         }
                         const isDisabled = (!isOrdered && bal === 0) || isTaken;
@@ -1823,13 +1868,13 @@
           }
           const failed = results.filter(item => !item.success);
           if (!failed.length) {
-            await mrsAlert('✅ Pesanan berhasil disimpan!');
+            await mrsAlert('Pesanan berhasil disimpan!');
             $('order-modal').hidden = true;
           } else {
-            await mrsAlert('❌ Gagal: ' + (failed[0].message || 'Sebagian pesanan gagal'));
+            await mrsAlert('Gagal: ' + (failed[0].message || 'Sebagian pesanan gagal'));
           }
         } catch (e) {
-          await mrsAlert('❌ Error: ' + e.message);
+          await mrsAlert('Error: ' + e.message);
         }
         $('order-submit').disabled = false;
         $('order-submit').textContent = 'Simpan Pesanan';
@@ -1837,10 +1882,10 @@
 
       // ── Auto-Pesan Makan Siang Logic & Bridge Integration ──────────────────
       const DEFAULT_AUTO_ORDER_PREFS = [
-        { id: 'daging', label: '🥩 Daging / Sapi', keywords: ['daging', 'sapi', 'rendang', 'empal', 'rawon', 'gulai sapi', 'beef'], enabled: true },
-        { id: 'ayam', label: '🍗 Ayam', keywords: ['ayam', 'chicken', 'bebek', 'unggas'], enabled: true },
-        { id: 'ikan', label: '🐟 Ikan / Seafood', keywords: ['ikan', 'tongkol', 'lele', 'nila', 'gurame', 'udang', 'cumi', 'seafood'], enabled: true },
-        { id: 'telur', label: '🥚 Telur', keywords: ['telur', 'egg', 'dadar', 'ceplok', 'balado telur'], enabled: true }
+        { id: 'daging', label: 'Daging / Sapi', keywords: ['daging', 'sapi', 'rendang', 'empal', 'rawon', 'gulai sapi', 'beef'], enabled: true },
+        { id: 'ayam', label: 'Ayam', keywords: ['ayam', 'chicken', 'bebek', 'unggas'], enabled: true },
+        { id: 'ikan', label: 'Ikan / Seafood', keywords: ['ikan', 'tongkol', 'lele', 'nila', 'gurame', 'udang', 'cumi', 'seafood'], enabled: true },
+        { id: 'telur', label: 'Telur', keywords: ['telur', 'egg', 'dadar', 'ceplok', 'balado telur'], enabled: true }
       ];
 
       let currentAutoOrderPrefs = [...DEFAULT_AUTO_ORDER_PREFS];
@@ -1862,8 +1907,12 @@
                 </div>
               </div>
               <div style="display:flex; gap:4px;">
-                <button type="button" class="pill" onclick="movePref(${idx}, -1)" ${isFirst ? 'disabled style="opacity:0.3; pointer-events:none;"' : ''} style="min-height:30px; padding:0 8px; font-size:11px;" title="Naikkan Prioritas">▲</button>
-                <button type="button" class="pill" onclick="movePref(${idx}, 1)" ${isLast ? 'disabled style="opacity:0.3; pointer-events:none;"' : ''} style="min-height:30px; padding:0 8px; font-size:11px;" title="Turunkan Prioritas">▼</button>
+                <button type="button" class="pill" onclick="movePref(${idx}, -1)" ${isFirst ? 'disabled style="opacity:0.3; pointer-events:none;"' : ''} style="min-height:30px; padding:0 8px; font-size:11px;" title="Naikkan Prioritas" aria-label="Naikkan Prioritas">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                </button>
+                <button type="button" class="pill" onclick="movePref(${idx}, 1)" ${isLast ? 'disabled style="opacity:0.3; pointer-events:none;"' : ''} style="min-height:30px; padding:0 8px; font-size:11px;" title="Turunkan Prioritas" aria-label="Turunkan Prioritas">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
               </div>
             </div>
           `;
@@ -1946,16 +1995,16 @@
         }
 
         if (saved) {
-          await mrsAlert('✅ Pengaturan Auto-Pesan Makan Siang berhasil disimpan!');
+          await mrsAlert('Pengaturan Auto-Pesan Makan Siang berhasil disimpan.');
           $('auto-order-modal').hidden = true;
         } else {
-          await mrsAlert('❌ Gagal menyimpan konfigurasi Auto-Pesan.');
+          await mrsAlert('Gagal menyimpan konfigurasi Auto-Pesan.');
         }
       });
 
       $('auto-order-test-btn')?.addEventListener('click', async () => {
         if (!orderCreds?.genId || !orderCreds?.password) {
-          await mrsAlert('⚠️ Harap login terlebih dahulu untuk menjalankan tes Auto-Pesan.');
+          await mrsAlert('Harap login terlebih dahulu untuk menjalankan tes Auto-Pesan.');
           return;
         }
 
@@ -1968,15 +2017,15 @@
           try {
             const res = JSON.parse(resRaw);
             if (res.success) {
-              await mrsAlert('⚡ Proses Auto-Pesan sedang berjalan di background! Periksa bilah notifikasi Android Anda.');
+              await mrsAlert('Proses Auto-Pesan sedang berjalan di background. Periksa bilah notifikasi Android Anda.');
             } else {
-              await mrsAlert('⚠️ ' + (res.message || 'Gagal memulai tes'));
+              await mrsAlert(res.message || 'Gagal memulai tes');
             }
           } catch (_) {
-            await mrsAlert('⚡ Proses Auto-Pesan dipicu.');
+            await mrsAlert('Proses Auto-Pesan dipicu.');
           }
         } else {
-          await mrsAlert('ℹ️ Fitur background worker auto-order berjalan pada aplikasi Android APK.');
+          await mrsAlert('Fitur background worker auto-order berjalan pada aplikasi Android APK.');
         }
       });
     </script>

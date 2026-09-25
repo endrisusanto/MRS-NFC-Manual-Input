@@ -168,8 +168,8 @@ class AutoOrderWorker(context: Context, params: WorkerParameters) : Worker(conte
 
             val availableMenus = menuItems.filter { it.isAvailable && it.qtyBalance > 0 }
             if (availableMenus.isEmpty()) {
-                val msg = "Semua menu Makan Siang untuk hari ini ($todayIso) sudah habis/tidak tersedia."
-                sendNotification("⚠️ MeRS: Stok Menu Habis", msg)
+                val msg = "Semua menu Makan Siang untuk hari ini ($todayIso) sudah habis atau tidak tersedia."
+                sendNotification("Peringatan: Stok Menu Habis", msg)
                 prefs.edit()
                     .putString("last_status", "Gagal: Stok menu habis")
                     .putLong("last_run_timestamp", System.currentTimeMillis())
@@ -204,7 +204,7 @@ class AutoOrderWorker(context: Context, params: WorkerParameters) : Worker(conte
                     matchedCategory = "Fallback (Menu Pertama Tersedia)"
                 } else {
                     val msg = "Tidak ada menu yang sesuai dengan preferensi Anda untuk hari ini ($todayIso)."
-                    sendNotification("⚠️ MeRS: Preferensi Tidak Ditemukan", msg)
+                    sendNotification("Peringatan: Preferensi Tidak Ditemukan", msg)
                     prefs.edit()
                         .putString("last_status", "Dilewati: Tidak ada yang cocok preferensi")
                         .putLong("last_run_timestamp", System.currentTimeMillis())
@@ -228,7 +228,7 @@ class AutoOrderWorker(context: Context, params: WorkerParameters) : Worker(conte
 
             if (orderSuccess) {
                 val successMsg = "Berhasil memesan ${selectedMenu.name} ($matchedCategory) untuk Makan Siang hari ini."
-                sendNotification("🍱 Makan Siang Berhasil Dipesan!", successMsg)
+                sendNotification("Makan Siang Berhasil Dipesan", successMsg)
                 prefs.edit()
                     .putString("last_status", "Berhasil: ${selectedMenu.name}")
                     .putString("last_order_date", todayIso)
@@ -236,7 +236,7 @@ class AutoOrderWorker(context: Context, params: WorkerParameters) : Worker(conte
                     .apply()
             } else {
                 val errMsg = orderRes?.optString("message", "Gagal submit order") ?: "Gagal submit order"
-                sendNotification("❌ Gagal Auto-Pesan Makan Siang", "$errMsg (${selectedMenu.name})")
+                sendNotification("Gagal Auto-Pesan Makan Siang", "$errMsg (${selectedMenu.name})")
                 prefs.edit()
                     .putString("last_status", "Gagal: $errMsg")
                     .putLong("last_run_timestamp", System.currentTimeMillis())
@@ -264,10 +264,10 @@ class AutoOrderWorker(context: Context, params: WorkerParameters) : Worker(conte
 
     private fun parsePreferences(raw: String): List<PreferenceCategory> {
         val defaultList = listOf(
-            PreferenceCategory("daging", "🥩 Daging / Sapi", listOf("daging", "sapi", "rendang", "empal", "rawon", "gulai sapi", "beef"), true),
-            PreferenceCategory("ayam", "🍗 Ayam", listOf("ayam", "chicken", "bebek", "unggas"), true),
-            PreferenceCategory("ikan", "🐟 Ikan / Seafood", listOf("ikan", "tongkol", "lele", "nila", "gurame", "udang", "cumi", "seafood"), true),
-            PreferenceCategory("telur", "🥚 Telur", listOf("telur", "egg", "dadar", "ceplok", "balado telur"), true)
+            PreferenceCategory("daging", "Daging / Sapi", listOf("daging", "sapi", "rendang", "empal", "rawon", "gulai sapi", "beef"), true),
+            PreferenceCategory("ayam", "Ayam", listOf("ayam", "chicken", "bebek", "unggas"), true),
+            PreferenceCategory("ikan", "Ikan / Seafood", listOf("ikan", "tongkol", "lele", "nila", "gurame", "udang", "cumi", "seafood"), true),
+            PreferenceCategory("telur", "Telur", listOf("telur", "egg", "dadar", "ceplok", "balado telur"), true)
         )
 
         if (raw.isBlank()) return defaultList
