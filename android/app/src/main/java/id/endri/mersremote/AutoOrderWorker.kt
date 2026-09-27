@@ -393,9 +393,9 @@ class AutoOrderWorker(context: Context, params: WorkerParameters) : Worker(conte
     private fun parsePreferences(raw: String): List<PreferenceCategory> {
         val defaultList = listOf(
             PreferenceCategory("daging", "Daging / Sapi", listOf("daging", "sapi", "rendang", "empal", "rawon", "gulai sapi", "beef", "kambing", "bistik", "iga", "rolade", "semur daging"), true),
-            PreferenceCategory("ayam", "Ayam", listOf("ayam", "chicken", "bebek", "unggas", "fillet ayam", "katsu"), true),
+            PreferenceCategory("ayam", "Ayam", listOf("ayam", "chicken", "bebek", "unggas", "fillet ayam", "katsu", "nasi goreng", "nasgor"), true),
             PreferenceCategory("ikan", "Ikan / Seafood", listOf("ikan", "tongkol", "lele", "nila", "gurame", "udang", "cumi", "seafood", "kakap", "tuna", "patin", "bandeng", "salmon", "dori"), true),
-            PreferenceCategory("telur", "Telur", listOf("telur", "egg", "dadar", "ceplok", "balado telur", "omelet", "martabak"), true)
+            PreferenceCategory("telur", "Telur", listOf("telur", "egg", "dadar", "ceplok", "balado telur", "omelet", "omelete", "omelette", "martabak"), true)
         )
 
         val defaultKeywordMap = defaultList.associate { it.id to it.keywords }
