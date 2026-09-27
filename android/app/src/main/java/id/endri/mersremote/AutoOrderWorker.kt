@@ -14,6 +14,7 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLEncoder
 import java.time.DayOfWeek
 import java.time.Duration
 import java.time.LocalDate
@@ -52,6 +53,7 @@ class AutoOrderWorker(context: Context, params: WorkerParameters) : Worker(conte
 
             val request = OneTimeWorkRequestBuilder<AutoOrderWorker>()
                 .setConstraints(constraints)
+                .addTag(TEST_WORK_NAME)
                 .build()
 
             WorkManager.getInstance(context)
@@ -101,8 +103,21 @@ class AutoOrderWorker(context: Context, params: WorkerParameters) : Worker(conte
         val weekdaysOnly = prefs.getBoolean("weekdays_only", true)
         val genId = prefs.getString("gen_id", "") ?: ""
         val password = prefs.getString("password", "") ?: ""
+        val isManualTest = tags.contains(TEST_WORK_NAME)
 
-        if (!enabled || genId.isEmpty() || password.isEmpty()) {
+        if (genId.isEmpty() || password.isEmpty()) {
+            val errMsg = "Gagal: Akun MeRS belum login (GEN/Password kosong)"
+            prefs.edit()
+                .putString("last_status", errMsg)
+                .putLong("last_run_timestamp", System.currentTimeMillis())
+                .apply()
+            if (isManualTest) {
+                sendNotification("Gagal Auto-Pesan MeRS", "Harap login terlebih dahulu di aplikasi MeRS Remote.")
+            }
+            return Result.success()
+        }
+
+        if (!enabled && !isManualTest) {
             return Result.success()
         }
 
@@ -117,32 +132,60 @@ class AutoOrderWorker(context: Context, params: WorkerParameters) : Worker(conte
         }
 
         if (targetDates.isEmpty()) {
+            val statusText = "Skip: Tidak ada hari kerja aktif dalam jadwal"
             prefs.edit()
-                .putString("last_status", "Skip: Tidak ada hari kerja aktif dalam jadwal")
+                .putString("last_status", statusText)
                 .putLong("last_run_timestamp", System.currentTimeMillis())
                 .apply()
+            if (isManualTest) {
+                sendNotification("Auto-Pesan MeRS", statusText)
+            }
             enqueueNext(applicationContext, ExistingWorkPolicy.REPLACE)
             return Result.success()
         }
 
         return try {
-            // 1. Ambil daftar pesanan aktif
-            val existingLunchOrders = mutableMapOf<String, String>()
-            val syncUrl = URL("$SERVER_URL/mers-proxy/widget-sync?genId=$genId")
-            val syncJson = httpGetJson(syncUrl)
-            if (syncJson != null && syncJson.optBoolean("success", false)) {
-                val orders = syncJson.optJSONArray("orders") ?: JSONArray()
-                for (i in 0 until orders.length()) {
-                    val ord = orders.optJSONObject(i) ?: continue
-                    val ordDate = ord.optString("schedule_date", ord.optString("date", ""))
-                    val mealName = ord.optString("meal_name", "")
-                    val mealId = ord.optString("meal_id", "")
-                    val menuName = ord.optString("menu_name", ord.optString("item_name", "Menu"))
+            val encGen = URLEncoder.encode(genId, "UTF-8")
+            val encPass = URLEncoder.encode(password, "UTF-8")
 
-                    val isLunch = mealId == "2" || mealName.contains("Siang", ignoreCase = true)
-                    if (isLunch && ordDate.isNotBlank()) {
-                        val dateMatch = Regex("\\d{4}-\\d{2}-\\d{2}").find(ordDate)?.value ?: ordDate.take(10)
-                        existingLunchOrders[dateMatch] = menuName
+            // 1. Ambil daftar pesanan aktif via MERS history & widget-sync
+            val existingLunchOrders = mutableMapOf<String, String>()
+            val fromDate = targetDates.first().format(DateTimeFormatter.ISO_LOCAL_DATE)
+            val toDate = targetDates.last().format(DateTimeFormatter.ISO_LOCAL_DATE)
+
+            val historyUrl = URL("$SERVER_URL/mers-proxy/history?genId=$encGen&password=$encPass&from=$fromDate&to=$toDate")
+            val historyJson = httpGetJson(historyUrl)
+            if (historyJson != null && historyJson.optBoolean("success", false)) {
+                val rows = historyJson.optJSONArray("rows") ?: JSONArray()
+                for (i in 0 until rows.length()) {
+                    val row = rows.optJSONObject(i) ?: continue
+                    val tgl = row.optString("tanggal", "")
+                    val jdwl = row.optString("jadwal", "")
+                    val menu = row.optString("menu", "Menu")
+                    if (jdwl.contains("Siang", ignoreCase = true) && tgl.isNotBlank()) {
+                        val dateMatch = Regex("\\d{4}-\\d{2}-\\d{2}").find(tgl)?.value ?: tgl.take(10)
+                        existingLunchOrders[dateMatch] = menu
+                    }
+                }
+            }
+
+            if (existingLunchOrders.isEmpty()) {
+                val syncUrl = URL("$SERVER_URL/mers-proxy/widget-sync?genId=$encGen")
+                val syncJson = httpGetJson(syncUrl)
+                if (syncJson != null && syncJson.optBoolean("success", false)) {
+                    val orders = syncJson.optJSONArray("orders") ?: JSONArray()
+                    for (i in 0 until orders.length()) {
+                        val ord = orders.optJSONObject(i) ?: continue
+                        val ordDate = ord.optString("schedule_date", ord.optString("date", ""))
+                        val mealName = ord.optString("meal_name", "")
+                        val mealId = ord.optString("meal_id", "")
+                        val menuName = ord.optString("menu_name", ord.optString("item_name", "Menu"))
+
+                        val isLunch = mealId == "2" || mealName.contains("Siang", ignoreCase = true)
+                        if (isLunch && ordDate.isNotBlank()) {
+                            val dateMatch = Regex("\\d{4}-\\d{2}-\\d{2}").find(ordDate)?.value ?: ordDate.take(10)
+                            existingLunchOrders[dateMatch] = menuName
+                        }
                     }
                 }
             }
@@ -166,11 +209,22 @@ class AutoOrderWorker(context: Context, params: WorkerParameters) : Worker(conte
                     continue
                 }
 
-                // Ambil stok & nama menu untuk tanggal targetDate
-                val stockUrl = URL("$SERVER_URL/mers-proxy/stock?date=$dateIso&meal_id=2&genId=$genId&password=$password")
+                val encDate = URLEncoder.encode(dateIso, "UTF-8")
+                val stockUrl = URL("$SERVER_URL/mers-proxy/stock?date=$encDate&meal_id=2&genId=$encGen&password=$encPass")
                 val stockJson = httpGetJson(stockUrl)
+
+                if (stockJson == null) {
+                    failedResults.add("$dateIso: Gagal koneksi ke server MeRS")
+                    continue
+                }
+
+                if (stockJson.has("success") && !stockJson.optBoolean("success", true)) {
+                    val errMsg = stockJson.optString("message", "Gagal cek stok")
+                    failedResults.add("$dateIso: $errMsg")
+                    continue
+                }
+
                 val stockArray = when {
-                    stockJson == null -> null
                     stockJson.has("data") -> stockJson.optJSONArray("data")
                     stockJson.has("menus") -> stockJson.optJSONArray("menus")
                     stockJson.has("items") -> stockJson.optJSONArray("items")
@@ -182,7 +236,7 @@ class AutoOrderWorker(context: Context, params: WorkerParameters) : Worker(conte
                     continue
                 }
 
-                val namesUrl = URL("$SERVER_URL/mers-proxy/menu-names?date=$dateIso&meal_id=2&genId=$genId&password=$password")
+                val namesUrl = URL("$SERVER_URL/mers-proxy/menu-names?date=$encDate&meal_id=2&genId=$encGen&password=$encPass")
                 val namesJson = httpGetJson(namesUrl)
                 val namesObj = namesJson?.optJSONObject("names") ?: namesJson?.optJSONObject("data") ?: JSONObject()
 
@@ -192,19 +246,15 @@ class AutoOrderWorker(context: Context, params: WorkerParameters) : Worker(conte
                     val menuId = item.optString("schedule_menu_id", item.optString("id", ""))
                     if (menuId.isEmpty()) continue
                     val name = namesObj.optString(menuId, item.optString("name", item.optString("menu_name", "Menu #$menuId")))
-                    val balance = item.optInt("qty_balance", item.optInt("qty", item.optInt("balance", 0)))
-                    val isAvailRaw = if (item.has("is_available")) {
-                        val raw = item.opt("is_available")
-                        raw == true || raw == 1 || raw == "1" || raw?.toString().equals("true", true)
-                    } else {
-                        balance > 0
-                    }
-                    menuItems.add(MenuItem(menuId, name, balance, isAvailRaw && balance > 0))
+                    val balance = item.optInt("qty_balance", item.optString("qty_balance", "0").toIntOrNull() ?: item.optInt("qty", 0))
+                    val isAvailRaw = item.optBoolean("is_available", balance > 0) || item.optString("is_available") == "1" || item.optString("is_available").equals("true", true)
+                    val isAvailable = (isAvailRaw || balance > 0) && balance > 0
+                    menuItems.add(MenuItem(menuId, name, balance, isAvailable))
                 }
 
                 val availableMenus = menuItems.filter { it.isAvailable && it.qtyBalance > 0 }
                 if (availableMenus.isEmpty()) {
-                    noAvailableMenuDays.add(dateIso)
+                    noAvailableMenuDays.add("$dateIso (semua menu habis)")
                     continue
                 }
 
@@ -216,7 +266,7 @@ class AutoOrderWorker(context: Context, params: WorkerParameters) : Worker(conte
                     if (!pref.enabled) continue
                     val match = availableMenus.firstOrNull { menu ->
                         val lowerName = menu.name.lowercase()
-                        pref.keywords.any { kw -> lowerName.contains(kw.lowercase().trim()) }
+                        pref.keywords.any { kw -> kw.isNotBlank() && lowerName.contains(kw.lowercase().trim()) }
                     }
                     if (match != null) {
                         selectedMenu = match
@@ -231,6 +281,7 @@ class AutoOrderWorker(context: Context, params: WorkerParameters) : Worker(conte
                         selectedMenu = availableMenus.first()
                         matchedCategory = "Fallback"
                     } else {
+                        noAvailableMenuDays.add("$dateIso (preferensi tidak cocok)")
                         continue
                     }
                 }
@@ -276,17 +327,38 @@ class AutoOrderWorker(context: Context, params: WorkerParameters) : Worker(conte
                         .putLong("last_run_timestamp", System.currentTimeMillis())
                         .apply()
                 }
-                skippedAlreadyOrdered.size == targetDates.size -> {
+                skippedAlreadyOrdered.isNotEmpty() && (skippedAlreadyOrdered.size == targetDates.size) -> {
+                    val statusText = "Semua sudah dipesan (${skippedAlreadyOrdered.size} hari kerja)"
+                    if (isManualTest) {
+                        sendNotification("Auto-Pesan: Semua Sudah Dipesan", skippedAlreadyOrdered.joinToString("\n"))
+                    }
                     prefs.edit()
-                        .putString("last_status", "Semua sudah dipesan (${skippedAlreadyOrdered.size} hari kerja)")
+                        .putString("last_status", statusText)
+                        .putLong("last_run_timestamp", System.currentTimeMillis())
+                        .apply()
+                }
+                noAvailableMenuDays.isNotEmpty() -> {
+                    val statusText = if (skippedAlreadyOrdered.isNotEmpty()) {
+                        "Sudah pesan (${skippedAlreadyOrdered.size} hari), hari lain: ${noAvailableMenuDays.joinToString(", ")}"
+                    } else {
+                        "Menu belum buka / stok kosong: ${noAvailableMenuDays.joinToString(", ")}"
+                    }
+                    if (isManualTest) {
+                        sendNotification("Auto-Pesan: Menu Belum Tersedia", statusText)
+                    }
+                    prefs.edit()
+                        .putString("last_status", statusText)
                         .putLong("last_run_timestamp", System.currentTimeMillis())
                         .apply()
                 }
                 else -> {
                     val statusText = if (skippedAlreadyOrdered.isNotEmpty()) {
-                        "Sudah pesan (${skippedAlreadyOrdered.size} hari), hari lain belum buka/stok kosong"
+                        "Sudah pesan (${skippedAlreadyOrdered.size} hari)"
                     } else {
                         "Menu belum buka / stok kosong untuk hari mendatang"
+                    }
+                    if (isManualTest) {
+                        sendNotification("Auto-Pesan MeRS", statusText)
                     }
                     prefs.edit()
                         .putString("last_status", statusText)
@@ -297,10 +369,14 @@ class AutoOrderWorker(context: Context, params: WorkerParameters) : Worker(conte
 
             Result.success()
         } catch (e: Exception) {
+            val errMsg = "Error: ${e.message}"
             prefs.edit()
-                .putString("last_status", "Error: ${e.message}")
+                .putString("last_status", errMsg)
                 .putLong("last_run_timestamp", System.currentTimeMillis())
                 .apply()
+            if (isManualTest) {
+                sendNotification("Gagal Auto-Pesan Makan Siang", e.message ?: "Terjadi kesalahan internal.")
+            }
             Result.success()
         } finally {
             enqueueNext(applicationContext, ExistingWorkPolicy.APPEND_OR_REPLACE)
