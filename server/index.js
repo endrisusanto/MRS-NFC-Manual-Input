@@ -323,8 +323,29 @@ async function withSession(genId, password, fn) {
 
 // POST /mers-proxy/login
 app.post("/mers-proxy/login", async (req, res) => {
-  const { genId, password } = req.body;
+  const { genId, password, device = "loket-pc-1" } = req.body;
   if (!genId || !password) return res.json({ success: false, message: "genId dan password wajib diisi" });
+
+  const agent = getAgentForDevice(device);
+  if (agent) {
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const data = await requestAgent(device, {
+        action: "order_history",
+        genId,
+        password,
+        from: today,
+        to: today,
+      });
+      if (data && data.success !== false) {
+        return res.json({ success: true, userId: String(genId) });
+      } else {
+        return res.json({ success: false, message: data.message || "Login gagal" });
+      }
+    } catch (e) {
+      console.warn("[MERS Proxy] Login via agent error:", e.message);
+    }
+  }
 
   mersSessions.delete(String(genId)); // force refresh
   try {
@@ -338,8 +359,39 @@ app.post("/mers-proxy/login", async (req, res) => {
 
 // GET /mers-proxy/stock?date=DATE&meal_id=2&genId=GEN&password=PASS
 app.get("/mers-proxy/stock", async (req, res) => {
-  const { date, meal_id, genId, password } = req.query;
+  const { date, meal_id = "2", genId, password, device = "loket-pc-1" } = req.query;
   if (!date || !meal_id || !genId) return res.json({ success: false, message: "Parameter kurang" });
+
+  const agent = getAgentForDevice(device);
+  if (agent && password) {
+    try {
+      const rangeRes = await requestAgent(device, {
+        action: "order_menu_range",
+        genId,
+        password,
+        dates: [date],
+      });
+      if (rangeRes && rangeRes.success !== false && rangeRes.days) {
+        const day = rangeRes.days.find(d => d.date === date) || rangeRes.days[0];
+        const meal = day?.meals?.find(m => String(m.meal_id) === String(meal_id)) || day?.meals?.[0];
+        const rawMenus = meal?.menus || [];
+        const menus = rawMenus.map(m => ({
+          schedule_menu_id: String(m.id || ""),
+          id: String(m.id || ""),
+          name: m.name || "",
+          menu_name: m.name || "",
+          detail: m.detail || "",
+          qty_balance: typeof m.qty_balance === "number" ? m.qty_balance : parseInt(m.qty_balance, 10) || 0,
+          is_available: (typeof m.qty_balance === "number" ? m.qty_balance : parseInt(m.qty_balance, 10) || 0) > 0,
+        }));
+        return res.json({ success: true, data: menus, menus, items: menus, userId: genId });
+      } else if (rangeRes && rangeRes.message) {
+        return res.json({ success: false, message: rangeRes.message });
+      }
+    } catch (e) {
+      console.warn("[MERS Proxy] Stock via agent failed, trying fallback:", e.message);
+    }
+  }
 
   try {
     const { session, result: r } = await withSession(genId, password, session => mersRequest({
@@ -357,8 +409,31 @@ app.get("/mers-proxy/stock", async (req, res) => {
 // GET /mers-proxy/menu-names?date=DATE&meal_id=2&genId=GEN&password=PASS
 // Fetch order page HTML to extract menu names per schedule_menu_id
 app.get("/mers-proxy/menu-names", async (req, res) => {
-  const { date, meal_id, genId, password } = req.query;
+  const { date, meal_id = "2", genId, password, device = "loket-pc-1" } = req.query;
   if (!date || !meal_id || !genId) return res.json({ success: false, message: "Parameter kurang" });
+
+  const agent = getAgentForDevice(device);
+  if (agent && password) {
+    try {
+      const rangeRes = await requestAgent(device, {
+        action: "order_menu_range",
+        genId,
+        password,
+        dates: [date],
+      });
+      if (rangeRes && rangeRes.days) {
+        const day = rangeRes.days.find(d => d.date === date) || rangeRes.days[0];
+        const meal = day?.meals?.find(m => String(m.meal_id) === String(meal_id)) || day?.meals?.[0];
+        const names = {};
+        (meal?.menus || []).forEach(m => {
+          if (m.id && m.name) names[String(m.id)] = m.name;
+        });
+        return res.json({ success: true, names, data: names });
+      }
+    } catch (e) {
+      console.warn("[MERS Proxy] Menu names via agent failed, trying fallback:", e.message);
+    }
+  }
 
   try {
     const { result: r } = await withSession(genId, password, session => mersRequest({
@@ -449,8 +524,25 @@ app.get("/mers-proxy/menu-names", async (req, res) => {
 
 // POST /mers-proxy/order
 app.post("/mers-proxy/order", async (req, res) => {
-  const { genId, password, xtanggal, xjadwal, menusaya } = req.body;
+  const { genId, password, xtanggal, xjadwal, menusaya, device = "loket-pc-1" } = req.body;
   if (!genId || !xtanggal || !xjadwal || !menusaya) return res.json({ success: false, message: "Parameter kurang" });
+
+  const agent = getAgentForDevice(device);
+  if (agent) {
+    try {
+      const data = await requestAgent(device, {
+        action: "order_submit",
+        genId,
+        password,
+        date: xtanggal,
+        mealId: String(xjadwal),
+        menuId: String(menusaya),
+      });
+      return res.json(data);
+    } catch (e) {
+      console.warn("[MERS Proxy] Order submit via agent failed, trying fallback:", e.message);
+    }
+  }
 
   try {
     const body = `xtanggal=${xtanggal}&xjadwal=${xjadwal}&menusaya=${menusaya}&xfor_date=${xtanggal}&xjm=${xjadwal}&form_action=save`;
@@ -464,8 +556,23 @@ app.post("/mers-proxy/order", async (req, res) => {
 
 // POST /mers-proxy/cancel
 app.post("/mers-proxy/cancel", async (req, res) => {
-  const { genId, password, xid } = req.body;
+  const { genId, password, xid, device = "loket-pc-1" } = req.body;
   if (!genId || !xid) return res.json({ success: false, message: "Parameter kurang" });
+
+  const agent = getAgentForDevice(device);
+  if (agent) {
+    try {
+      const data = await requestAgent(device, {
+        action: "order_cancel",
+        genId,
+        password,
+        xid: String(xid),
+      });
+      return res.json(data);
+    } catch (e) {
+      console.warn("[MERS Proxy] Cancel via agent failed, trying fallback:", e.message);
+    }
+  }
 
   try {
     const { result: r } = await withSession(genId, password, session => mersRequest({ method: "POST", urlPath: "/order/hapusPesanan", body: `xid=${xid}`, cookie: session.cookie }));
@@ -478,8 +585,27 @@ app.post("/mers-proxy/cancel", async (req, res) => {
 
 // GET /mers-proxy/history?genId=GEN&password=PASS&from=DATE&to=DATE
 app.get("/mers-proxy/history", async (req, res) => {
-  const { genId, password, from, to } = req.query;
+  const { genId, password, from, to, device = "loket-pc-1" } = req.query;
   if (!genId) return res.json({ success: false, message: "genId wajib" });
+
+  const agent = getAgentForDevice(device);
+  if (agent && password) {
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const data = await requestAgent(device, {
+        action: "order_history",
+        genId,
+        password,
+        from: from || today,
+        to: to || today,
+      });
+      if (data && data.success !== false) {
+        return res.json(data);
+      }
+    } catch (e) {
+      console.warn("[MERS Proxy] History via agent failed, trying fallback:", e.message);
+    }
+  }
 
   try {
     const { session, result: r } = await withSession(genId, password, session => {
