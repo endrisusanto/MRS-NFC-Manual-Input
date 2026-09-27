@@ -1,6 +1,7 @@
 // MeRS WebSocket Relay Gateway
 "use strict";
 const http = require("http");
+const https = require("https");
 const path = require("path");
 const express = require("express");
 const { WebSocketServer } = require("ws");
@@ -245,10 +246,11 @@ function mersRequest({ method, urlPath, body, cookie }) {
   return new Promise((resolve, reject) => {
     const bodyBuf = body ? Buffer.from(body, "utf8") : null;
     const options = {
-      hostname: "107.102.8.148",
-      port: 80,
+      hostname: "seinp.sec.samsung.net",
+      port: 443,
       path: "/MERS" + urlPath,
       method: method || "GET",
+      rejectUnauthorized: false,
       headers: {
         "Accept": "text/html,application/json,*/*",
         "Content-Type": "application/x-www-form-urlencoded",
@@ -257,7 +259,7 @@ function mersRequest({ method, urlPath, body, cookie }) {
       },
     };
 
-    const req = http.request(options, (res) => {
+    const req = https.request(options, (res) => {
       const chunks = [];
       res.on("data", c => chunks.push(c));
       res.on("end", () => {
