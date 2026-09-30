@@ -877,7 +877,7 @@
         <div class="order-step" id="ostep-menu">
           <div style="display: flex; gap: 8px; width: 100%;">
             <button id="order-load-menu" type="button" class="primary" style="flex: 1; min-height: 46px;">Muat Ulang</button>
-            <button id="open-auto-order-btn" type="button" class="pill" style="min-height: 46px; padding: 0 14px; font-size: 12px; font-weight: 700; background: linear-gradient(135deg, rgba(37,99,235,0.15), rgba(34,197,94,0.15)); border: 1px solid rgba(34,197,94,0.3); color: var(--text-main);">Auto-Pesan</button>
+            <button id="open-auto-order-btn" type="button" class="pill" style="display: none; min-height: 46px; padding: 0 14px; font-size: 12px; font-weight: 700; background: linear-gradient(135deg, rgba(37,99,235,0.15), rgba(34,197,94,0.15)); border: 1px solid rgba(34,197,94,0.3); color: var(--text-main);">Auto-Pesan</button>
           </div>
           <div id="order-menu-list" class="menu-cards"></div>
           <div class="actions" style="margin-top:4px;">
@@ -2012,11 +2012,17 @@
 
       // ── Auto-Pesan Makan Siang Logic & Bridge Integration ──────────────────
       const DEFAULT_AUTO_ORDER_PREFS = [
-        { id: 'daging', label: 'Daging / Sapi', keywords: ['daging', 'sapi', 'rendang', 'empal', 'rawon', 'gulai sapi', 'beef', 'kambing', 'bistik', 'iga', 'rolade', 'semur daging', 'bakso', 'mie ayam', 'sate', 'siomay', 'mie aceh'], enabled: true },
+        { id: 'daging', label: 'Daging / Sapi', keywords: ['daging', 'sapi', 'rendang', 'empal', 'rawon', 'gulai sapi', 'beef', 'kambing', 'bistik', 'iga', 'rolade', 'semur daging', 'bakso', 'mie ayam', 'sate', 'siomay', 'mie aceh', 'sukiyaki', 'spaghetti carbonara', 'carbonara', 'spaghetti'], enabled: true },
         { id: 'ayam', label: 'Ayam', keywords: ['ayam', 'chicken', 'bebek', 'unggas', 'fillet ayam', 'katsu', 'nasi goreng', 'nasgor'], enabled: true },
         { id: 'ikan', label: 'Ikan / Seafood', keywords: ['ikan', 'tongkol', 'lele', 'nila', 'gurame', 'udang', 'cumi', 'seafood', 'kakap', 'tuna', 'patin', 'bandeng', 'salmon', 'dori'], enabled: true },
         { id: 'telur', label: 'Telur', keywords: ['telur', 'egg', 'dadar', 'ceplok', 'balado telur', 'omelet', 'omelete', 'omelette', 'martabak'], enabled: true }
       ];
+
+      // Tampilkan tombol Auto-Pesan hanya jika dijalankan di aplikasi Android APK
+      if (window.AndroidNfc?.saveAutoOrderConfig) {
+        const autoOrderBtn = $('open-auto-order-btn');
+        if (autoOrderBtn) autoOrderBtn.style.display = '';
+      }
 
       let currentAutoOrderPrefs = [...DEFAULT_AUTO_ORDER_PREFS];
       let draggedPrefIndex = null;
