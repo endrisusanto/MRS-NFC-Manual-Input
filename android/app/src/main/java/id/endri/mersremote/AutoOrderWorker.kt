@@ -153,38 +153,48 @@ class AutoOrderWorker(context: Context, params: WorkerParameters) : Worker(conte
             val fromDate = targetDates.first().format(DateTimeFormatter.ISO_LOCAL_DATE)
             val toDate = targetDates.last().format(DateTimeFormatter.ISO_LOCAL_DATE)
 
+            // A. Ambil dari History (cek riwayat pesanan yang sudah tersimpan di MERS)
             val historyUrl = URL("$SERVER_URL/mers-proxy/history?genId=$encGen&password=$encPass&from=$fromDate&to=$toDate")
             val historyJson = httpGetJson(historyUrl)
             if (historyJson != null && historyJson.optBoolean("success", false)) {
                 val rows = historyJson.optJSONArray("rows") ?: JSONArray()
                 for (i in 0 until rows.length()) {
                     val row = rows.optJSONObject(i) ?: continue
-                    val tgl = row.optString("tanggal", "")
+                    val tglIso = row.optString("tanggal_iso", "")
+                    val tglRaw = if (tglIso.isNotBlank()) tglIso else row.optString("tanggal", "")
                     val jdwl = row.optString("jadwal", "")
                     val menu = row.optString("menu", "Menu")
-                    if (jdwl.contains("Siang", ignoreCase = true) && tgl.isNotBlank()) {
-                        val dateMatch = Regex("\\d{4}-\\d{2}-\\d{2}").find(tgl)?.value ?: tgl.take(10)
-                        existingLunchOrders[dateMatch] = menu
+                    val status = row.optString("status", "Belum Diambil")
+                    val isLunch = jdwl.contains("Siang", ignoreCase = true) || jdwl == "2"
+                    if (isLunch && tglRaw.isNotBlank()) {
+                        val dateKey = normalizeDateToIso(tglRaw)
+                        if (dateKey.isNotBlank()) {
+                            val statusLabel = if (status.isNotBlank()) status else "Belum Diambil"
+                            existingLunchOrders[dateKey] = "$menu - $statusLabel"
+                        }
                     }
                 }
             }
 
-            if (existingLunchOrders.isEmpty()) {
-                val syncUrl = URL("$SERVER_URL/mers-proxy/widget-sync?genId=$encGen")
-                val syncJson = httpGetJson(syncUrl)
-                if (syncJson != null && syncJson.optBoolean("success", false)) {
-                    val orders = syncJson.optJSONArray("orders") ?: JSONArray()
-                    for (i in 0 until orders.length()) {
-                        val ord = orders.optJSONObject(i) ?: continue
-                        val ordDate = ord.optString("schedule_date", ord.optString("date", ""))
-                        val mealName = ord.optString("meal_name", "")
-                        val mealId = ord.optString("meal_id", "")
-                        val menuName = ord.optString("menu_name", ord.optString("item_name", "Menu"))
+            // B. Selalu gabungkan dengan Widget Sync (pesanan aktif yang belum/sudah diambil)
+            val syncUrl = URL("$SERVER_URL/mers-proxy/widget-sync?genId=$encGen")
+            val syncJson = httpGetJson(syncUrl)
+            if (syncJson != null && syncJson.optBoolean("success", false)) {
+                val orders = syncJson.optJSONArray("orders") ?: JSONArray()
+                for (i in 0 until orders.length()) {
+                    val ord = orders.optJSONObject(i) ?: continue
+                    val ordDate = ord.optString("schedule_date", ord.optString("tanggal", ord.optString("date", "")))
+                    val mealName = ord.optString("meal_name", ord.optString("meal", ""))
+                    val mealId = ord.optString("meal_id", "")
+                    val menuName = ord.optString("menu_name", ord.optString("menu", ord.optString("item_name", "Menu")))
+                    val status = ord.optString("status", "Belum Diambil")
 
-                        val isLunch = mealId == "2" || mealName.contains("Siang", ignoreCase = true)
-                        if (isLunch && ordDate.isNotBlank()) {
-                            val dateMatch = Regex("\\d{4}-\\d{2}-\\d{2}").find(ordDate)?.value ?: ordDate.take(10)
-                            existingLunchOrders[dateMatch] = menuName
+                    val isLunch = mealId == "2" || mealName.contains("Siang", ignoreCase = true)
+                    if (isLunch && ordDate.isNotBlank()) {
+                        val dateKey = normalizeDateToIso(ordDate)
+                        if (dateKey.isNotBlank()) {
+                            val statusLabel = if (status.isNotBlank()) status else "Belum Diambil"
+                            existingLunchOrders[dateKey] = "$menuName - $statusLabel"
                         }
                     }
                 }
@@ -469,6 +479,19 @@ class AutoOrderWorker(context: Context, params: WorkerParameters) : Worker(conte
             .build()
 
         notificationManager.notify(2001, notification)
+    }
+
+    private fun normalizeDateToIso(rawDate: String): String {
+        val trimmed = rawDate.trim()
+        if (trimmed.isEmpty()) return ""
+        val isoMatch = Regex("\\d{4}-\\d{2}-\\d{2}").find(trimmed)?.value
+        if (isoMatch != null) return isoMatch
+        val dmyMatch = Regex("(\\d{1,2})[/-](\\d{1,2})[/-](\\d{4})").find(trimmed)
+        if (dmyMatch != null) {
+            val (d, m, y) = dmyMatch.destructured
+            return String.format("%04d-%02d-%02d", y.toInt(), m.toInt(), d.toInt())
+        }
+        return trimmed.take(10)
     }
 
     private fun httpGetJson(url: URL): JSONObject? {
