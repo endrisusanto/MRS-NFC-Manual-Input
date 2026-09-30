@@ -69,7 +69,8 @@
             android:gravity="center"
             android:textColor="#38bdf8"
             android:textSize="16sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:text="Ayam Goreng Kalasan" />
 
         <!-- Empty State text (Centered with Big Bold Typography) -->
         <TextView
@@ -108,7 +109,7 @@
                 android:paddingTop="4dp"
                 android:paddingBottom="4dp"
                 android:layout_marginBottom="4dp"
-                android:text="Meal" />
+                android:text="Makan Siang" />
 
             <!-- Loket Badge -->
             <TextView
@@ -125,7 +126,7 @@
                 android:paddingTop="4dp"
                 android:paddingBottom="4dp"
                 android:layout_marginBottom="4dp"
-                android:text="Loket" />
+                android:text="Loket C" />
 
             <!-- Date Badge -->
             <TextView
@@ -142,7 +143,7 @@
                 android:paddingTop="4dp"
                 android:paddingBottom="4dp"
                 android:layout_marginBottom="4dp"
-                android:text="Tanggal" />
+                android:text="Senin, 06 Okt" />
 
             <!-- Status Badge -->
             <TextView
@@ -158,7 +159,7 @@
                 android:paddingRight="10dp"
                 android:paddingTop="6dp"
                 android:paddingBottom="6dp"
-                android:text="Status" />
+                android:text="Belum Diambil" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

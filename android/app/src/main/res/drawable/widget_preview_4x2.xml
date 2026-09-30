@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Background Card -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#0f172a" />
+            <stroke android:width="1.5dp" android:color="#1e293b" />
+            <corners android:radius="16dp" />
+            <size android:width="250dp" android:height="120dp" />
+        </shape>
+    </item>
+
+    <!-- Top Icon Badge -->
+    <item
+        android:width="28dp"
+        android:height="28dp"
+        android:top="12dp"
+        android:left="14dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#1e293b" />
+            <corners android:radius="8dp" />
+        </shape>
+    </item>
+
+    <item
+        android:width="18dp"
+        android:height="18dp"
+        android:top="17dp"
+        android:left="19dp"
+        android:drawable="@drawable/ic_food" />
+
+    <!-- Center Menu Bar -->
+    <item
+        android:top="48dp"
+        android:bottom="38dp"
+        android:left="14dp"
+        android:right="14dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#1e3a8a" />
+            <corners android:radius="6dp" />
+        </shape>
+    </item>
+
+    <!-- Bottom Badges Row -->
+    <item
+        android:height="16dp"
+        android:bottom="14dp"
+        android:left="14dp"
+        android:right="170dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#0369a1" />
+            <corners android:radius="4dp" />
+        </shape>
+    </item>
+
+    <item
+        android:height="16dp"
+        android:bottom="14dp"
+        android:left="90dp"
+        android:right="94dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#475569" />
+            <corners android:radius="4dp" />
+        </shape>
+    </item>
+
+    <item
+        android:height="16dp"
+        android:bottom="14dp"
+        android:left="166dp"
+        android:right="14dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#059669" />
+            <corners android:radius="4dp" />
+        </shape>
+    </item>
+</layer-list>
