@@ -152,5 +152,13 @@ class WidgetSyncWorker(context: Context, params: WorkerParameters) : Worker(cont
                 mgr.getAppWidgetIds(ComponentName(context, MersWidget2x2::class.java)))
         }
         context.sendBroadcast(intent2x2)
+
+        val intentSchedule = Intent(context, MersWidgetSchedule::class.java).apply {
+            action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+            putExtra(MersWidget.EXTRA_RENDER_ONLY, true)
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,
+                mgr.getAppWidgetIds(ComponentName(context, MersWidgetSchedule::class.java)))
+        }
+        context.sendBroadcast(intentSchedule)
     }
 }
