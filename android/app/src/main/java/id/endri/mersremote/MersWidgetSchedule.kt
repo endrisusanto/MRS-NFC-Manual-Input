@@ -37,16 +37,36 @@ class MersWidgetSchedule : AppWidgetProvider() {
             return trimmed.take(10)
         }
 
-        private fun formatScheduleDate(dateStr: String, isToday: Boolean): String {
+        private fun formatScheduleDate(dateStr: String): String {
             val iso = normalizeDateToIso(dateStr)
-            val prefix = if (isToday) "Hari Ini" else "Besok"
             return try {
                 val localDate = LocalDate.parse(iso)
+                val todayDate = LocalDate.now(ZONE)
+                val tomorrowDate = todayDate.plusDays(1)
+
+                val dayName = when (localDate.dayOfWeek) {
+                    DayOfWeek.MONDAY -> "Senin"
+                    DayOfWeek.TUESDAY -> "Selasa"
+                    DayOfWeek.WEDNESDAY -> "Rabu"
+                    DayOfWeek.THURSDAY -> "Kamis"
+                    DayOfWeek.FRIDAY -> "Jumat"
+                    DayOfWeek.SATURDAY -> "Sabtu"
+                    DayOfWeek.SUNDAY -> "Minggu"
+                    else -> ""
+                }
                 val monthNames = arrayOf("Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des")
                 val mStr = monthNames.getOrElse(localDate.monthValue - 1) { "" }
-                String.format("%s, %02d %s", prefix, localDate.dayOfMonth, mStr)
+                val dateFormatted = String.format("%02d %s", localDate.dayOfMonth, mStr)
+
+                if (localDate == todayDate) {
+                    "Hari Ini, $dateFormatted"
+                } else if (localDate == tomorrowDate) {
+                    "Besok, $dateFormatted"
+                } else {
+                    "$dayName, $dateFormatted"
+                }
             } catch (e: Exception) {
-                "$prefix, $dateStr"
+                dateStr
             }
         }
     }
@@ -105,29 +125,13 @@ class MersWidgetSchedule : AppWidgetProvider() {
         }
     }
 
-    private data class ScheduledOrder(
-        val isToday: Boolean,
-        val order: JSONObject
-    )
-
-    private fun getScheduleOrders(ordersJson: String): List<ScheduledOrder> {
-        val list = mutableListOf<ScheduledOrder>()
-        val todayDate = LocalDate.now(ZONE)
-        val tomorrowDate = todayDate.plusDays(1)
-        val todayIso = todayDate.format(DateTimeFormatter.ISO_LOCAL_DATE)
-        val tomorrowIso = tomorrowDate.format(DateTimeFormatter.ISO_LOCAL_DATE)
-
+    private fun getScheduleOrders(ordersJson: String): List<JSONObject> {
+        val list = mutableListOf<JSONObject>()
         try {
             val arr = JSONArray(ordersJson)
             for (i in 0 until arr.length()) {
                 val obj = arr.optJSONObject(i) ?: continue
-                val rawDate = obj.optString("tanggal", obj.optString("schedule_date", ""))
-                val iso = normalizeDateToIso(rawDate)
-                if (iso == todayIso) {
-                    list.add(ScheduledOrder(isToday = true, order = obj))
-                } else if (iso == tomorrowIso) {
-                    list.add(ScheduledOrder(isToday = false, order = obj))
-                }
+                list.add(obj)
             }
         } catch (e: Exception) {}
         return list
@@ -181,26 +185,31 @@ class MersWidgetSchedule : AppWidgetProvider() {
                 val configPending = PendingIntent.getActivity(context, appWidgetId + 50000, configIntent, appFlags)
                 views.setOnClickPendingIntent(R.id.widget_container, configPending)
             } else {
-                views.setTextViewText(R.id.widget_title, name)
-
                 if (scheduleList.isEmpty()) {
+                    views.setTextViewText(R.id.widget_title, name)
                     views.setViewVisibility(R.id.item_menu, View.GONE)
                     views.setViewVisibility(R.id.item_menu_empty, View.VISIBLE)
-                    views.setTextViewText(R.id.item_menu_empty, "🍽️ Tidak ada pesanan untuk Hari Ini & Besok")
+                    views.setTextViewText(R.id.item_menu_empty, "🍱 BELUM ADA PESANAN!\nYuk segera pesan menu kateringmu 🍽️")
                     views.setTextColor(R.id.item_menu_empty, Color.parseColor("#FBBF24"))
                     views.setViewVisibility(R.id.widget_badge_container, View.GONE)
                     views.setViewVisibility(R.id.badge_status, View.GONE)
                     views.setViewVisibility(R.id.widget_prev_btn, View.GONE)
                     views.setViewVisibility(R.id.widget_next_btn, View.GONE)
                 } else {
+                    val currentIndex = prefs.getInt("widget_schedule_index_$appWidgetId", 0) % scheduleList.size
+                    val order = scheduleList[currentIndex]
+
+                    // Title with slide counter if multiple items
+                    if (scheduleList.size > 1) {
+                        views.setTextViewText(R.id.widget_title, "$name (${currentIndex + 1}/${scheduleList.size})")
+                    } else {
+                        views.setTextViewText(R.id.widget_title, name)
+                    }
+
                     views.setViewVisibility(R.id.item_menu, View.VISIBLE)
                     views.setViewVisibility(R.id.item_menu_empty, View.GONE)
                     views.setViewVisibility(R.id.widget_badge_container, View.VISIBLE)
                     views.setViewVisibility(R.id.badge_status, View.VISIBLE)
-
-                    val currentIndex = prefs.getInt("widget_schedule_index_$appWidgetId", 0) % scheduleList.size
-                    val item = scheduleList[currentIndex]
-                    val order = item.order
 
                     val meal = order.optString("meal", order.optString("schedule_meal_name", "Siang"))
                     val menu = order.optString("menu", order.optString("menu_name", "Menu"))
@@ -219,7 +228,7 @@ class MersWidgetSchedule : AppWidgetProvider() {
                     } else "Loket -"
                     views.setTextViewText(R.id.badge_loket, loketText)
 
-                    val dateText = formatScheduleDate(tanggal, item.isToday)
+                    val dateText = formatScheduleDate(tanggal)
                     views.setTextViewText(R.id.badge_date, dateText)
 
                     // Dynamic badge background and text colors matching MersWidget
@@ -237,7 +246,7 @@ class MersWidgetSchedule : AppWidgetProvider() {
                     val isSudah = status.contains("Sudah", ignoreCase = true)
                     views.setInt(R.id.badge_status, "setBackgroundResource", if (isSudah) R.drawable.badge_status_sudah else R.drawable.badge_status)
 
-                    // Carousel Navigation Buttons
+                    // Carousel Navigation Buttons (Always configured if orders exist)
                     if (scheduleList.size > 1) {
                         views.setViewVisibility(R.id.widget_prev_btn, View.VISIBLE)
                         views.setViewVisibility(R.id.widget_next_btn, View.VISIBLE)
