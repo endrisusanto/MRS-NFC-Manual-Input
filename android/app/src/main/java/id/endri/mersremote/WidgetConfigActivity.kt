@@ -237,5 +237,12 @@ class WidgetConfigActivity : Activity() {
                 mgr.getAppWidgetIds(ComponentName(this@WidgetConfigActivity, MersWidget2x2::class.java)))
         }
         sendBroadcast(intent2x2)
+
+        val intentSchedule = Intent(this, MersWidgetSchedule::class.java).apply {
+            action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,
+                mgr.getAppWidgetIds(ComponentName(this@WidgetConfigActivity, MersWidgetSchedule::class.java)))
+        }
+        sendBroadcast(intentSchedule)
     }
 }

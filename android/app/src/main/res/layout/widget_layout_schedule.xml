@@ -5,9 +5,9 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_background"
     android:orientation="vertical"
-    android:padding="8dp">
+    android:padding="10dp">
 
-    <!-- Top Bar: App Shortcut + Title + Refresh Button -->
+    <!-- Top Bar: App Shortcut + Title & Counter Badge + Refresh Button -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -24,17 +24,41 @@
             android:padding="4dp"
             android:scaleType="fitCenter" />
 
-        <TextView
-            android:id="@+id/widget_title"
+        <LinearLayout
+            android:id="@+id/widget_title_container"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:ellipsize="end"
-            android:singleLine="true"
-            android:text="MeRS Jadwal"
-            android:textColor="#FFFFFF"
-            android:textSize="15sp"
-            android:textStyle="bold" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/widget_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:text="MeRS Jadwal"
+                android:textColor="#FFFFFF"
+                android:textSize="14.5sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_counter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/badge_white"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:text="1/3"
+                android:textColor="#0F172A"
+                android:textSize="10.5sp"
+                android:textStyle="bold"
+                android:visibility="visible" />
+        </LinearLayout>
 
         <ImageView
             android:id="@+id/widget_refresh_btn"
@@ -48,7 +72,7 @@
             android:scaleType="fitCenter" />
     </RelativeLayout>
 
-    <!-- Center Carousel Row: Left Arrow + Card Content + Right Arrow -->
+    <!-- Center Menu Row with Circular Arrow Badges on Left and Right -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -56,145 +80,135 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <!-- Left Arrow Button on Left Side of Card -->
+        <!-- Circle Arrow Left Button -->
         <ImageView
             android:id="@+id/widget_prev_btn"
             android:layout_width="28dp"
-            android:layout_height="64dp"
+            android:layout_height="28dp"
             android:layout_marginEnd="6dp"
-            android:background="@drawable/widget_btn_background"
+            android:background="@drawable/widget_circle_btn"
             android:src="@drawable/ic_prev"
-            android:padding="4dp"
+            android:padding="5dp"
             android:scaleType="fitCenter"
             android:visibility="visible" />
 
-        <!-- Middle Card Content -->
-        <LinearLayout
-            android:id="@+id/widget_card_content"
+        <!-- Menu Title in Center -->
+        <TextView
+            android:id="@+id/item_menu"
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:gravity="center_vertical"
-            android:orientation="vertical">
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="2"
+            android:text="Nasi Goreng Kecombrang"
+            android:textColor="#38BDF8"
+            android:textSize="17sp"
+            android:textStyle="bold" />
 
-            <!-- Menu text -->
-            <TextView
-                android:id="@+id/item_menu"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:ellipsize="end"
-                android:maxLines="2"
-                android:gravity="center"
-                android:textColor="#38bdf8"
-                android:textSize="17sp"
-                android:textStyle="bold"
-                android:text="Nasi Goreng Kecombrang" />
+        <!-- Empty State text (when no orders) -->
+        <TextView
+            android:id="@+id/item_menu_empty"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:textColor="#FBBF24"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:lineSpacingMultiplier="1.2"
+            android:visibility="gone"
+            android:text="🍱 BELUM ADA PESANAN!\nYuk pesan kateringmu 🍽️" />
 
-            <!-- Empty State text -->
-            <TextView
-                android:id="@+id/item_menu_empty"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:textColor="#FBBF24"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:lineSpacingMultiplier="1.2"
-                android:visibility="gone"
-                android:text="🍱 BELUM ADA PESANAN!\nYuk pesan kateringmu 🍽️" />
-
-            <!-- 3 Badges Row -->
-            <LinearLayout
-                android:id="@+id/widget_badge_container"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="4dp">
-
-                <!-- Meal Badge -->
-                <TextView
-                    android:id="@+id/badge_meal"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:background="@drawable/badge_meal_siang"
-                    android:textColor="#0F172A"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:paddingLeft="6dp"
-                    android:paddingRight="6dp"
-                    android:paddingTop="4dp"
-                    android:paddingBottom="4dp"
-                    android:layout_marginEnd="4dp"
-                    android:text="Makan Siang" />
-
-                <!-- Loket Badge -->
-                <TextView
-                    android:id="@+id/badge_loket"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:background="@drawable/badge_loket"
-                    android:textColor="#FFFFFF"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:paddingLeft="6dp"
-                    android:paddingRight="6dp"
-                    android:paddingTop="4dp"
-                    android:paddingBottom="4dp"
-                    android:layout_marginEnd="4dp"
-                    android:text="Loket C" />
-
-                <!-- Date Badge -->
-                <TextView
-                    android:id="@+id/badge_date"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:background="@drawable/badge_date"
-                    android:textColor="#FFFFFF"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:paddingLeft="6dp"
-                    android:paddingRight="6dp"
-                    android:paddingTop="4dp"
-                    android:paddingBottom="4dp"
-                    android:text="Hari Ini, 01 Okt" />
-            </LinearLayout>
-
-            <!-- Status Badge Row -->
-            <TextView
-                android:id="@+id/badge_status"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:background="@drawable/badge_status"
-                android:textColor="#FFFFFF"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:paddingLeft="8dp"
-                android:paddingRight="8dp"
-                android:paddingTop="5dp"
-                android:paddingBottom="5dp"
-                android:layout_marginTop="4dp"
-                android:text="Belum Diambil" />
-        </LinearLayout>
-
-        <!-- Right Arrow Button on Right Side of Card -->
+        <!-- Circle Arrow Right Button -->
         <ImageView
             android:id="@+id/widget_next_btn"
             android:layout_width="28dp"
-            android:layout_height="64dp"
+            android:layout_height="28dp"
             android:layout_marginStart="6dp"
-            android:background="@drawable/widget_btn_background"
+            android:background="@drawable/widget_circle_btn"
             android:src="@drawable/ic_next"
-            android:padding="4dp"
+            android:padding="5dp"
             android:scaleType="fitCenter"
             android:visibility="visible" />
     </LinearLayout>
+
+    <!-- Bottom: Full-Width 3 Bento Badges Row (Undisturbed by arrows!) -->
+    <LinearLayout
+        android:id="@+id/widget_badge_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="6dp">
+
+        <!-- Meal Badge -->
+        <TextView
+            android:id="@+id/badge_meal"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:background="@drawable/badge_meal_siang"
+            android:textColor="#0F172A"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp"
+            android:layout_marginEnd="6dp"
+            android:text="Makan Siang" />
+
+        <!-- Loket Badge -->
+        <TextView
+            android:id="@+id/badge_loket"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:background="@drawable/badge_loket"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp"
+            android:layout_marginEnd="6dp"
+            android:text="Loket C" />
+
+        <!-- Date Badge -->
+        <TextView
+            android:id="@+id/badge_date"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:background="@drawable/badge_date"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp"
+            android:text="Hari Ini, 01 Okt" />
+    </LinearLayout>
+
+    <!-- Bottom: Full-Width Status Badge -->
+    <TextView
+        android:id="@+id/badge_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:background="@drawable/badge_status"
+        android:textColor="#FFFFFF"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:layout_marginTop="6dp"
+        android:text="Belum Diambil" />
 </LinearLayout>

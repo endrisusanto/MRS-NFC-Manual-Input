@@ -171,7 +171,7 @@ class MersWidgetSchedule : AppWidgetProvider() {
             views.setOnClickPendingIntent(R.id.widget_refresh_btn, refreshPendingIntent)
             views.setOnClickPendingIntent(R.id.widget_container, refreshPendingIntent)
 
-            // Carousel Navigation Intents for Left and Right buttons
+            // Carousel Navigation Intents for Left and Right circular buttons
             val prevIntent = Intent(context, javaClass).apply {
                 action = ACTION_PREV_SLIDE
                 putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
@@ -189,40 +189,50 @@ class MersWidgetSchedule : AppWidgetProvider() {
                 context, appWidgetId + 70000, nextIntent, mutableFlags
             )
             views.setOnClickPendingIntent(R.id.widget_next_btn, nextPending)
-
-            // Tapping menu text also advances carousel
             views.setOnClickPendingIntent(R.id.item_menu, nextPending)
 
             if (name.isEmpty()) {
                 views.setTextViewText(R.id.widget_title, "📌 Ketuk untuk setup")
+                views.setViewVisibility(R.id.widget_counter, View.GONE)
                 views.setViewVisibility(R.id.item_menu, View.GONE)
                 views.setViewVisibility(R.id.item_menu_empty, View.VISIBLE)
                 views.setTextViewText(R.id.item_menu_empty, "🤷‍♂️\nBelum ada ID dipin\nKetuk di sini untuk input GEN ID")
                 views.setTextColor(R.id.item_menu_empty, Color.parseColor("#94A3B8"))
                 views.setViewVisibility(R.id.widget_badge_container, View.GONE)
                 views.setViewVisibility(R.id.badge_status, View.GONE)
+                views.setViewVisibility(R.id.widget_prev_btn, View.GONE)
+                views.setViewVisibility(R.id.widget_next_btn, View.GONE)
 
                 val configIntent = Intent(context, WidgetConfigActivity::class.java)
                 val configPending = PendingIntent.getActivity(context, appWidgetId + 50000, configIntent, appFlags)
                 views.setOnClickPendingIntent(R.id.widget_container, configPending)
             } else {
+                views.setTextViewText(R.id.widget_title, name)
+
                 if (scheduleList.isEmpty()) {
-                    views.setTextViewText(R.id.widget_title, name)
+                    views.setViewVisibility(R.id.widget_counter, View.GONE)
                     views.setViewVisibility(R.id.item_menu, View.GONE)
                     views.setViewVisibility(R.id.item_menu_empty, View.VISIBLE)
                     views.setTextViewText(R.id.item_menu_empty, "🍱 BELUM ADA PESANAN!\nYuk segera pesan menu kateringmu 🍽️")
                     views.setTextColor(R.id.item_menu_empty, Color.parseColor("#FBBF24"))
                     views.setViewVisibility(R.id.widget_badge_container, View.GONE)
                     views.setViewVisibility(R.id.badge_status, View.GONE)
+                    views.setViewVisibility(R.id.widget_prev_btn, View.GONE)
+                    views.setViewVisibility(R.id.widget_next_btn, View.GONE)
                 } else {
                     val currentIndex = prefs.getInt("widget_schedule_index_$appWidgetId", 0) % scheduleList.size
                     val order = scheduleList[currentIndex]
 
-                    // Title with slide counter if multiple items
+                    // Slide counter badge (e.g. 1/3)
                     if (scheduleList.size > 1) {
-                        views.setTextViewText(R.id.widget_title, "$name (${currentIndex + 1}/${scheduleList.size})")
+                        views.setViewVisibility(R.id.widget_counter, View.VISIBLE)
+                        views.setTextViewText(R.id.widget_counter, "${currentIndex + 1}/${scheduleList.size}")
+                        views.setViewVisibility(R.id.widget_prev_btn, View.VISIBLE)
+                        views.setViewVisibility(R.id.widget_next_btn, View.VISIBLE)
                     } else {
-                        views.setTextViewText(R.id.widget_title, name)
+                        views.setViewVisibility(R.id.widget_counter, View.GONE)
+                        views.setViewVisibility(R.id.widget_prev_btn, View.GONE)
+                        views.setViewVisibility(R.id.widget_next_btn, View.GONE)
                     }
 
                     views.setViewVisibility(R.id.item_menu, View.VISIBLE)
@@ -266,10 +276,6 @@ class MersWidgetSchedule : AppWidgetProvider() {
                     views.setInt(R.id.badge_status, "setBackgroundResource", if (isSudah) R.drawable.badge_status_sudah else R.drawable.badge_status)
                 }
             }
-
-            // Always make left and right arrows visible on the sides of the card
-            views.setViewVisibility(R.id.widget_prev_btn, View.VISIBLE)
-            views.setViewVisibility(R.id.widget_next_btn, View.VISIBLE)
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
