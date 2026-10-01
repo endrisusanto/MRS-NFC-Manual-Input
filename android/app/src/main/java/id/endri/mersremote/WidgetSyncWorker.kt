@@ -84,7 +84,8 @@ class WidgetSyncWorker(context: Context, params: WorkerParameters) : Worker(cont
             if (genId.isEmpty()) return Result.success()
 
             val autoPrefs = applicationContext.getSharedPreferences(AutoOrderWorker.PREFS_NAME, Context.MODE_PRIVATE)
-            val pass = autoPrefs.getString("password", "") ?: ""
+            val pass = prefs.getString("pinned_password", "")?.takeIf { it.isNotEmpty() }
+                ?: autoPrefs.getString("password", "") ?: ""
             val encGen = java.net.URLEncoder.encode(genId, "UTF-8")
             val encPass = if (pass.isNotEmpty()) java.net.URLEncoder.encode(pass, "UTF-8") else ""
 
@@ -95,45 +96,43 @@ class WidgetSyncWorker(context: Context, params: WorkerParameters) : Worker(cont
             var name = prefs.getString("pinned_name", genId) ?: genId
             val ordersMap = mutableMapOf<String, JSONObject>()
 
-            // 1. Fetch from /mers-proxy/history (if password available)
-            if (encPass.isNotEmpty()) {
-                try {
-                    val histUrl = URL("$SERVER_URL/mers-proxy/history?genId=$encGen&password=$encPass&from=$fromDate&to=$toDate")
-                    val histConn = histUrl.openConnection() as HttpURLConnection
-                    histConn.requestMethod = "GET"
-                    histConn.connectTimeout = 15000
-                    histConn.readTimeout = 35000
-                    if (histConn.responseCode == 200) {
-                        val body = histConn.inputStream.bufferedReader().use { it.readText() }
-                        val json = JSONObject(body)
-                        val rows = json.optJSONArray("rows") ?: JSONArray()
-                        for (i in 0 until rows.length()) {
-                            val row = rows.optJSONObject(i) ?: continue
-                            val rowName = row.optString("nama", "")
-                            if (rowName.isNotBlank() && name == genId) name = rowName
+            // 1. Fetch from /mers-proxy/history (always fetch, server/agent fallback to master session if password is blank)
+            try {
+                val histUrl = URL("$SERVER_URL/mers-proxy/history?genId=$encGen&password=$encPass&from=$fromDate&to=$toDate")
+                val histConn = histUrl.openConnection() as HttpURLConnection
+                histConn.requestMethod = "GET"
+                histConn.connectTimeout = 15000
+                histConn.readTimeout = 35000
+                if (histConn.responseCode == 200) {
+                    val body = histConn.inputStream.bufferedReader().use { it.readText() }
+                    val json = JSONObject(body)
+                    val rows = json.optJSONArray("rows") ?: JSONArray()
+                    for (i in 0 until rows.length()) {
+                        val row = rows.optJSONObject(i) ?: continue
+                        val rowName = row.optString("nama", "")
+                        if (rowName.isNotBlank() && (name.isEmpty() || name == genId)) name = rowName
 
-                            val tglIso = row.optString("tanggal_iso", row.optString("tanggal", ""))
-                            val jdwl = row.optString("jadwal", "Makan Siang")
-                            val key = "$tglIso|$jdwl"
-                            val ordObj = JSONObject().apply {
-                                put("meal", jdwl)
-                                put("menu", row.optString("menu", "Menu"))
-                                put("tanggal", tglIso)
-                                put("loket", row.optString("loket", ""))
-                                put("status", row.optString("status", "Belum Diambil"))
-                            }
-                            ordersMap[key] = ordObj
+                        val tglIso = row.optString("tanggal_iso", row.optString("tanggal", ""))
+                        val jdwl = row.optString("jadwal", "Makan Siang")
+                        val key = "$tglIso|$jdwl"
+                        val ordObj = JSONObject().apply {
+                            put("meal", jdwl)
+                            put("menu", row.optString("menu", "Menu"))
+                            put("tanggal", tglIso)
+                            put("loket", row.optString("loket", ""))
+                            put("status", row.optString("status", "Belum Diambil"))
                         }
+                        ordersMap[key] = ordObj
                     }
-                    histConn.disconnect()
-                } catch (e: Exception) {
-                    android.util.Log.w("WidgetSync", "History fetch error: ${e.message}")
                 }
+                histConn.disconnect()
+            } catch (e: Exception) {
+                android.util.Log.w("WidgetSync", "History fetch error: ${e.message}")
             }
 
             // 2. Fetch from /mers-proxy/widget-sync (NFC Live Status)
             try {
-                val syncUrl = URL("$SERVER_URL/mers-proxy/widget-sync?genId=$encGen")
+                val syncUrl = URL("$SERVER_URL/mers-proxy/widget-sync?genId=$encGen&password=$encPass")
                 val syncConn = syncUrl.openConnection() as HttpURLConnection
                 syncConn.requestMethod = "GET"
                 syncConn.connectTimeout = 15000
@@ -142,7 +141,7 @@ class WidgetSyncWorker(context: Context, params: WorkerParameters) : Worker(cont
                     val body = syncConn.inputStream.bufferedReader().use { it.readText() }
                     val json = JSONObject(body)
                     val syncName = json.optString("name", "")
-                    if (syncName.isNotBlank()) name = syncName
+                    if (syncName.isNotBlank() && syncName != genId) name = syncName
 
                     val ordersArr = json.optJSONArray("orders") ?: JSONArray()
                     for (i in 0 until ordersArr.length()) {
@@ -166,8 +165,13 @@ class WidgetSyncWorker(context: Context, params: WorkerParameters) : Worker(cont
                 android.util.Log.w("WidgetSync", "WidgetSync fetch error: ${e.message}")
             }
 
-            // Convert map to sorted JSONArray by date
-            val sortedOrders = ordersMap.values.sortedBy { it.optString("tanggal", "") }
+            // Convert map to sorted JSONArray by date and meal
+            val sortedOrders = ordersMap.values.sortedWith(
+                compareBy(
+                    { it.optString("tanggal", "") },
+                    { if (it.optString("meal", "").contains("Siang", ignoreCase = true)) 0 else 1 }
+                )
+            )
             val finalOrdersArray = JSONArray()
             for (ord in sortedOrders) {
                 finalOrdersArray.put(ord)

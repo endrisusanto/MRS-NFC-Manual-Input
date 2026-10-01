@@ -121,6 +121,45 @@ class WidgetConfigActivity : Activity() {
             LinearLayout.LayoutParams.WRAP_CONTENT
         ).apply { bottomMargin = 24 })
 
+        // Password Label
+        val passLabel = TextView(this).apply {
+            text = "PASSWORD MERS (OPSIONAL)"
+            textSize = 11f
+            setTextColor(subtitleColor)
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            gravity = Gravity.START
+        }
+        card.addView(passLabel, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply { bottomMargin = 8 })
+
+        // Password Input
+        val autoPrefs = getSharedPreferences(AutoOrderWorker.PREFS_NAME, Context.MODE_PRIVATE)
+        val existingPass = prefs.getString("pinned_password", "")?.takeIf { it.isNotEmpty() }
+            ?: autoPrefs.getString("password", "") ?: ""
+
+        val passInput = EditText(this).apply {
+            hint = "Password akun MeRS"
+            setHintTextColor(if (isDark) Color.parseColor("#4b5563") else Color.parseColor("#9ca3af"))
+            setTextColor(titleColor)
+            textSize = 16f
+            gravity = Gravity.CENTER
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            imeOptions = EditorInfo.IME_ACTION_DONE
+            setPadding(32, 28, 32, 28)
+            background = GradientDrawable().apply {
+                setColor(inputBg)
+                cornerRadius = 18f
+                setStroke(2, inputBorder)
+            }
+            if (existingPass.isNotEmpty()) setText(existingPass)
+        }
+        card.addView(passInput, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply { bottomMargin = 24 })
+
         // Save button
         val btn = Button(this).apply {
             text = "Simpan ke Widget"
@@ -133,7 +172,7 @@ class WidgetConfigActivity : Activity() {
                 setColor(Color.parseColor("#2563eb"))
                 cornerRadius = 18f
             }
-            setOnClickListener { saveAndFinish(input.text.toString().trim()) }
+            setOnClickListener { saveAndFinish(input.text.toString().trim(), passInput.text.toString().trim()) }
         }
         card.addView(btn, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
@@ -152,7 +191,7 @@ class WidgetConfigActivity : Activity() {
                 cornerRadius = 18f
                 setStroke(2, borderColor)
             }
-            setOnClickListener { refreshOrders(input.text.toString().trim()) }
+            setOnClickListener { refreshOrders(input.text.toString().trim(), passInput.text.toString().trim()) }
         }
         card.addView(refreshBtn, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
@@ -160,7 +199,7 @@ class WidgetConfigActivity : Activity() {
         ))
 
         // Handle Enter key
-        input.setOnEditorActionListener { _, actionId, _ ->
+        passInput.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
                 btn.performClick()
                 true
@@ -175,13 +214,13 @@ class WidgetConfigActivity : Activity() {
         setContentView(root)
     }
 
-    private fun saveAndFinish(genId: String) {
+    private fun saveAndFinish(genId: String, pass: String = "") {
         if (genId.isEmpty()) {
             Toast.makeText(this, "ID tidak boleh kosong", Toast.LENGTH_SHORT).show()
             return
         }
 
-        savePinnedGenId(genId)
+        savePinnedGenId(genId, pass)
 
         // Update all widgets
         updateWidgets()
@@ -198,26 +237,33 @@ class WidgetConfigActivity : Activity() {
         finish()
     }
 
-    private fun refreshOrders(genId: String) {
+    private fun refreshOrders(genId: String, pass: String = "") {
         if (genId.isEmpty()) {
             Toast.makeText(this, "ID tidak boleh kosong", Toast.LENGTH_SHORT).show()
             return
         }
 
-        savePinnedGenId(genId)
+        savePinnedGenId(genId, pass)
         updateWidgets()
         WidgetSyncWorker.schedule(this)
         WidgetSyncWorker.syncNow(this)
         Toast.makeText(this, "Refresh pesanan dimulai", Toast.LENGTH_SHORT).show()
     }
 
-    private fun savePinnedGenId(genId: String) {
+    private fun savePinnedGenId(genId: String, pass: String = "") {
         getSharedPreferences("mers_widget_prefs", Context.MODE_PRIVATE).edit().apply {
             putString("pinned_gen_id", genId)
+            if (pass.isNotEmpty()) putString("pinned_password", pass)
             putString("pinned_name", genId)
-            putString("pinned_orders", "[]")
             putString("last_sync_error", "")
             apply()
+        }
+        if (pass.isNotEmpty()) {
+            getSharedPreferences(AutoOrderWorker.PREFS_NAME, Context.MODE_PRIVATE).edit().apply {
+                putString("gen_id", genId)
+                putString("password", pass)
+                apply()
+            }
         }
     }
 
