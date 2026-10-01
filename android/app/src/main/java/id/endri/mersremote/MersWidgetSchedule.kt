@@ -223,17 +223,11 @@ class MersWidgetSchedule : AppWidgetProvider() {
                     val currentIndex = prefs.getInt("widget_schedule_index_$appWidgetId", 0) % scheduleList.size
                     val order = scheduleList[currentIndex]
 
-                    // Slide counter badge (e.g. 1/3)
-                    if (scheduleList.size > 1) {
-                        views.setViewVisibility(R.id.widget_counter, View.VISIBLE)
-                        views.setTextViewText(R.id.widget_counter, "${currentIndex + 1}/${scheduleList.size}")
-                        views.setViewVisibility(R.id.widget_prev_btn, View.VISIBLE)
-                        views.setViewVisibility(R.id.widget_next_btn, View.VISIBLE)
-                    } else {
-                        views.setViewVisibility(R.id.widget_counter, View.GONE)
-                        views.setViewVisibility(R.id.widget_prev_btn, View.GONE)
-                        views.setViewVisibility(R.id.widget_next_btn, View.GONE)
-                    }
+                    // Slide counter badge (e.g. 1/1, 1/3)
+                    views.setViewVisibility(R.id.widget_counter, View.VISIBLE)
+                    views.setTextViewText(R.id.widget_counter, "${currentIndex + 1}/${scheduleList.size}")
+                    views.setViewVisibility(R.id.widget_prev_btn, View.VISIBLE)
+                    views.setViewVisibility(R.id.widget_next_btn, View.VISIBLE)
 
                     views.setViewVisibility(R.id.item_menu, View.VISIBLE)
                     views.setViewVisibility(R.id.item_menu_empty, View.GONE)
