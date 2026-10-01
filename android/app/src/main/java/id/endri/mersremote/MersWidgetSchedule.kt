@@ -37,15 +37,16 @@ class MersWidgetSchedule : AppWidgetProvider() {
             return trimmed.take(10)
         }
 
-        private fun formatShortDate(dateStr: String): String {
+        private fun formatScheduleDate(dateStr: String, isToday: Boolean): String {
             val iso = normalizeDateToIso(dateStr)
+            val prefix = if (isToday) "Hari Ini" else "Besok"
             return try {
                 val localDate = LocalDate.parse(iso)
                 val monthNames = arrayOf("Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des")
                 val mStr = monthNames.getOrElse(localDate.monthValue - 1) { "" }
-                String.format("%02d %s", localDate.dayOfMonth, mStr)
+                String.format("%s, %02d %s", prefix, localDate.dayOfMonth, mStr)
             } catch (e: Exception) {
-                dateStr
+                "$prefix, $dateStr"
             }
         }
     }
@@ -153,26 +154,28 @@ class MersWidgetSchedule : AppWidgetProvider() {
                 PendingIntent.FLAG_UPDATE_CURRENT
             }
 
-            // App shortcut
+            // App shortcut button
             val appIntent = Intent(context, MainActivity::class.java)
             val appPendingIntent = PendingIntent.getActivity(context, appWidgetId + 30000, appIntent, appFlags)
             views.setOnClickPendingIntent(R.id.widget_app_btn, appPendingIntent)
 
-            // Refresh action on refresh icon
+            // Refresh action when clicking widget container
             val refreshIntent = Intent(context, javaClass).apply { action = ACTION_REFRESH }
             val refreshPendingIntent = PendingIntent.getBroadcast(
                 context, appWidgetId + 40000, refreshIntent, appFlags
             )
-            views.setOnClickPendingIntent(R.id.widget_refresh_btn, refreshPendingIntent)
+            views.setOnClickPendingIntent(R.id.widget_container, refreshPendingIntent)
 
             if (name.isEmpty()) {
-                views.setTextViewText(R.id.widget_title, "📌 Setup MeRS")
-                views.setTextViewText(R.id.widget_day_indicator, "Ketuk untuk input ID")
-                views.setViewVisibility(R.id.widget_card_content, View.GONE)
+                views.setTextViewText(R.id.widget_title, "📌 Ketuk untuk setup")
+                views.setViewVisibility(R.id.item_menu, View.GONE)
+                views.setViewVisibility(R.id.item_menu_empty, View.VISIBLE)
+                views.setTextViewText(R.id.item_menu_empty, "🤷‍♂️\nBelum ada ID dipin\nKetuk di sini untuk input GEN ID")
+                views.setTextColor(R.id.item_menu_empty, Color.parseColor("#94A3B8"))
+                views.setViewVisibility(R.id.widget_badge_container, View.GONE)
+                views.setViewVisibility(R.id.badge_status, View.GONE)
                 views.setViewVisibility(R.id.widget_prev_btn, View.GONE)
                 views.setViewVisibility(R.id.widget_next_btn, View.GONE)
-                views.setViewVisibility(R.id.card_empty, View.VISIBLE)
-                views.setTextViewText(R.id.text_empty, "Belum ada ID GEN dipin\nKetuk untuk memasukkan ID")
 
                 val configIntent = Intent(context, WidgetConfigActivity::class.java)
                 val configPending = PendingIntent.getActivity(context, appWidgetId + 50000, configIntent, appFlags)
@@ -181,17 +184,19 @@ class MersWidgetSchedule : AppWidgetProvider() {
                 views.setTextViewText(R.id.widget_title, name)
 
                 if (scheduleList.isEmpty()) {
-                    views.setTextViewText(R.id.widget_day_indicator, "Jadwal H & H+1")
-                    views.setViewVisibility(R.id.widget_card_content, View.GONE)
+                    views.setViewVisibility(R.id.item_menu, View.GONE)
+                    views.setViewVisibility(R.id.item_menu_empty, View.VISIBLE)
+                    views.setTextViewText(R.id.item_menu_empty, "🍽️ Tidak ada pesanan untuk Hari Ini & Besok")
+                    views.setTextColor(R.id.item_menu_empty, Color.parseColor("#FBBF24"))
+                    views.setViewVisibility(R.id.widget_badge_container, View.GONE)
+                    views.setViewVisibility(R.id.badge_status, View.GONE)
                     views.setViewVisibility(R.id.widget_prev_btn, View.GONE)
                     views.setViewVisibility(R.id.widget_next_btn, View.GONE)
-                    views.setViewVisibility(R.id.card_empty, View.VISIBLE)
-                    views.setTextViewText(R.id.text_empty, "🍽️ Tidak ada pesanan untuk Hari Ini & Besok")
-
-                    views.setOnClickPendingIntent(R.id.widget_container, refreshPendingIntent)
                 } else {
-                    views.setViewVisibility(R.id.card_empty, View.GONE)
-                    views.setViewVisibility(R.id.widget_card_content, View.VISIBLE)
+                    views.setViewVisibility(R.id.item_menu, View.VISIBLE)
+                    views.setViewVisibility(R.id.item_menu_empty, View.GONE)
+                    views.setViewVisibility(R.id.widget_badge_container, View.VISIBLE)
+                    views.setViewVisibility(R.id.badge_status, View.VISIBLE)
 
                     val currentIndex = prefs.getInt("widget_schedule_index_$appWidgetId", 0) % scheduleList.size
                     val item = scheduleList[currentIndex]
@@ -203,39 +208,36 @@ class MersWidgetSchedule : AppWidgetProvider() {
                     val loket = order.optString("loket", order.optString("loket_name", ""))
                     val status = order.optString("status", if (order.optBoolean("order_ambil", false)) "Sudah Diambil" else "Belum Diambil")
 
-                    // Subheader / Indicator: "📅 HARI INI • 1/3" or "📅 BESOK • 2/3"
-                    val dayLabel = if (item.isToday) "📅 HARI INI" else "📅 BESOK"
-                    val countLabel = if (scheduleList.size > 1) " • ${currentIndex + 1}/${scheduleList.size}" else ""
-                    views.setTextViewText(R.id.widget_day_indicator, "$dayLabel$countLabel")
-                    views.setTextColor(R.id.widget_day_indicator, Color.parseColor(if (item.isToday) "#38BDF8" else "#A78BFA"))
-
-                    // Title menu badge fullwidth
+                    // Middle row menu text
                     views.setTextViewText(R.id.item_menu, menu)
 
-                    // 3 Group Badges (Background Putih, Text Hitam)
+                    // Badges: Waktu Makan, Loket, Tanggal
                     val isSiang = meal.contains("Siang", ignoreCase = true)
-                    views.setTextViewText(R.id.badge_meal, if (isSiang) "Siang" else "Malam")
-                    views.setInt(R.id.badge_meal, "setBackgroundResource", R.drawable.badge_white)
-                    views.setTextColor(R.id.badge_meal, Color.parseColor("#0F172A"))
-
+                    views.setTextViewText(R.id.badge_meal, if (isSiang) "Makan Siang" else "Makan Malam")
                     val loketText = if (loket.isNotBlank()) {
                         if (loket.startsWith("Loket", ignoreCase = true)) loket else "Loket $loket"
                     } else "Loket -"
                     views.setTextViewText(R.id.badge_loket, loketText)
-                    views.setInt(R.id.badge_loket, "setBackgroundResource", R.drawable.badge_white)
-                    views.setTextColor(R.id.badge_loket, Color.parseColor("#0F172A"))
 
-                    val dateText = formatShortDate(tanggal)
+                    val dateText = formatScheduleDate(tanggal, item.isToday)
                     views.setTextViewText(R.id.badge_date, dateText)
-                    views.setInt(R.id.badge_date, "setBackgroundResource", R.drawable.badge_white)
-                    views.setTextColor(R.id.badge_date, Color.parseColor("#0F172A"))
+
+                    // Dynamic badge background and text colors matching MersWidget
+                    val mealBg = if (isSiang) R.drawable.badge_meal_siang else R.drawable.badge_meal_malam
+                    views.setInt(R.id.badge_meal, "setBackgroundResource", mealBg)
+                    views.setInt(R.id.badge_loket, "setBackgroundResource", mealBg)
+                    views.setInt(R.id.badge_date, "setBackgroundResource", mealBg)
+                    val badgeTextColor = Color.parseColor(if (isSiang) "#111827" else "#F8FAFC")
+                    views.setTextColor(R.id.badge_meal, badgeTextColor)
+                    views.setTextColor(R.id.badge_loket, badgeTextColor)
+                    views.setTextColor(R.id.badge_date, badgeTextColor)
 
                     // Status badge
                     views.setTextViewText(R.id.badge_status, status)
                     val isSudah = status.contains("Sudah", ignoreCase = true)
                     views.setInt(R.id.badge_status, "setBackgroundResource", if (isSudah) R.drawable.badge_status_sudah else R.drawable.badge_status)
 
-                    // Horizontal Carousel Navigation Buttons
+                    // Carousel Navigation Buttons
                     if (scheduleList.size > 1) {
                         views.setViewVisibility(R.id.widget_prev_btn, View.VISIBLE)
                         views.setViewVisibility(R.id.widget_next_btn, View.VISIBLE)
@@ -257,13 +259,9 @@ class MersWidgetSchedule : AppWidgetProvider() {
                             context, appWidgetId + 70000, nextIntent, mutableFlags
                         )
                         views.setOnClickPendingIntent(R.id.widget_next_btn, nextPending)
-
-                        // Tapping menu also advances next slide
-                        views.setOnClickPendingIntent(R.id.item_menu, nextPending)
                     } else {
                         views.setViewVisibility(R.id.widget_prev_btn, View.GONE)
                         views.setViewVisibility(R.id.widget_next_btn, View.GONE)
-                        views.setOnClickPendingIntent(R.id.item_menu, refreshPendingIntent)
                     }
                 }
             }

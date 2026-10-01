@@ -102,7 +102,7 @@
                 android:layout_weight="1"
                 android:gravity="center"
                 android:background="@drawable/badge_meal_siang"
-                android:textColor="#FFFFFF"
+                android:textColor="#0F172A"
                 android:textSize="14sp"
                 android:textStyle="bold"
                 android:paddingLeft="12dp"

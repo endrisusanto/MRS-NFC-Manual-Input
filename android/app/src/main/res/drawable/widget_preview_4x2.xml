@@ -10,7 +10,7 @@
         </shape>
     </item>
 
-    <!-- Top Icon Badge -->
+    <!-- Top Left Icon Box -->
     <item
         android:width="26dp"
         android:height="26dp"
@@ -29,26 +29,45 @@
         android:left="17dp"
         android:drawable="@drawable/ic_food" />
 
-    <!-- Center Menu Bar -->
+    <!-- Top Right Nav Button (Next) -->
     <item
-        android:top="40dp"
-        android:bottom="48dp"
-        android:left="12dp"
+        android:width="20dp"
+        android:height="20dp"
+        android:top="13dp"
         android:right="12dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#1e293b" />
+            <corners android:radius="4dp" />
+        </shape>
+    </item>
+
+    <item
+        android:width="12dp"
+        android:height="12dp"
+        android:top="17dp"
+        android:right="16dp"
+        android:drawable="@drawable/ic_next" />
+
+    <!-- Center Menu Text Line -->
+    <item
+        android:top="44dp"
+        android:bottom="46dp"
+        android:left="24dp"
+        android:right="24dp">
         <shape android:shape="rectangle">
             <solid android:color="#1e3a8a" />
             <corners android:radius="6dp" />
         </shape>
     </item>
 
-    <!-- Bottom 3 White Badges Row (Waktu makan, Loket, Tanggal) -->
+    <!-- 3 Badges Row -->
     <item
         android:height="16dp"
         android:bottom="26dp"
         android:left="12dp"
         android:right="172dp">
         <shape android:shape="rectangle">
-            <solid android:color="#FFFFFF" />
+            <solid android:color="#F8FAFC" />
             <corners android:radius="4dp" />
         </shape>
     </item>
@@ -59,7 +78,7 @@
         android:left="92dp"
         android:right="92dp">
         <shape android:shape="rectangle">
-            <solid android:color="#FFFFFF" />
+            <solid android:color="#047857" />
             <corners android:radius="4dp" />
         </shape>
     </item>
@@ -70,7 +89,7 @@
         android:left="172dp"
         android:right="12dp">
         <shape android:shape="rectangle">
-            <solid android:color="#FFFFFF" />
+            <solid android:color="#334155" />
             <corners android:radius="4dp" />
         </shape>
     </item>
@@ -82,7 +101,7 @@
         android:left="12dp"
         android:right="12dp">
         <shape android:shape="rectangle">
-            <solid android:color="#059669" />
+            <solid android:color="#F87171" />
             <corners android:radius="4dp" />
         </shape>
     </item>
