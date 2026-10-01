@@ -29,61 +29,81 @@
         android:left="17dp"
         android:drawable="@drawable/ic_food" />
 
-    <!-- Top Right Nav Buttons (Prev & Next Arrows) -->
+    <!-- Top Right Refresh Button -->
     <item
-        android:width="20dp"
-        android:height="20dp"
-        android:top="13dp"
-        android:right="36dp">
-        <shape android:shape="rectangle">
-            <solid android:color="#1e293b" />
-            <corners android:radius="4dp" />
-        </shape>
-    </item>
-
-    <item
-        android:width="12dp"
-        android:height="12dp"
-        android:top="17dp"
-        android:right="40dp"
-        android:drawable="@drawable/ic_prev" />
-
-    <item
-        android:width="20dp"
-        android:height="20dp"
-        android:top="13dp"
+        android:width="26dp"
+        android:height="26dp"
+        android:top="10dp"
         android:right="12dp">
         <shape android:shape="rectangle">
             <solid android:color="#1e293b" />
-            <corners android:radius="4dp" />
+            <corners android:radius="6dp" />
         </shape>
     </item>
 
     <item
-        android:width="12dp"
-        android:height="12dp"
-        android:top="17dp"
-        android:right="16dp"
+        android:width="16dp"
+        android:height="16dp"
+        android:top="15dp"
+        android:right="17dp"
+        android:drawable="@drawable/ic_refresh" />
+
+    <!-- Left Side Arrow Button -->
+    <item
+        android:width="22dp"
+        android:height="52dp"
+        android:top="44dp"
+        android:left="8dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#1e293b" />
+            <corners android:radius="6dp" />
+        </shape>
+    </item>
+
+    <item
+        android:width="14dp"
+        android:height="14dp"
+        android:top="63dp"
+        android:left="12dp"
+        android:drawable="@drawable/ic_prev" />
+
+    <!-- Right Side Arrow Button -->
+    <item
+        android:width="22dp"
+        android:height="52dp"
+        android:top="44dp"
+        android:right="8dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#1e293b" />
+            <corners android:radius="6dp" />
+        </shape>
+    </item>
+
+    <item
+        android:width="14dp"
+        android:height="14dp"
+        android:top="63dp"
+        android:right="12dp"
         android:drawable="@drawable/ic_next" />
 
     <!-- Center Menu Text Line -->
     <item
-        android:top="44dp"
-        android:bottom="46dp"
-        android:left="24dp"
-        android:right="24dp">
+        android:top="42dp"
+        android:bottom="48dp"
+        android:left="38dp"
+        android:right="38dp">
         <shape android:shape="rectangle">
             <solid android:color="#1e3a8a" />
             <corners android:radius="6dp" />
         </shape>
     </item>
 
-    <!-- 3 Group Badges Row -->
+    <!-- 3 Badges Row -->
     <item
-        android:height="16dp"
+        android:height="14dp"
         android:bottom="26dp"
-        android:left="12dp"
-        android:right="172dp">
+        android:left="38dp"
+        android:right="150dp">
         <shape android:shape="rectangle">
             <solid android:color="#F8FAFC" />
             <corners android:radius="4dp" />
@@ -91,10 +111,10 @@
     </item>
 
     <item
-        android:height="16dp"
+        android:height="14dp"
         android:bottom="26dp"
-        android:left="92dp"
-        android:right="92dp">
+        android:left="108dp"
+        android:right="108dp">
         <shape android:shape="rectangle">
             <solid android:color="#047857" />
             <corners android:radius="4dp" />
@@ -102,22 +122,22 @@
     </item>
 
     <item
-        android:height="16dp"
+        android:height="14dp"
         android:bottom="26dp"
-        android:left="172dp"
-        android:right="12dp">
+        android:left="150dp"
+        android:right="38dp">
         <shape android:shape="rectangle">
             <solid android:color="#334155" />
             <corners android:radius="4dp" />
         </shape>
     </item>
 
-    <!-- Status Badge (Bottom Fullwidth) -->
+    <!-- Status Badge (Bottom) -->
     <item
         android:height="14dp"
         android:bottom="8dp"
-        android:left="12dp"
-        android:right="12dp">
+        android:left="38dp"
+        android:right="38dp">
         <shape android:shape="rectangle">
             <solid android:color="#F87171" />
             <corners android:radius="4dp" />

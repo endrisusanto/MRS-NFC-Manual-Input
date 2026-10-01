@@ -163,12 +163,35 @@ class MersWidgetSchedule : AppWidgetProvider() {
             val appPendingIntent = PendingIntent.getActivity(context, appWidgetId + 30000, appIntent, appFlags)
             views.setOnClickPendingIntent(R.id.widget_app_btn, appPendingIntent)
 
-            // Refresh action when clicking widget container
+            // Refresh action on refresh icon & container
             val refreshIntent = Intent(context, javaClass).apply { action = ACTION_REFRESH }
             val refreshPendingIntent = PendingIntent.getBroadcast(
                 context, appWidgetId + 40000, refreshIntent, appFlags
             )
+            views.setOnClickPendingIntent(R.id.widget_refresh_btn, refreshPendingIntent)
             views.setOnClickPendingIntent(R.id.widget_container, refreshPendingIntent)
+
+            // Carousel Navigation Intents for Left and Right buttons
+            val prevIntent = Intent(context, javaClass).apply {
+                action = ACTION_PREV_SLIDE
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+            }
+            val prevPending = PendingIntent.getBroadcast(
+                context, appWidgetId + 60000, prevIntent, mutableFlags
+            )
+            views.setOnClickPendingIntent(R.id.widget_prev_btn, prevPending)
+
+            val nextIntent = Intent(context, javaClass).apply {
+                action = ACTION_NEXT_SLIDE
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+            }
+            val nextPending = PendingIntent.getBroadcast(
+                context, appWidgetId + 70000, nextIntent, mutableFlags
+            )
+            views.setOnClickPendingIntent(R.id.widget_next_btn, nextPending)
+
+            // Tapping menu text also advances carousel
+            views.setOnClickPendingIntent(R.id.item_menu, nextPending)
 
             if (name.isEmpty()) {
                 views.setTextViewText(R.id.widget_title, "📌 Ketuk untuk setup")
@@ -178,8 +201,6 @@ class MersWidgetSchedule : AppWidgetProvider() {
                 views.setTextColor(R.id.item_menu_empty, Color.parseColor("#94A3B8"))
                 views.setViewVisibility(R.id.widget_badge_container, View.GONE)
                 views.setViewVisibility(R.id.badge_status, View.GONE)
-                views.setViewVisibility(R.id.widget_prev_btn, View.GONE)
-                views.setViewVisibility(R.id.widget_next_btn, View.GONE)
 
                 val configIntent = Intent(context, WidgetConfigActivity::class.java)
                 val configPending = PendingIntent.getActivity(context, appWidgetId + 50000, configIntent, appFlags)
@@ -193,8 +214,6 @@ class MersWidgetSchedule : AppWidgetProvider() {
                     views.setTextColor(R.id.item_menu_empty, Color.parseColor("#FBBF24"))
                     views.setViewVisibility(R.id.widget_badge_container, View.GONE)
                     views.setViewVisibility(R.id.badge_status, View.GONE)
-                    views.setViewVisibility(R.id.widget_prev_btn, View.GONE)
-                    views.setViewVisibility(R.id.widget_next_btn, View.GONE)
                 } else {
                     val currentIndex = prefs.getInt("widget_schedule_index_$appWidgetId", 0) % scheduleList.size
                     val order = scheduleList[currentIndex]
@@ -245,35 +264,12 @@ class MersWidgetSchedule : AppWidgetProvider() {
                     views.setTextViewText(R.id.badge_status, status)
                     val isSudah = status.contains("Sudah", ignoreCase = true)
                     views.setInt(R.id.badge_status, "setBackgroundResource", if (isSudah) R.drawable.badge_status_sudah else R.drawable.badge_status)
-
-                    // Carousel Navigation Buttons (Always configured if orders exist)
-                    if (scheduleList.size > 1) {
-                        views.setViewVisibility(R.id.widget_prev_btn, View.VISIBLE)
-                        views.setViewVisibility(R.id.widget_next_btn, View.VISIBLE)
-
-                        val prevIntent = Intent(context, javaClass).apply {
-                            action = ACTION_PREV_SLIDE
-                            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-                        }
-                        val prevPending = PendingIntent.getBroadcast(
-                            context, appWidgetId + 60000, prevIntent, mutableFlags
-                        )
-                        views.setOnClickPendingIntent(R.id.widget_prev_btn, prevPending)
-
-                        val nextIntent = Intent(context, javaClass).apply {
-                            action = ACTION_NEXT_SLIDE
-                            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-                        }
-                        val nextPending = PendingIntent.getBroadcast(
-                            context, appWidgetId + 70000, nextIntent, mutableFlags
-                        )
-                        views.setOnClickPendingIntent(R.id.widget_next_btn, nextPending)
-                    } else {
-                        views.setViewVisibility(R.id.widget_prev_btn, View.GONE)
-                        views.setViewVisibility(R.id.widget_next_btn, View.GONE)
-                    }
                 }
             }
+
+            // Always make left and right arrows visible on the sides of the card
+            views.setViewVisibility(R.id.widget_prev_btn, View.VISIBLE)
+            views.setViewVisibility(R.id.widget_next_btn, View.VISIBLE)
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
