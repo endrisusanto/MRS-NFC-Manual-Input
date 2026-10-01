@@ -658,26 +658,159 @@ app.get("/mers-proxy/history", async (req, res) => {
   }
 });
 
-// GET /mers-proxy/widget-sync?genId=GEN — Widget auto-sync (uses master account)
+function parseIndonesianDate(dateStr) {
+  if (!dateStr) return '';
+  const clean = dateStr.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/gi, ' ').trim();
+  const match = clean.match(/(\d{1,2})\s+([a-z]+)\s+(\d{4})/i);
+  if (!match) return '';
+
+  const months = {
+    januari: '01', january: '01', jan: '01',
+    februari: '02', february: '02', feb: '02',
+    maret: '03', march: '03', mar: '03',
+    april: '04', apr: '04',
+    mei: '05', may: '05',
+    juni: '06', june: '06', jun: '06',
+    juli: '07', july: '07', jul: '07',
+    agustus: '08', august: '08', agu: '08', aug: '08',
+    september: '09', sep: '09',
+    oktober: '10', october: '10', okt: '10', oct: '10',
+    november: '11', nov: '11',
+    desember: '12', december: '12', des: '12', dec: '12'
+  };
+
+  const day = match[1].padStart(2, '0');
+  const mStr = match[2].toLowerCase();
+  const month = months[mStr] || '01';
+  const year = match[3];
+
+  return `${year}-${month}-${day}`;
+}
+
+// GET /mers-proxy/widget-sync?genId=GEN&password=PASS — Widget auto-sync (uses order_history + cek_pesanan)
 app.get("/mers-proxy/widget-sync", async (req, res) => {
-  const { genId, device = "loket-pc-1" } = req.query;
+  const { genId, password, device = "loket-pc-1" } = req.query;
   if (!genId) return res.json({ success: false, message: "genId wajib" });
 
   try {
-    const uid = genUidMap[String(genId)] || (/^\d{10}$/.test(String(genId)) ? String(genId) : "");
-    if (!uid) return res.json({ success: false, message: "GEN tidak ada di map UID", orders: [] });
-    const data = await requestAgent(String(device), { action: "cek_pesanan", uid });
-    if (!data.success) return res.json({ success: false, message: data.message || "Cek pesanan gagal", orders: [] });
+    const today = new Date().toISOString().split("T")[0];
+    const toDate = new Date(Date.now() + 14 * 86400000).toISOString().split("T")[0];
 
-    const sourceOrders = data?.data?.orders || [];
-    const name = sourceOrders[0]?.first_name || String(genId);
-    const orders = sourceOrders.map(order => ({
-      meal: order.schedule_meal_name || "",
-      menu: order.menu_name || "",
-      tanggal: order.schedule_date || "",
-      loket: order.loket_name || order.order_loket || "",
-      status: order.order_ambil ? "Sudah Diambil" : "Belum Diambil",
-    }));
+    let historyRows = [];
+    let name = String(genId);
+
+    // 1. Ambil riwayat pesanan (H s/d H+14) via agent (seperti pada Pesan Menu)
+    const agent = getAgentForDevice(device);
+    if (agent) {
+      try {
+        const histData = await requestAgent(device, {
+          action: "order_history",
+          genId: String(genId),
+          password: String(password || ""),
+          from: today,
+          to: toDate,
+        });
+        if (histData && Array.isArray(histData.rows)) {
+          historyRows = histData.rows;
+        }
+      } catch (e) {
+        console.warn("[WidgetSync] order_history via agent failed:", e.message);
+      }
+    }
+
+    // 2. Ambil juga dari cek_pesanan (NFC live status)
+    let nfcOrders = [];
+    const uid = genUidMap[String(genId)] || (/^\d{10}$/.test(String(genId)) ? String(genId) : "");
+    if (uid && agent) {
+      try {
+        const data = await requestAgent(String(device), { action: "cek_pesanan", uid });
+        if (data && data.success && Array.isArray(data.data?.orders)) {
+          nfcOrders = data.data.orders;
+          if (nfcOrders[0]?.first_name) {
+            name = nfcOrders[0].first_name;
+          }
+        }
+      } catch (e) {
+        console.warn("[WidgetSync] cek_pesanan failed:", e.message);
+      }
+    }
+
+    // 3. Fallback: jika historyRows kosong, coba scrape report via withSession
+    if (historyRows.length === 0) {
+      try {
+        const { session, result: r } = await withSession(String(genId), password, session => {
+          const userId = session.userId || genId;
+          const reportType = (userId.length >= 8) ? 'all' : userId;
+          return mersRequest({
+            method: "GET",
+            urlPath: `/reports/generate/${today}/${toDate}/${reportType}/final-order`,
+            cookie: session.cookie,
+          });
+        });
+        const trRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+        let tr;
+        while ((tr = trRe.exec(r.body)) !== null) {
+          const cells = [];
+          const tdRe = /<td[^>]*>([\s\S]*?)<\/td>/gi;
+          let td;
+          while ((td = tdRe.exec(tr[1])) !== null) {
+            cells.push(td[1].replace(/<[^>]+>/g, "").trim());
+          }
+          if (cells.length >= 7) {
+            let offset = 0;
+            if (cells[4] === String(genId)) offset = 0;
+            else if (cells[5] === String(genId)) offset = 1;
+            else continue;
+
+            const tgl = cells[0 + offset] || "";
+            historyRows.push({
+              tanggal: tgl,
+              tanggal_iso: parseIndonesianDate(tgl) || tgl,
+              jadwal: cells[1 + offset] || "",
+              loket: cells[2 + offset] || "",
+              nama: cells[3 + offset] || "",
+              gen: cells[4 + offset] || "",
+              menu: cells[6 + offset] || "",
+              status: cells[7 + offset] || "",
+            });
+            if (cells[3 + offset] && name === String(genId)) name = cells[3 + offset];
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 4. Gabungkan historyRows & nfcOrders
+    const ordersMap = new Map();
+
+    for (const row of historyRows) {
+      if (row.nama && name === String(genId)) name = row.nama;
+      const tglIso = row.tanggal_iso || parseIndonesianDate(row.tanggal) || row.tanggal || "";
+      const jdwl = row.jadwal || row.meal || "Makan Siang";
+      const key = `${tglIso}|${jdwl}`;
+      ordersMap.set(key, {
+        meal: jdwl,
+        menu: row.menu || "",
+        tanggal: tglIso,
+        loket: row.loket || "",
+        status: row.status ? (row.status.includes("Sudah") ? "Sudah Diambil" : "Belum Diambil") : "Belum Diambil",
+      });
+    }
+
+    for (const ord of nfcOrders) {
+      const tgl = ord.schedule_date || today;
+      const meal = ord.schedule_meal_name || "Makan Siang";
+      const key = `${tgl}|${meal}`;
+      const existing = ordersMap.get(key) || {};
+      ordersMap.set(key, {
+        meal: meal,
+        menu: ord.menu_name || existing.menu || "",
+        tanggal: tgl,
+        loket: ord.loket_name || ord.order_loket || existing.loket || "",
+        status: ord.order_ambil ? "Sudah Diambil" : (existing.status || "Belum Diambil"),
+      });
+    }
+
+    const orders = Array.from(ordersMap.values()).sort((a, b) => (a.tanggal || "").localeCompare(b.tanggal || ""));
     return res.json({ success: true, name, orders });
   } catch (e) {
     return res.json({ success: false, message: e.message, orders: [] });

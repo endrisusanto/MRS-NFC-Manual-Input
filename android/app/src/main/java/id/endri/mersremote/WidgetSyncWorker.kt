@@ -83,7 +83,17 @@ class WidgetSyncWorker(context: Context, params: WorkerParameters) : Worker(cont
         return try {
             if (genId.isEmpty()) return Result.success()
 
-            val url = URL("$SERVER_URL/mers-proxy/widget-sync?genId=$genId")
+            val autoPrefs = applicationContext.getSharedPreferences(AutoOrderWorker.PREFS_NAME, Context.MODE_PRIVATE)
+            val pass = autoPrefs.getString("password", "") ?: ""
+            val encGen = java.net.URLEncoder.encode(genId, "UTF-8")
+            val encPass = if (pass.isNotEmpty()) java.net.URLEncoder.encode(pass, "UTF-8") else ""
+            val urlStr = if (encPass.isNotEmpty()) {
+                "$SERVER_URL/mers-proxy/widget-sync?genId=$encGen&password=$encPass"
+            } else {
+                "$SERVER_URL/mers-proxy/widget-sync?genId=$encGen"
+            }
+
+            val url = URL(urlStr)
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "GET"
             conn.connectTimeout = 15000
