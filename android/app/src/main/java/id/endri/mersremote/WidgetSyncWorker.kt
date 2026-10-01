@@ -87,44 +87,96 @@ class WidgetSyncWorker(context: Context, params: WorkerParameters) : Worker(cont
             val pass = autoPrefs.getString("password", "") ?: ""
             val encGen = java.net.URLEncoder.encode(genId, "UTF-8")
             val encPass = if (pass.isNotEmpty()) java.net.URLEncoder.encode(pass, "UTF-8") else ""
-            val urlStr = if (encPass.isNotEmpty()) {
-                "$SERVER_URL/mers-proxy/widget-sync?genId=$encGen&password=$encPass"
-            } else {
-                "$SERVER_URL/mers-proxy/widget-sync?genId=$encGen"
+
+            val today = java.time.LocalDate.now(ZONE)
+            val fromDate = today.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE)
+            val toDate = today.plusDays(14).format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE)
+
+            var name = prefs.getString("pinned_name", genId) ?: genId
+            val ordersMap = mutableMapOf<String, JSONObject>()
+
+            // 1. Fetch from /mers-proxy/history (if password available)
+            if (encPass.isNotEmpty()) {
+                try {
+                    val histUrl = URL("$SERVER_URL/mers-proxy/history?genId=$encGen&password=$encPass&from=$fromDate&to=$toDate")
+                    val histConn = histUrl.openConnection() as HttpURLConnection
+                    histConn.requestMethod = "GET"
+                    histConn.connectTimeout = 15000
+                    histConn.readTimeout = 35000
+                    if (histConn.responseCode == 200) {
+                        val body = histConn.inputStream.bufferedReader().use { it.readText() }
+                        val json = JSONObject(body)
+                        val rows = json.optJSONArray("rows") ?: JSONArray()
+                        for (i in 0 until rows.length()) {
+                            val row = rows.optJSONObject(i) ?: continue
+                            val rowName = row.optString("nama", "")
+                            if (rowName.isNotBlank() && name == genId) name = rowName
+
+                            val tglIso = row.optString("tanggal_iso", row.optString("tanggal", ""))
+                            val jdwl = row.optString("jadwal", "Makan Siang")
+                            val key = "$tglIso|$jdwl"
+                            val ordObj = JSONObject().apply {
+                                put("meal", jdwl)
+                                put("menu", row.optString("menu", "Menu"))
+                                put("tanggal", tglIso)
+                                put("loket", row.optString("loket", ""))
+                                put("status", row.optString("status", "Belum Diambil"))
+                            }
+                            ordersMap[key] = ordObj
+                        }
+                    }
+                    histConn.disconnect()
+                } catch (e: Exception) {
+                    android.util.Log.w("WidgetSync", "History fetch error: ${e.message}")
+                }
             }
 
-            val url = URL(urlStr)
-            val conn = url.openConnection() as HttpURLConnection
-            conn.requestMethod = "GET"
-            conn.connectTimeout = 15000
-            conn.readTimeout = 35000
+            // 2. Fetch from /mers-proxy/widget-sync (NFC Live Status)
+            try {
+                val syncUrl = URL("$SERVER_URL/mers-proxy/widget-sync?genId=$encGen")
+                val syncConn = syncUrl.openConnection() as HttpURLConnection
+                syncConn.requestMethod = "GET"
+                syncConn.connectTimeout = 15000
+                syncConn.readTimeout = 35000
+                if (syncConn.responseCode == 200) {
+                    val body = syncConn.inputStream.bufferedReader().use { it.readText() }
+                    val json = JSONObject(body)
+                    val syncName = json.optString("name", "")
+                    if (syncName.isNotBlank()) name = syncName
 
-            val responseCode = conn.responseCode
-            if (responseCode != 200) {
-                prefs.edit().putString("last_sync_error", "Sync gagal HTTP $responseCode").apply()
-                refreshWidgets()
-                return Result.success()
+                    val ordersArr = json.optJSONArray("orders") ?: JSONArray()
+                    for (i in 0 until ordersArr.length()) {
+                        val ord = ordersArr.optJSONObject(i) ?: continue
+                        val tgl = ord.optString("tanggal", ord.optString("schedule_date", fromDate))
+                        val meal = ord.optString("meal", ord.optString("schedule_meal_name", "Makan Siang"))
+                        val key = "$tgl|$meal"
+                        val existing = ordersMap[key] ?: JSONObject()
+                        val updated = JSONObject().apply {
+                            put("meal", meal)
+                            put("menu", ord.optString("menu", existing.optString("menu", "Menu")))
+                            put("tanggal", tgl)
+                            put("loket", ord.optString("loket", existing.optString("loket", "")))
+                            put("status", ord.optString("status", existing.optString("status", "Belum Diambil")))
+                        }
+                        ordersMap[key] = updated
+                    }
+                }
+                syncConn.disconnect()
+            } catch (e: Exception) {
+                android.util.Log.w("WidgetSync", "WidgetSync fetch error: ${e.message}")
             }
 
-            val reader = BufferedReader(InputStreamReader(conn.inputStream))
-            val body = reader.readText()
-            reader.close()
-            conn.disconnect()
-
-            val json = JSONObject(body)
-            if (!json.optBoolean("success", false)) {
-                prefs.edit().putString("last_sync_error", json.optString("message", "Sync gagal")).apply()
-                refreshWidgets()
-                return Result.success()
+            // Convert map to sorted JSONArray by date
+            val sortedOrders = ordersMap.values.sortedBy { it.optString("tanggal", "") }
+            val finalOrdersArray = JSONArray()
+            for (ord in sortedOrders) {
+                finalOrdersArray.put(ord)
             }
-
-            val name = json.optString("name", genId)
-            val ordersArray = json.optJSONArray("orders") ?: JSONArray()
 
             // Update shared prefs
             prefs.edit().apply {
                 if (name.isNotEmpty()) putString("pinned_name", name)
-                putString("pinned_orders", ordersArray.toString())
+                putString("pinned_orders", finalOrdersArray.toString())
                 putLong("last_sync", System.currentTimeMillis())
                 putString("last_sync_error", "")
                 apply()
