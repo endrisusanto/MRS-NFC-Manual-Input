@@ -6,11 +6,11 @@
             <solid android:color="#0f172a" />
             <stroke android:width="1.5dp" android:color="#1e293b" />
             <corners android:radius="16dp" />
-            <size android:width="250dp" android:height="150dp" />
+            <size android:width="250dp" android:height="120dp" />
         </shape>
     </item>
 
-    <!-- Top Icon Badge -->
+    <!-- Top Left Icon Box -->
     <item
         android:width="24dp"
         android:height="24dp"
@@ -29,29 +29,88 @@
         android:left="17dp"
         android:drawable="@drawable/ic_food" />
 
-    <!-- Card 1: Hari Ini -->
+    <!-- Top Right Nav Buttons (Prev / Next) -->
     <item
-        android:top="38dp"
-        android:bottom="60dp"
-        android:left="12dp"
-        android:right="12dp">
+        android:width="18dp"
+        android:height="18dp"
+        android:top="13dp"
+        android:right="34dp">
         <shape android:shape="rectangle">
             <solid android:color="#1e293b" />
-            <stroke android:width="1dp" android:color="#334155" />
-            <corners android:radius="8dp" />
+            <corners android:radius="4dp" />
         </shape>
     </item>
 
-    <!-- Card 2: Besok -->
     <item
-        android:top="96dp"
-        android:bottom="10dp"
+        android:width="18dp"
+        android:height="18dp"
+        android:top="13dp"
+        android:right="12dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#1e293b" />
+            <corners android:radius="4dp" />
+        </shape>
+    </item>
+
+    <!-- Center: Title Menu Badge (Fullwidth) -->
+    <item
+        android:top="40dp"
+        android:bottom="48dp"
         android:left="12dp"
         android:right="12dp">
         <shape android:shape="rectangle">
             <solid android:color="#1e293b" />
             <stroke android:width="1dp" android:color="#334155" />
-            <corners android:radius="8dp" />
+            <corners android:radius="6dp" />
+        </shape>
+    </item>
+
+    <!-- 3 Group Badges Row (Background Putih, Text Hitam) -->
+    <!-- Badge 1: Waktu Makan (White background) -->
+    <item
+        android:height="16dp"
+        android:bottom="26dp"
+        android:left="12dp"
+        android:right="172dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#FFFFFF" />
+            <corners android:radius="4dp" />
+        </shape>
+    </item>
+
+    <!-- Badge 2: Loket (White background) -->
+    <item
+        android:height="16dp"
+        android:bottom="26dp"
+        android:left="92dp"
+        android:right="92dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#FFFFFF" />
+            <corners android:radius="4dp" />
+        </shape>
+    </item>
+
+    <!-- Badge 3: Tanggal (White background) -->
+    <item
+        android:height="16dp"
+        android:bottom="26dp"
+        android:left="172dp"
+        android:right="12dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#FFFFFF" />
+            <corners android:radius="4dp" />
+        </shape>
+    </item>
+
+    <!-- Status Badge (Bottom Fullwidth) -->
+    <item
+        android:height="14dp"
+        android:bottom="8dp"
+        android:left="12dp"
+        android:right="12dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#059669" />
+            <corners android:radius="4dp" />
         </shape>
     </item>
 </layer-list>

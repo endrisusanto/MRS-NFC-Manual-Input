@@ -7,11 +7,11 @@
     android:orientation="vertical"
     android:padding="10dp">
 
-    <!-- Top Bar: App Shortcut + Title + Refresh Button -->
+    <!-- Top Bar: App Shortcut + Title + Carousel Controls (Prev/Next) + Refresh -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="6dp">
+        android:layout_marginBottom="4dp">
 
         <ImageView
             android:id="@+id/widget_app_btn"
@@ -24,362 +24,205 @@
             android:padding="4dp"
             android:scaleType="fitCenter" />
 
-        <TextView
-            android:id="@+id/widget_title"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:ellipsize="end"
-            android:singleLine="true"
-            android:text="Jadwal Makan (H &amp; H+1)"
-            android:textColor="#FFFFFF"
-            android:textSize="13sp"
-            android:textStyle="bold" />
+            android:gravity="center"
+            android:orientation="vertical">
 
-        <ImageView
-            android:id="@+id/widget_refresh_btn"
-            android:layout_width="26dp"
-            android:layout_height="26dp"
+            <TextView
+                android:id="@+id/widget_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:text="Jadwal Makan"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_day_indicator"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:text="📅 HARI INI • 1/2"
+                android:textColor="#38BDF8"
+                android:textSize="10.5sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
-            android:background="@drawable/widget_btn_background"
-            android:src="@drawable/ic_refresh"
-            android:padding="4dp"
-            android:scaleType="fitCenter" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/widget_prev_btn"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:layout_marginEnd="3dp"
+                android:background="@drawable/widget_btn_background"
+                android:src="@drawable/ic_prev"
+                android:padding="4dp"
+                android:scaleType="fitCenter"
+                android:visibility="gone" />
+
+            <ImageView
+                android:id="@+id/widget_next_btn"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:layout_marginEnd="3dp"
+                android:background="@drawable/widget_btn_background"
+                android:src="@drawable/ic_next"
+                android:padding="4dp"
+                android:scaleType="fitCenter"
+                android:visibility="gone" />
+
+            <ImageView
+                android:id="@+id/widget_refresh_btn"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:background="@drawable/widget_btn_background"
+                android:src="@drawable/ic_refresh"
+                android:padding="4dp"
+                android:scaleType="fitCenter" />
+        </LinearLayout>
     </RelativeLayout>
 
-    <!-- Content Cards Area -->
+    <!-- Main Content: Active Schedule Card in Carousel -->
     <LinearLayout
-        android:id="@+id/widget_cards_container"
+        android:id="@+id/widget_card_content"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:orientation="vertical"
         android:gravity="center_vertical">
 
-        <!-- Card Hari Ini -->
-        <LinearLayout
-            android:id="@+id/card_today"
+        <!-- Title Menu Badge Fullwidth -->
+        <TextView
+            android:id="@+id/item_menu"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="6dp"
-            android:background="@drawable/widget_card_background"
-            android:orientation="vertical"
-            android:padding="8dp">
-
-            <TextView
-                android:id="@+id/today_header"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="#38BDF8"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:text="📅 HARI INI" />
-
-            <!-- Meal Row 1 (Siang) -->
-            <LinearLayout
-                android:id="@+id/today_meal_1_row"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:id="@+id/today_meal_1_badge"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/badge_meal_siang"
-                    android:paddingLeft="6dp"
-                    android:paddingRight="6dp"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp"
-                    android:text="Siang"
-                    android:textColor="#FFFFFF"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/today_meal_1_menu"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="6dp"
-                    android:layout_marginEnd="4dp"
-                    android:ellipsize="end"
-                    android:singleLine="true"
-                    android:text="Ayam Goreng Kalasan"
-                    android:textColor="#FFFFFF"
-                    android:textSize="12.5sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/today_meal_1_loket"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/badge_loket"
-                    android:paddingLeft="6dp"
-                    android:paddingRight="6dp"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp"
-                    android:text="Loket C"
-                    android:textColor="#94A3B8"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/today_meal_1_status"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:background="@drawable/badge_status"
-                    android:paddingLeft="6dp"
-                    android:paddingRight="6dp"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp"
-                    android:text="Belum Diambil"
-                    android:textColor="#FFFFFF"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <!-- Meal Row 2 (Malam - conditional) -->
-            <LinearLayout
-                android:id="@+id/today_meal_2_row"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:visibility="gone">
-
-                <TextView
-                    android:id="@+id/today_meal_2_badge"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/badge_meal_malam"
-                    android:paddingLeft="6dp"
-                    android:paddingRight="6dp"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp"
-                    android:text="Malam"
-                    android:textColor="#FFFFFF"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/today_meal_2_menu"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="6dp"
-                    android:layout_marginEnd="4dp"
-                    android:ellipsize="end"
-                    android:singleLine="true"
-                    android:textColor="#FFFFFF"
-                    android:textSize="12.5sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/today_meal_2_loket"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/badge_loket"
-                    android:paddingLeft="6dp"
-                    android:paddingRight="6dp"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp"
-                    android:textColor="#94A3B8"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/today_meal_2_status"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:background="@drawable/badge_status"
-                    android:paddingLeft="6dp"
-                    android:paddingRight="6dp"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp"
-                    android:textColor="#FFFFFF"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- Card Besok -->
-        <LinearLayout
-            android:id="@+id/card_tomorrow"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/widget_card_background"
-            android:orientation="vertical"
-            android:padding="8dp">
-
-            <TextView
-                android:id="@+id/tomorrow_header"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="#A78BFA"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:text="📅 BESOK" />
-
-            <!-- Meal Row 1 (Siang) -->
-            <LinearLayout
-                android:id="@+id/tomorrow_meal_1_row"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:id="@+id/tomorrow_meal_1_badge"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/badge_meal_siang"
-                    android:paddingLeft="6dp"
-                    android:paddingRight="6dp"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp"
-                    android:text="Siang"
-                    android:textColor="#FFFFFF"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tomorrow_meal_1_menu"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="6dp"
-                    android:layout_marginEnd="4dp"
-                    android:ellipsize="end"
-                    android:singleLine="true"
-                    android:text="Nasi Goreng Kecombrang"
-                    android:textColor="#FFFFFF"
-                    android:textSize="12.5sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tomorrow_meal_1_loket"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/badge_loket"
-                    android:paddingLeft="6dp"
-                    android:paddingRight="6dp"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp"
-                    android:text="Loket B"
-                    android:textColor="#94A3B8"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tomorrow_meal_1_status"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:background="@drawable/badge_status"
-                    android:paddingLeft="6dp"
-                    android:paddingRight="6dp"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp"
-                    android:text="Belum Diambil"
-                    android:textColor="#FFFFFF"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <!-- Meal Row 2 (Malam - conditional) -->
-            <LinearLayout
-                android:id="@+id/tomorrow_meal_2_row"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:visibility="gone">
-
-                <TextView
-                    android:id="@+id/tomorrow_meal_2_badge"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/badge_meal_malam"
-                    android:paddingLeft="6dp"
-                    android:paddingRight="6dp"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp"
-                    android:text="Malam"
-                    android:textColor="#FFFFFF"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tomorrow_meal_2_menu"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="6dp"
-                    android:layout_marginEnd="4dp"
-                    android:ellipsize="end"
-                    android:singleLine="true"
-                    android:textColor="#FFFFFF"
-                    android:textSize="12.5sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tomorrow_meal_2_loket"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/badge_loket"
-                    android:paddingLeft="6dp"
-                    android:paddingRight="6dp"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp"
-                    android:textColor="#94A3B8"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tomorrow_meal_2_status"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:background="@drawable/badge_status"
-                    android:paddingLeft="6dp"
-                    android:paddingRight="6dp"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp"
-                    android:textColor="#FFFFFF"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- Empty State Card (Visible when neither Today nor Tomorrow has order) -->
-        <LinearLayout
-            android:id="@+id/card_empty"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/widget_card_background"
-            android:orientation="vertical"
-            android:padding="16dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="@drawable/widget_menu_badge_bg"
             android:gravity="center"
-            android:visibility="gone">
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:paddingLeft="10dp"
+            android:paddingRight="10dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:text="Nasi Goreng Kecombrang"
+            android:textColor="#38BDF8"
+            android:textSize="14.5sp"
+            android:textStyle="bold" />
 
+        <!-- 3 Group Badges: Waktu Makan, Loket, Tanggal (Background Putih, Text Hitam) -->
+        <LinearLayout
+            android:id="@+id/widget_badge_group"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <!-- 1. Waktu Makan Badge -->
             <TextView
-                android:id="@+id/text_empty"
-                android:layout_width="wrap_content"
+                android:id="@+id/badge_meal"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                android:background="@drawable/badge_white"
                 android:gravity="center"
-                android:textColor="#FBBF24"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:text="🍽️ Tidak ada pesanan untuk Hari Ini &amp; Besok" />
+                android:paddingLeft="6dp"
+                android:paddingRight="6dp"
+                android:paddingTop="3dp"
+                android:paddingBottom="3dp"
+                android:text="Siang"
+                android:textColor="#0F172A"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <!-- 2. Loket Badge -->
+            <TextView
+                android:id="@+id/badge_loket"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                android:background="@drawable/badge_white"
+                android:gravity="center"
+                android:paddingLeft="6dp"
+                android:paddingRight="6dp"
+                android:paddingTop="3dp"
+                android:paddingBottom="3dp"
+                android:text="Loket C"
+                android:textColor="#0F172A"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <!-- 3. Tanggal Badge -->
+            <TextView
+                android:id="@+id/badge_date"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/badge_white"
+                android:gravity="center"
+                android:paddingLeft="6dp"
+                android:paddingRight="6dp"
+                android:paddingTop="3dp"
+                android:paddingBottom="3dp"
+                android:text="01 Okt"
+                android:textColor="#0F172A"
+                android:textSize="11sp"
+                android:textStyle="bold" />
         </LinearLayout>
+
+        <!-- Status Badge below -->
+        <TextView
+            android:id="@+id/badge_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:background="@drawable/badge_status"
+            android:gravity="center"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:text="Belum Diambil"
+            android:textColor="#FFFFFF"
+            android:textSize="11.5sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Empty State View -->
+    <LinearLayout
+        android:id="@+id/card_empty"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/text_empty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:lineSpacingMultiplier="1.2"
+            android:text="🍽️ Tidak ada pesanan untuk Hari Ini &amp; Besok"
+            android:textColor="#FBBF24"
+            android:textSize="13sp"
+            android:textStyle="bold" />
     </LinearLayout>
 </LinearLayout>
